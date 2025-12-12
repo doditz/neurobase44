@@ -124,8 +124,27 @@ Deno.serve(async (req) => {
             logManager.warning(`Insufficient personas (${max_paths} < ${MIN_PERSONAS_FOR_DEBATE}) - Debate may be suboptimal`);
         }
 
-        // ÉTAPE 1: Sélection des Personas (with agent context)
-        logManager.info('Selecting personas with agent context');
+        // ÉTAPE 0.5: DSTIB-Hebden Semantic Routing (if not provided by caller)
+        let dstib_routing = settings.dstib_routing || null;
+        if (!dstib_routing) {
+            try {
+                const dstibResponse = await base44.functions.invoke('dstibHebdenRouter', {
+                    user_message: prompt
+                });
+                if (dstibResponse.data && dstibResponse.data.success) {
+                    dstib_routing = dstibResponse.data.routing_result;
+                    logManager.success('DSTIB routing obtained', {
+                        semantic_tier: dstib_routing.semantic_tier,
+                        routing_layer: dstib_routing.routing_layer
+                    });
+                }
+            } catch (dstibError) {
+                logManager.warning(`DSTIB routing skipped: ${dstibError.message}`);
+            }
+        }
+
+        // ÉTAPE 1: Sélection des Personas (with agent context + DSTIB suggestions)
+        logManager.info('Selecting personas with agent context + DSTIB');
 
         const personaSelectionResult = await base44.functions.invoke('personaTeamOptimizer', {
             user_message: prompt,
@@ -133,7 +152,11 @@ Deno.serve(async (req) => {
             archetype,
             dominant_hemisphere,
             max_personas: max_paths,
-            settings: settings
+            settings: {
+                ...settings,
+                dstib_routing,
+                suggested_personas: dstib_routing?.suggested_personas || []
+            }
         });
 
         if (!personaSelectionResult.data || !personaSelectionResult.data.success) {

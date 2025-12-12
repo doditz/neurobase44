@@ -161,8 +161,8 @@ Key guidelines:
         let qronasResult;
         let debateMetrics = {};
 
-        // STEP 2: ASSESS
-        logManager.system('=== STEP 2: ASSESS (SMARCE Scoring) ===');
+        // STEP 2: ASSESS (SMARCE + DSTIB)
+        logManager.system('=== STEP 2: ASSESS (SMARCE + DSTIB-Hebden) ===');
         try {
             const smarceResponse = await base44.functions.invoke('smarceScorer', {
                 user_message,
@@ -184,11 +184,39 @@ Key guidelines:
             logManager.warning('Using default SMARCE values');
         }
 
+        // STEP 2.2: DSTIB-Hebden Semantic Routing
+        let dstibRouting = null;
+        try {
+            const dstibResponse = await base44.functions.invoke('dstibHebdenRouter', {
+                user_message,
+                context: full_context
+            });
+
+            if (dstibResponse.data && dstibResponse.data.success) {
+                dstibRouting = dstibResponse.data.routing_result;
+                logManager.success('DSTIB-Hebden routing completed', {
+                    semantic_tier: dstibRouting.semantic_tier,
+                    routing_layer: dstibRouting.routing_layer,
+                    target_omega: dstibRouting.target_omega
+                });
+                
+                // Override dominant_hemisphere if DSTIB suggests different
+                if (dstibRouting.target_omega < 0.4) {
+                    dominant_hemisphere = 'right';
+                } else if (dstibRouting.target_omega > 0.6) {
+                    dominant_hemisphere = 'left';
+                }
+            }
+        } catch (dstibError) {
+            logManager.warning(`DSTIB-Hebden skipped: ${dstibError.message}`);
+        }
+
         thinkingSteps.push({
             step: 'ASSESS',
             complexity_score,
             archetype,
-            dominant_hemisphere
+            dominant_hemisphere,
+            dstib_routing: dstibRouting
         });
 
         // STEP 2.5: CONDITIONAL WEB SEARCH (OPTIMIZED)

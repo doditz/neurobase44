@@ -36,7 +36,8 @@ Deno.serve(async (req) => {
             user_settings = {}, // Renamed from settings
             needs_conversational_tone = false, // 🔥 NEW parameter
             fact_check_available = false, // NEW
-            citation_count = 0 // NEW
+            citation_count = 0, // NEW
+            dstib_routing = null // NEW: DSTIB-Hebden routing result
         } = requestData;
 
         logManager.info('D2STIM Modulator invoked', {
@@ -154,6 +155,36 @@ Deno.serve(async (req) => {
         if (needs_conversational_tone) {
             config.temperature = Math.min(0.85, (config.temperature || 0.7) + 0.15);
             config.conversational_mode = true; // Flag for downstream consumers
+        }
+
+        // 🔥 NEW: DSTIB-Hebden routing adjustments
+        if (dstib_routing) {
+            logManager.info('Applying DSTIB-Hebden routing adjustments', {
+                routing_layer: dstib_routing.routing_layer,
+                semantic_tier: dstib_routing.semantic_tier
+            });
+
+            // Adjust based on routing layer
+            if (dstib_routing.routing_layer === 'Fast') {
+                config.max_personas = Math.max(2, Math.min(config.max_personas, 4));
+                config.debate_rounds = Math.max(1, Math.min(config.debate_rounds, 2));
+            } else if (dstib_routing.routing_layer === 'Deep') {
+                config.max_personas = Math.min(10, config.max_personas + 2);
+                config.debate_rounds = Math.min(20, config.debate_rounds + 1);
+            }
+
+            // Apply D2 profile influence
+            if (dstib_routing.d2_profile === 'D2Stim') {
+                d2_activation = Math.min(0.9, d2_activation + 0.1);
+            } else if (dstib_routing.d2_profile === 'D2Pin') {
+                d2_activation = Math.max(0.3, d2_activation - 0.1);
+            }
+
+            logManager.success('DSTIB adjustments applied', {
+                d2_profile: dstib_routing.d2_profile,
+                personas: config.max_personas,
+                rounds: config.debate_rounds
+            });
         }
 
         logManager.success('D2STIM modulation complete', {
