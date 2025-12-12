@@ -24,20 +24,16 @@ Deno.serve(async (req) => {
 D2 Configuration: Low Excitement (d2_stim=0.2), High Precision (d2_pin=0.9).
 Focus on logical reasoning and factual accuracy.`;
 
-        const results = [];
-        
-        // PHASE 1: THE GAUNTLET (Sequential Execution)
-        console.log(`[Gauntlet] Starting Phase 1 for ${questions.length} questions`);
+        // OPTIMIZATION: Batch create all records first
+        console.log(`[Gauntlet] Creating ${questions.length} result records...`);
+        const resultRecords = [];
         
         for (let i = 0; i < questions.length; i++) {
             const question = questions[i];
             const questionText = typeof question === 'string' ? question : question.question_text;
-            const questionId = typeof question === 'string' ? `Q${i+1}` : question.question_id;
+            const questionId = typeof question === 'string' ? `Q${i+1}` : (question.question_id || `Q${i+1}`);
             
-            console.log(`[Gauntlet] Processing question ${i+1}/${questions.length}: ${questionId}`);
-            
-            // Create initial result record
-            const resultRecord = await base44.asServiceRole.entities.GauntletResult.create({
+            const record = await base44.asServiceRole.entities.GauntletResult.create({
                 run_id: runId,
                 question_id: questionId,
                 question: questionText,
@@ -45,61 +41,65 @@ Focus on logical reasoning and factual accuracy.`;
                 d2_config: d2Config
             });
             
+            resultRecords.push({ ...record, questionText });
+        }
+        
+        // PHASE 1: THE GAUNTLET (Sequential but optimized)
+        console.log(`[Gauntlet] Starting Phase 1: Answering questions`);
+        
+        for (const record of resultRecords) {
             try {
-                // Call InvokeLLM with timeout handling
                 const startTime = Date.now();
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
                 
                 const response = await Promise.race([
                     base44.integrations.Core.InvokeLLM({
-                        prompt: `${systemPrompt}\n\nQuestion: ${questionText}\n\nProvide a precise, objective answer:`,
+                        prompt: `${systemPrompt}\n\nQuestion: ${record.questionText}\n\nProvide a precise, objective answer:`,
                     }),
                     new Promise((_, reject) => 
                         setTimeout(() => reject(new Error('Timeout')), 60000)
                     )
                 ]);
                 
-                clearTimeout(timeoutId);
                 const timeTaken = Date.now() - startTime;
                 
-                // Update with answer
-                await base44.asServiceRole.entities.GauntletResult.update(resultRecord.id, {
+                await base44.asServiceRole.entities.GauntletResult.update(record.id, {
                     model_answer: response,
                     time_taken_ms: timeTaken,
                     status: 'answered'
                 });
                 
-                results.push({ ...resultRecord, model_answer: response, time_taken_ms: timeTaken });
-                console.log(`[Gauntlet] Question ${questionId} answered in ${timeTaken}ms`);
+                record.model_answer = response;
+                record.time_taken_ms = timeTaken;
+                record.status = 'answered';
+                
+                console.log(`[Gauntlet] ${record.question_id}: ${timeTaken}ms`);
                 
             } catch (error) {
-                console.error(`[Gauntlet] Error on question ${questionId}:`, error.message);
+                console.error(`[Gauntlet] Error ${record.question_id}:`, error.message);
                 
-                await base44.asServiceRole.entities.GauntletResult.update(resultRecord.id, {
+                await base44.asServiceRole.entities.GauntletResult.update(record.id, {
                     status: error.message.includes('Timeout') ? 'timeout' : 'error',
                     error_message: error.message
                 });
                 
-                results.push({ ...resultRecord, status: 'error', error_message: error.message });
+                record.status = 'error';
+                record.error_message = error.message;
             }
         }
         
-        // PHASE 2: THE JUDGMENT
+        // PHASE 2: THE JUDGMENT (Sequential)
         console.log(`[Gauntlet] Starting Phase 2: Judgment`);
         
-        for (const result of results) {
-            if (result.status !== 'answered') {
-                console.log(`[Gauntlet] Skipping judgment for ${result.question_id} (status: ${result.status})`);
-                continue;
-            }
+        for (const record of resultRecords) {
+            if (record.status !== 'answered') continue;
             
             try {
-                const judgePrompt = `You are an objective judge evaluating AI responses.
+                const judgeResponse = await base44.integrations.Core.InvokeLLM({
+                    prompt: `You are an objective judge evaluating AI responses.
 
-Question: ${result.question}
+Question: ${record.questionText}
 
-Answer: ${result.model_answer}
+Answer: ${record.model_answer}
 
 Rate this answer on a scale of 1-10 based on:
 - Accuracy: Is it factually correct?
@@ -108,64 +108,61 @@ Rate this answer on a scale of 1-10 based on:
 
 Provide your response in this exact format:
 Score: [number 1-10]
-Reasoning: [brief explanation]`;
-
-                const judgeResponse = await base44.integrations.Core.InvokeLLM({
-                    prompt: judgePrompt
+Reasoning: [brief explanation]`
                 });
                 
-                // Parse score and reasoning
                 const scoreMatch = judgeResponse.match(/Score:\s*(\d+)/i);
                 const reasoningMatch = judgeResponse.match(/Reasoning:\s*(.+)/is);
                 
                 const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
                 const reasoning = reasoningMatch ? reasoningMatch[1].trim() : judgeResponse;
                 
-                await base44.asServiceRole.entities.GauntletResult.update(result.id, {
+                await base44.asServiceRole.entities.GauntletResult.update(record.id, {
                     judge_score: score,
                     judge_reasoning: reasoning,
                     status: 'judged'
                 });
                 
-                console.log(`[Gauntlet] Judged ${result.question_id}: Score ${score}/10`);
+                record.judge_score = score;
+                record.judge_reasoning = reasoning;
+                record.status = 'judged';
+                
+                console.log(`[Gauntlet] ${record.question_id}: ${score}/10`);
                 
             } catch (error) {
-                console.error(`[Gauntlet] Judgment error for ${result.question_id}:`, error.message);
+                console.error(`[Gauntlet] Judge error ${record.question_id}:`, error.message);
                 
-                await base44.asServiceRole.entities.GauntletResult.update(result.id, {
-                    error_message: `Judgment failed: ${error.message}`
+                await base44.asServiceRole.entities.GauntletResult.update(record.id, {
+                    error_message: `Judge failed: ${error.message}`
                 });
             }
         }
         
-        // Final summary
-        const finalResults = await base44.asServiceRole.entities.GauntletResult.filter({
-            run_id: runId
-        });
+        // Calculate summary from in-memory records (avoid extra query)
+        const judgedResults = resultRecords.filter(r => r.judge_score);
+        const timedResults = resultRecords.filter(r => r.time_taken_ms);
         
         const summary = {
             total_questions: questions.length,
-            answered: finalResults.filter(r => r.status === 'answered' || r.status === 'judged').length,
-            judged: finalResults.filter(r => r.status === 'judged').length,
-            timeouts: finalResults.filter(r => r.status === 'timeout').length,
-            errors: finalResults.filter(r => r.status === 'error').length,
-            average_score: finalResults
-                .filter(r => r.judge_score)
-                .reduce((sum, r) => sum + r.judge_score, 0) / 
-                finalResults.filter(r => r.judge_score).length || 0,
-            average_time_ms: finalResults
-                .filter(r => r.time_taken_ms)
-                .reduce((sum, r) => sum + r.time_taken_ms, 0) / 
-                finalResults.filter(r => r.time_taken_ms).length || 0
+            answered: resultRecords.filter(r => r.status === 'answered' || r.status === 'judged').length,
+            judged: resultRecords.filter(r => r.status === 'judged').length,
+            timeouts: resultRecords.filter(r => r.status === 'timeout').length,
+            errors: resultRecords.filter(r => r.status === 'error').length,
+            average_score: judgedResults.length > 0 
+                ? judgedResults.reduce((sum, r) => sum + r.judge_score, 0) / judgedResults.length 
+                : 0,
+            average_time_ms: timedResults.length > 0
+                ? timedResults.reduce((sum, r) => sum + r.time_taken_ms, 0) / timedResults.length
+                : 0
         };
         
-        console.log(`[Gauntlet] COMPLETE. Summary:`, summary);
+        console.log(`[Gauntlet] COMPLETE:`, summary);
         
         return Response.json({
             success: true,
             run_id: runId,
             summary,
-            results: finalResults
+            results: resultRecords
         });
         
     } catch (error) {
