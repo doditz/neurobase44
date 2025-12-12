@@ -245,26 +245,15 @@ Key guidelines:
             );
         }
         
-        // MANDATORY web search for grounding
-        logManager.info('Mandatory web search queued');
+        // MANDATORY web search via InvokeLLM with internet context
+        logManager.info('Mandatory web search queued (InvokeLLM)');
         enrichmentPromises.push(
-            base44.asServiceRole.integrations.search_web({
-                query: user_message.substring(0, 200),
-                limit: 3
+            base44.integrations.Core.InvokeLLM({
+                prompt: `Provide factual context and recent information about: ${user_message.substring(0, 300)}`,
+                add_context_from_internet: true
             }).then(result => ({ type: 'mandatory_web', result }))
             .catch(error => ({ type: 'mandatory_web', error }))
         );
-        
-        // Additional LLM-enhanced web search if complexity warrants
-        if (complexity_score >= 0.4) {
-            enrichmentPromises.push(
-                base44.integrations.Core.InvokeLLM({
-                    prompt: `Recherche factuelle: ${user_message}`,
-                    add_context_from_internet: true
-                }).then(result => ({ type: 'web_llm', result }))
-                .catch(error => ({ type: 'web_llm', error }))
-            );
-        }
         
         // OPTIMIZATION: Wait for all searches in parallel
         if (enrichmentPromises.length > 0) {
@@ -297,16 +286,12 @@ Key guidelines:
                         logManager.success(`External knowledge: ${result.data.results?.total_results || 0} results`);
                     }
                     
-                    if (type === 'mandatory_web' && result && Array.isArray(result)) {
-                        mandatoryWebSearchResults = result;
-                        webSearchContext = `\n\n## 🌐 MANDATORY WEB GROUNDING\n\n${result.map((r, i) => 
-                            `[${i+1}] ${r.title}: ${r.description} (${r.url})`
-                        ).join('\n')}\n\n`;
-                        
-                        for (const searchResult of result) {
+                    if (type === 'mandatory_web' && result && typeof result === 'string' && result.length > 50) {
+                        webSearchContext += `\n\n## 🌐 MANDATORY WEB GROUNDING\n\n${result}\n\n`;
+                        const urlMatches = result.match(/https?:\/\/[^\s]+/g) || [];
+                        for (const url of urlMatches.slice(0, 5)) {
                             citations.push({
-                                url: searchResult.url,
-                                title: searchResult.title,
+                                url: url.replace(/[.,;)]+$/, ''),
                                 context: 'Mandatory web search',
                                 verified: true,
                                 mandatory: true
@@ -314,21 +299,7 @@ Key guidelines:
                         }
                         webSearchExecuted = true;
                         sourcingConfidence += 0.6;
-                        logManager.success(`✅ Mandatory web search: ${result.length} sources`);
-                    }
-                    
-                    if (type === 'web_llm' && result && typeof result === 'string' && result.length > 50) {
-                        webSearchContext += `\n\n## 📚 CONTEXTE FACTUEL ENRICHI\n\n${result}\n\n`;
-                        const urlMatches = result.match(/https?:\/\/[^\s]+/g) || [];
-                        for (const url of urlMatches.slice(0, 5)) {
-                            citations.push({
-                                url: url.replace(/[.,;)]+$/, ''),
-                                context: 'Enhanced web search',
-                                verified: true
-                            });
-                        }
-                        sourcingConfidence += 0.4;
-                        logManager.success(`Enhanced web search: ${urlMatches.length} sources`);
+                        logManager.success(`✅ Mandatory web search: ${urlMatches.length} sources`);
                     }
                 }
             }
