@@ -500,7 +500,6 @@ Key guidelines:
             conversation_id,
             fact_checked: webSearchExecuted,
             web_search_executed: webSearchExecuted,
-            mandatory_web_search_executed: mandatoryWebSearchResults.length > 0,
             sourcing_confidence: sourcingConfidence,
             citations: citations.map(c => ({
                 url: c.url,
