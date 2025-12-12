@@ -24,6 +24,7 @@ import RootCauseAnalysis from './pages/RootCauseAnalysis';
 import BenchmarkAnalytics from './pages/BenchmarkAnalytics';
 import DevTest from './pages/DevTest';
 import DevTestAnalytics from './pages/DevTestAnalytics';
+import CollaborativeWorkspace from './pages/CollaborativeWorkspace';
 import __Layout from './Layout.jsx';
 
 
@@ -54,6 +55,7 @@ export const PAGES = {
     "BenchmarkAnalytics": BenchmarkAnalytics,
     "DevTest": DevTest,
     "DevTestAnalytics": DevTestAnalytics,
+    "CollaborativeWorkspace": CollaborativeWorkspace,
 }
 
 export const pagesConfig = {

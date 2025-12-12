@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Thermometer, Scale, Shield, Target, RotateCcw, Zap, DollarSign, Clock, Database } from 'lucide-react';
+import { Brain, Thermometer, Users, Scale, Shield, MessageSquare, Target, RotateCcw, Zap, DollarSign, Clock, Database, Sparkles } from 'lucide-react';
 
 const MODES = {
     eco: {
@@ -46,6 +45,8 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
     const currentMode = MODES[settings.mode] || MODES.balanced;
 
     const [enableExternalKnowledge, setEnableExternalKnowledge] = useState(settings.enableExternalKnowledge !== false);
+    const [enableSarcasmDetection, setEnableSarcasmDetection] = useState(settings.enableSarcasmDetection || false);
+    const [sarcasmSensitivity, setSarcasmSensitivity] = useState(settings.sarcasm_sensitivity || 'medium');
 
     const handleModeChange = (mode) => {
         const modeConfig = MODES[mode];
@@ -68,7 +69,9 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
             consensusThreshold: 0.85,
             maxPersonas: 5,
             mode: 'balanced',
-            enableExternalKnowledge: false // Reset external knowledge as well
+            enableExternalKnowledge: false,
+            enableSarcasmDetection: false,
+            sarcasm_sensitivity: 'medium'
         });
     };
 
@@ -200,6 +203,75 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                             </ul>
                             <p className="mt-2 italic">
                                 Toutes gratuites et anonymes (sans compte requis)
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Sarcasm Detection Settings */}
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-green-300 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-orange-500" />
+                        Tone & Sarcasm Detection
+                    </h3>
+                </div>
+                
+                <div className="space-y-2">
+                    <div className="flex items-center justify-between p-3 bg-slate-700 rounded-lg border border-slate-600">
+                        <div className="flex-1">
+                            <label className="text-sm font-medium text-green-300">
+                                Enable Sarcasm Detection
+                            </label>
+                            <p className="text-xs text-slate-400 mt-1">
+                                AI detects sarcasm, irony, and nuanced communication
+                            </p>
+                        </div>
+                        <input
+                            type="checkbox"
+                            checked={enableSarcasmDetection}
+                            onChange={(e) => {
+                                setEnableSarcasmDetection(e.target.checked);
+                                onSettingsChange({ 
+                                    ...settings, 
+                                    enableSarcasmDetection: e.target.checked 
+                                });
+                            }}
+                            className="w-4 h-4 text-green-600 rounded focus:ring-green-500 bg-slate-900 border-slate-500"
+                        />
+                    </div>
+                    
+                    {enableSarcasmDetection && (
+                        <div className="bg-slate-700 p-3 rounded-lg border border-slate-600">
+                            <label className="text-sm font-medium text-green-300 mb-2 block">
+                                Detection Sensitivity
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                                {['low', 'medium', 'high'].map((level) => (
+                                    <button
+                                        key={level}
+                                        onClick={() => {
+                                            setSarcasmSensitivity(level);
+                                            onSettingsChange({ 
+                                                ...settings, 
+                                                sarcasm_sensitivity: level 
+                                            });
+                                        }}
+                                        className={`px-3 py-2 rounded text-xs font-medium transition-all ${
+                                            sarcasmSensitivity === level
+                                                ? 'bg-orange-600 text-white'
+                                                : 'bg-slate-600 text-slate-300 hover:bg-slate-500'
+                                        }`}
+                                    >
+                                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                                    </button>
+                                ))}
+                            </div>
+                            <p className="text-xs text-slate-400 mt-2">
+                                {sarcasmSensitivity === 'low' && 'Only obvious sarcasm'}
+                                {sarcasmSensitivity === 'medium' && 'Clear sarcasm and irony'}
+                                {sarcasmSensitivity === 'high' && 'Subtle hints and nuances'}
                             </p>
                         </div>
                     )}
