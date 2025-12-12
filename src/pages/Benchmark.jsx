@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -23,6 +22,7 @@ import BatchSummaryModal from '@/components/benchmark/BatchSummaryModal';
 import BatchProgressTracker from '@/components/benchmark/BatchProgressTracker';
 import BatchQuickStats from '@/components/benchmark/BatchQuickStats';
 import ExportAllButton from '@/components/benchmark/ExportAllButton';
+import EnhancedBatchLogs from '@/components/benchmark/EnhancedBatchLogs';
 
 const PREDEFINED_SCENARIOS = [
     {
@@ -397,6 +397,14 @@ export default function BenchmarkPage() {
                                     <BatchQuickStats summaryData={batchProgress.summary_data} />
                                 )}
                             </>
+                        )}
+
+                        {/* Enhanced Logs for Completed Batches */}
+                        {!isBatchRunning && benchmarkHistory.length > 0 && (
+                            <EnhancedBatchLogs 
+                                results={benchmarkHistory} 
+                                onRefresh={loadHistory}
+                            />
                         )}
 
                         {/* Batch Controls */}

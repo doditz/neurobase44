@@ -88,31 +88,34 @@ Deno.serve(async (req) => {
             conversation_id 
         });
 
-        // STEP 1.5: LOAD AGENT INSTRUCTIONS (FIXED)
+        // STEP 1.5: LOAD AGENT INSTRUCTIONS FROM DATABASE
         logManager.system('=== STEP 1.5: LOAD AGENT INSTRUCTIONS ===');
         
         let agentInstructions = '';
+        let agentDescription = '';
+        
         try {
-            // Map of agent configurations (can be expanded to read from files if needed)
-            const agentConfigs = {
-                'smas_debater': {
-                    instructions: `You are the SMAS Debater AI - a sophisticated multi-agent reasoning system.
-
-Your mission:
-- Engage in rigorous analytical debate using multiple expert personas
-- Challenge assumptions and explore diverse perspectives
-- Synthesize coherent, well-reasoned conclusions
-- Maintain intellectual honesty and cite sources when available
-- Balance analytical rigor with creative insight
-
-Key principles:
-- Truth-seeking through dialectical reasoning
-- Respect for diverse viewpoints and epistemological humility
-- Evidence-based argumentation with proper citations
-- Ethical consideration in all analyses`
-                },
-                'suno_prompt_architect': {
-                    instructions: `You are the Suno AI Prompt Architect - specialized in creating optimal music generation prompts.
+            const agentRecords = await base44.asServiceRole.entities._raw_query({
+                from: 'agents',
+                filter: { name: agent_name }
+            });
+            
+            if (agentRecords && agentRecords.length > 0) {
+                const agentData = agentRecords[0];
+                agentInstructions = agentData.instructions || '';
+                agentDescription = agentData.description || '';
+                
+                logManager.success('Agent loaded from database', { 
+                    agent: agent_name, 
+                    instructions_length: agentInstructions.length,
+                    description_length: agentDescription.length
+                });
+            } else {
+                logManager.warning('Agent not found in database, using fallback', { agent: agent_name });
+                
+                // Fallback for backward compatibility
+                if (agent_name === 'suno_prompt_architect') {
+                    agentInstructions = `You are the Suno AI Prompt Architect - specialized in creating optimal music generation prompts.
 
 Your mission:
 - Create Suno AI 5.0 Beta compliant prompts
@@ -126,24 +129,11 @@ Key guidelines:
 - NEVER use: [rock, energetic, anthemic] ❌
 - Include time signatures for unusual rhythms: [7/8]
 - Preserve cultural authenticity in lyrics
-- Maintain musical coherence and genre consistency`
+- Maintain musical coherence and genre consistency`;
                 }
-            };
-            
-            const agentConfig = agentConfigs[agent_name];
-            
-            if (agentConfig && agentConfig.instructions) {
-                agentInstructions = agentConfig.instructions;
-                logManager.success('Agent instructions loaded', { 
-                    agent: agent_name, 
-                    length: agentInstructions.length,
-                    preview: agentInstructions.substring(0, 200) + '...'
-                });
-            } else {
-                logManager.warning('No instructions found for agent', { agent: agent_name });
             }
         } catch (agentError) {
-            logManager.error('Failed to load agent instructions', { 
+            logManager.error('Failed to load agent from database', { 
                 agent: agent_name,
                 error: agentError.message 
             });
@@ -201,61 +191,44 @@ Key guidelines:
             dominant_hemisphere
         });
 
-        // STEP 2.5: MANDATORY WEB SEARCH + PARALLEL KNOWLEDGE ENRICHMENT
-        logManager.system('=== STEP 2.5: MANDATORY WEB SEARCH + KNOWLEDGE ENRICHMENT ===');
+        // STEP 2.5: CONDITIONAL WEB SEARCH (OPTIMIZED)
+        logManager.system('=== STEP 2.5: CONDITIONAL KNOWLEDGE ENRICHMENT ===');
         
         let externalKnowledgeContext = '';
         let webSearchContext = '';
         let webSearchExecuted = false;
-        let mandatoryWebSearchResults = [];
         
         const enableExternalKnowledge = settings.enableExternalKnowledge !== false;
-        const shouldQueryExternal = enableExternalKnowledge && complexity_score >= 0.3;
+        const enableWebSearch = settings.enableWebSearch !== false;
         
-        // MANDATORY: Always perform web search for grounded validation
-        const shouldSearchWeb = true; // MANDATORY
+        // Determine if web search is needed based on complexity and keywords
+        const needsCitations = complexity_score >= 0.6 || 
+            /research|study|evidence|source|citation|fact|data|statistics/i.test(user_message);
         
-        logManager.info('🌐 MANDATORY web search for grounded validation');
+        const shouldSearchWeb = enableWebSearch && needsCitations;
         
-        // OPTIMIZATION: Run external + web search in parallel
+        if (shouldSearchWeb) {
+            logManager.info('🌐 Web search activated (citations needed)');
+        } else {
+            logManager.info('⚡ Skipping web search (not needed for this query)');
+        }
+        
+        // OPTIMIZATION: Run searches in parallel ONLY if needed
         const enrichmentPromises = [];
         
-        if (shouldQueryExternal) {
-            logManager.info('External knowledge search queued');
-            const sources = [];
-            const messageLower = user_message.toLowerCase();
-            
-            if (/research|study|academic|paper|journal|science/i.test(messageLower)) {
-                sources.push('arxiv', 'crossref');
-            }
-            if (/code|programming|software|github|repository/i.test(messageLower)) {
-                sources.push('github');
-            }
-            if (/data|knowledge|information|facts/i.test(messageLower) || sources.length === 0) {
-                sources.push('wikipedia', 'dbpedia');
-            }
-            
+        if (shouldSearchWeb) {
+            // Single optimized web search via InvokeLLM
+            logManager.info('Web search queued (InvokeLLM with context)');
             enrichmentPromises.push(
-                base44.functions.invoke('externalKnowledgeSearch', {
-                    query: user_message,
-                    sources: sources.length > 0 ? sources : ['wikipedia', 'arxiv'],
-                    max_results: 5
-                }).then(result => ({ type: 'external', result }))
-                .catch(error => ({ type: 'external', error }))
+                base44.integrations.Core.InvokeLLM({
+                    prompt: `Provide factual context and recent information about: ${user_message.substring(0, 300)}`,
+                    add_context_from_internet: true
+                }).then(result => ({ type: 'web_search', result }))
+                .catch(error => ({ type: 'web_search', error }))
             );
         }
         
-        // MANDATORY web search via InvokeLLM with internet context
-        logManager.info('Mandatory web search queued (InvokeLLM)');
-        enrichmentPromises.push(
-            base44.integrations.Core.InvokeLLM({
-                prompt: `Provide factual context and recent information about: ${user_message.substring(0, 300)}`,
-                add_context_from_internet: true
-            }).then(result => ({ type: 'mandatory_web', result }))
-            .catch(error => ({ type: 'mandatory_web', error }))
-        );
-        
-        // OPTIMIZATION: Wait for all searches in parallel
+        // Execute searches in parallel if needed
         if (enrichmentPromises.length > 0) {
             const enrichmentResults = await Promise.allSettled(enrichmentPromises);
             
@@ -264,49 +237,26 @@ Key guidelines:
                     const { type, result, error } = settled.value;
                     
                     if (error) {
-                        logManager.warning(`${type} search failed: ${error.message}`);
+                        logManager.warning(`${type} failed: ${error.message}`);
                         continue;
                     }
                     
-                    if (type === 'external' && result?.data?.success) {
-                        externalKnowledgeContext = result.data.contextual_summary || '';
-                        if (result.data.results?.citations) {
-                            for (const citation of result.data.results.citations) {
-                                citations.push({
-                                    url: citation.url || '',
-                                    title: citation.title || '',
-                                    source: citation.source || '',
-                                    context: 'External Knowledge Base',
-                                    verified: true,
-                                    external: true
-                                });
-                            }
-                        }
-                        sourcingConfidence += 0.3;
-                        logManager.success(`External knowledge: ${result.data.results?.total_results || 0} results`);
-                    }
-                    
-                    if (type === 'mandatory_web' && result && typeof result === 'string' && result.length > 50) {
-                        webSearchContext += `\n\n## 🌐 MANDATORY WEB GROUNDING\n\n${result}\n\n`;
+                    if (type === 'web_search' && result && typeof result === 'string' && result.length > 50) {
+                        webSearchContext = `\n\n## 🌐 WEB CONTEXT\n\n${result}\n\n`;
                         const urlMatches = result.match(/https?:\/\/[^\s]+/g) || [];
                         for (const url of urlMatches.slice(0, 5)) {
                             citations.push({
                                 url: url.replace(/[.,;)]+$/, ''),
-                                context: 'Mandatory web search',
-                                verified: true,
-                                mandatory: true
+                                context: 'Web search',
+                                verified: true
                             });
                         }
                         webSearchExecuted = true;
-                        sourcingConfidence += 0.6;
-                        logManager.success(`✅ Mandatory web search: ${urlMatches.length} sources`);
+                        sourcingConfidence += 0.7;
+                        logManager.success(`✅ Web search: ${urlMatches.length} sources`);
                     }
                 }
             }
-        }
-        
-        if (externalKnowledgeContext) {
-            webSearchContext = externalKnowledgeContext + '\n\n' + webSearchContext;
         }
         
         thinkingSteps.push({
@@ -547,8 +497,8 @@ Key guidelines:
                 verified: c.verified,
                 external: c.external
             })),
-            external_knowledge_queried: shouldQueryExternal,
-            external_sources_count: citations.filter(c => c.external).length,
+            web_search_triggered: shouldSearchWeb,
+            total_sources_count: citations.length,
             debate_history: debateHistory,
             debate_rounds_details: qronasResult?.data?.debate_rounds_details || [],
             tone_analysis: tone_analysis || null,
