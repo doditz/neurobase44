@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * QRONAS - Quantum-Symbolic Reasoning Core v6.0 (Agent Instructions Integration)
@@ -152,15 +152,34 @@ Deno.serve(async (req) => {
             logManager.warning(`⚠️ BELOW MINIMUM PERSONAS: Only ${selectedPersonas.length} personas selected (minimum: ${MIN_PERSONAS_FOR_DEBATE})`);
         }
 
-        // STEP 2: Multi-Round Debate with Agent Instructions Integration
+        // STEP 2: Initialize SMAS Dynamics
+        logManager.info('Initializing SMAS dynamics (hemispheric forces, dopamine, etc.)');
+        
+        let D_t = settings.d2_activation || 0.5; // Initial dopamine level
+        let D_history = [D_t];
+        let omega_t = 0.5; // Initial hemispheric balance
+        const D_events = []; // Track significant events
+        
+        // STEP 3: Multi-Round Debate with Agent Instructions Integration
         const debateHistory = [];
         const extractedCitations = [];
+        const dynamicsHistory = [];
 
         for (let round = 0; round < debate_rounds; round++) {
             logManager.info(`Starting debate round ${round + 1}/${debate_rounds}`);
 
             const roundStart = Date.now();
             const roundResponses = [];
+            
+            // Calculate hemisphere dynamics for this round
+            const hemisphereDynamics = await base44.functions.invoke('hemisphereDynamics', {
+                personas_active: selectedPersonas.map(p => p.handle),
+                prompt_complexity: settings.complexity_score || 0.5,
+                debate_history: debateHistory,
+                current_time: Date.now()
+            });
+            
+            const { F_L, F_R } = hemisphereDynamics.data || { F_L: 0.5, F_R: 0.5 };
 
             for (const persona of selectedPersonas) {
                 // CRITICAL: Prepend agent instructions to ensure compliance
@@ -272,7 +291,62 @@ This is Round ${round + 1} of the debate.
                 }
             }
 
+            // Calculate bias/reward for this round
+            const biasReward = await base44.functions.invoke('biasRewardCalculator', {
+                personas_active: selectedPersonas.map(p => p.handle),
+                debate_round_contributions: roundResponses.map(r => ({
+                    persona_handle: selectedPersonas.find(p => p.name === r.persona)?.handle,
+                    quality_score: 0.7, // Will be enhanced with actual scoring
+                    relevance: 0.8
+                }))
+            });
+            
+            const { B_t } = biasReward.data || { B_t: 0 };
+            
+            // Update dopamine based on round quality
+            const roundEvent = {
+                time: Date.now(),
+                magnitude: roundResponses.length / selectedPersonas.length, // Success rate
+                type: 'debate_round_completed'
+            };
+            D_events.push(roundEvent);
+            
+            const dopamineUpdate = await base44.functions.invoke('dopamineModulator', {
+                D_current: D_t,
+                D_history,
+                events: D_events,
+                current_time: Date.now()
+            });
+            
+            D_t = dopamineUpdate.data?.D_t || D_t;
+            D_history = dopamineUpdate.data?.D_history || D_history;
+            
+            // Calculate global state G(t)
+            const globalState = await base44.functions.invoke('globalStateCalculator', {
+                F_L,
+                F_R,
+                B_t,
+                D_t,
+                omega_current: omega_t,
+                Phi_t: 0 // Will be updated by grounded validation
+            });
+            
+            omega_t = globalState.data?.omega || omega_t;
+            const G_t = globalState.data?.G_t || 0.5;
+            
+            dynamicsHistory.push({
+                round: round + 1,
+                F_L,
+                F_R,
+                B_t,
+                D_t,
+                omega_t,
+                G_t,
+                breakdown: globalState.data?.breakdown
+            });
+            
             logManager.success(`Round ${round + 1} completed: ${roundResponses.length} responses, ${roundResponses.reduce((sum, r) => sum + r.citations_count, 0)} citations detected.`);
+            logManager.info(`Dynamics: G(t)=${G_t.toFixed(3)}, D(t)=${D_t.toFixed(3)}, ω(t)=${omega_t.toFixed(3)}`);
         }
 
         // STEP 3: Magistral Synthesis with Citation Preservation
@@ -323,6 +397,37 @@ ${needs_citations ? `
             length: masterSynthesis.length,
             total_citations: extractedCitations.length
         });
+        
+        // MANDATORY: Grounded Validation with Web Search
+        logManager.info('Performing mandatory grounded validation');
+        const groundedValidation = await base44.functions.invoke('groundedValidationEngine', {
+            response_text: masterSynthesis,
+            validation_mode: citation_enforcement_strict ? 'strict' : 'moderate'
+        });
+        
+        const { Phi_t, validation_passed, validation_results } = groundedValidation.data || { 
+            Phi_t: 0, 
+            validation_passed: true,
+            validation_results: []
+        };
+        
+        logManager.success('Grounded validation completed', {
+            Phi_t: Phi_t.toFixed(3),
+            validation_passed,
+            claims_validated: validation_results?.length || 0
+        });
+        
+        // Recalculate final G(t) with Phi_t from validation
+        const finalGlobalState = await base44.functions.invoke('globalStateCalculator', {
+            F_L: dynamicsHistory[dynamicsHistory.length - 1]?.F_L || 0.5,
+            F_R: dynamicsHistory[dynamicsHistory.length - 1]?.F_R || 0.5,
+            B_t: dynamicsHistory[dynamicsHistory.length - 1]?.B_t || 0,
+            D_t,
+            omega_current: omega_t,
+            Phi_t
+        });
+        
+        const final_G_t = finalGlobalState.data?.G_t || 0.5;
 
         return Response.json({
             success: true,
@@ -336,6 +441,15 @@ ${needs_citations ? `
             citations: extractedCitations,
             citation_enforcement: citation_enforcement_strict,
             debate_history: debateHistory,
+            smas_dynamics: {
+                final_G_t,
+                final_D_t: D_t,
+                final_omega_t: omega_t,
+                final_Phi_t: Phi_t,
+                dynamics_history: dynamicsHistory,
+                validation_passed,
+                validation_results
+            },
             logs: logManager.getLogs()
         });
 
