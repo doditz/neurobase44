@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * CHAT ORCHESTRATOR v12.1 - Agent Instructions Propagation (FIXED)
@@ -201,18 +201,23 @@ Key guidelines:
             dominant_hemisphere
         });
 
-        // STEP 2.5: PARALLEL KNOWLEDGE ENRICHMENT (OPTIMIZED)
-        logManager.system('=== STEP 2.5: PARALLEL KNOWLEDGE ENRICHMENT ===');
+        // STEP 2.5: MANDATORY WEB SEARCH + PARALLEL KNOWLEDGE ENRICHMENT
+        logManager.system('=== STEP 2.5: MANDATORY WEB SEARCH + KNOWLEDGE ENRICHMENT ===');
         
         let externalKnowledgeContext = '';
         let webSearchContext = '';
         let webSearchExecuted = false;
+        let mandatoryWebSearchResults = [];
         
         const enableExternalKnowledge = settings.enableExternalKnowledge !== false;
         const shouldQueryExternal = enableExternalKnowledge && complexity_score >= 0.3;
-        const shouldSearchWeb = complexity_score >= 0.2;
         
-        // OPTIMIZATION: Run external + web search in parallel instead of sequential
+        // MANDATORY: Always perform web search for grounded validation
+        const shouldSearchWeb = true; // MANDATORY
+        
+        logManager.info('🌐 MANDATORY web search for grounded validation');
+        
+        // OPTIMIZATION: Run external + web search in parallel
         const enrichmentPromises = [];
         
         if (shouldQueryExternal) {
@@ -240,14 +245,24 @@ Key guidelines:
             );
         }
         
-        if (shouldSearchWeb) {
-            logManager.info('Web search queued');
+        // MANDATORY web search for grounding
+        logManager.info('Mandatory web search queued');
+        enrichmentPromises.push(
+            base44.asServiceRole.integrations.search_web({
+                query: user_message.substring(0, 200),
+                limit: 3
+            }).then(result => ({ type: 'mandatory_web', result }))
+            .catch(error => ({ type: 'mandatory_web', error }))
+        );
+        
+        // Additional LLM-enhanced web search if complexity warrants
+        if (complexity_score >= 0.4) {
             enrichmentPromises.push(
                 base44.integrations.Core.InvokeLLM({
                     prompt: `Recherche factuelle: ${user_message}`,
                     add_context_from_internet: true
-                }).then(result => ({ type: 'web', result }))
-                .catch(error => ({ type: 'web', error }))
+                }).then(result => ({ type: 'web_llm', result }))
+                .catch(error => ({ type: 'web_llm', error }))
             );
         }
         
@@ -282,19 +297,38 @@ Key guidelines:
                         logManager.success(`External knowledge: ${result.data.results?.total_results || 0} results`);
                     }
                     
-                    if (type === 'web' && result && typeof result === 'string' && result.length > 50) {
-                        webSearchContext = `\n\n## 📚 CONTEXTE FACTUEL\n\n${result}\n\n`;
+                    if (type === 'mandatory_web' && result && Array.isArray(result)) {
+                        mandatoryWebSearchResults = result;
+                        webSearchContext = `\n\n## 🌐 MANDATORY WEB GROUNDING\n\n${result.map((r, i) => 
+                            `[${i+1}] ${r.title}: ${r.description} (${r.url})`
+                        ).join('\n')}\n\n`;
+                        
+                        for (const searchResult of result) {
+                            citations.push({
+                                url: searchResult.url,
+                                title: searchResult.title,
+                                context: 'Mandatory web search',
+                                verified: true,
+                                mandatory: true
+                            });
+                        }
+                        webSearchExecuted = true;
+                        sourcingConfidence += 0.6;
+                        logManager.success(`✅ Mandatory web search: ${result.length} sources`);
+                    }
+                    
+                    if (type === 'web_llm' && result && typeof result === 'string' && result.length > 50) {
+                        webSearchContext += `\n\n## 📚 CONTEXTE FACTUEL ENRICHI\n\n${result}\n\n`;
                         const urlMatches = result.match(/https?:\/\/[^\s]+/g) || [];
                         for (const url of urlMatches.slice(0, 5)) {
                             citations.push({
                                 url: url.replace(/[.,;)]+$/, ''),
-                                context: 'Web search',
+                                context: 'Enhanced web search',
                                 verified: true
                             });
                         }
-                        webSearchExecuted = true;
-                        sourcingConfidence += 0.5;
-                        logManager.success(`Web search: ${urlMatches.length} sources`);
+                        sourcingConfidence += 0.4;
+                        logManager.success(`Enhanced web search: ${urlMatches.length} sources`);
                     }
                 }
             }
@@ -488,6 +522,7 @@ Key guidelines:
             conversation_id,
             fact_checked: webSearchExecuted,
             web_search_executed: webSearchExecuted,
+            mandatory_web_search_executed: mandatoryWebSearchResults.length > 0,
             sourcing_confidence: sourcingConfidence,
             citations: citations.map(c => ({
                 url: c.url,
