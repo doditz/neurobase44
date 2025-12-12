@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
@@ -10,7 +9,11 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-export default function ConversationList({ debates, activeDebate, onSelectDebate, isLoading }) {
+export default function ConversationList({ conversations, activeConversation, onSelectConversation, isLoading }) {
+    // Support both old prop names (debates/activeDebate) and new ones (conversations/activeConversation)
+    const actualConversations = conversations || arguments[0]?.debates;
+    const actualActive = activeConversation || arguments[0]?.activeDebate;
+    const actualOnSelect = onSelectConversation || arguments[0]?.onSelectDebate;
     const [editingId, setEditingId] = useState(null);
     const [editingTitle, setEditingTitle] = useState('');
 
@@ -75,7 +78,7 @@ export default function ConversationList({ debates, activeDebate, onSelectDebate
         );
     }
 
-    if (!debates || debates.length === 0) {
+    if (!actualConversations || actualConversations.length === 0) {
         return (
             <div className="flex-1 flex flex-col items-center justify-center text-center p-3 text-green-400">
                 <MessageSquare className="w-6 h-6 mb-2" />
@@ -88,11 +91,11 @@ export default function ConversationList({ debates, activeDebate, onSelectDebate
     return (
         <div className="flex-1 flex flex-col">
             <div className="p-2 border-b border-slate-700">
-                <h3 className="text-xs font-medium text-green-400">Historique ({debates.length})</h3>
+                <h3 className="text-xs font-medium text-green-400">Historique ({actualConversations.length})</h3>
             </div>
             <ScrollArea className="flex-1">
                 <div className="p-1 space-y-1">
-                    {debates.map((debate) => {
+                    {actualConversations.map((debate) => {
                         const isEditing = editingId === debate.id;
                         const displayTitle = getConversationTitle(debate);
                         
@@ -101,7 +104,7 @@ export default function ConversationList({ debates, activeDebate, onSelectDebate
                                 key={debate.id}
                                 className={cn(
                                     "w-full text-left p-2 rounded-md transition-colors group",
-                                    activeDebate?.id === debate.id
+                                    actualActive?.id === debate.id
                                         ? "bg-orange-900/30 border border-orange-600/50"
                                         : "hover:bg-slate-700"
                                 )}
@@ -139,7 +142,7 @@ export default function ConversationList({ debates, activeDebate, onSelectDebate
                                     </div>
                                 ) : (
                                     <button
-                                        onClick={() => onSelectDebate(debate)}
+                                        onClick={() => actualOnSelect(debate)}
                                         className="w-full flex items-start gap-2"
                                     >
                                         {getAgentIcon(debate.agent_name)}
@@ -147,7 +150,7 @@ export default function ConversationList({ debates, activeDebate, onSelectDebate
                                             <div className="flex items-start justify-between gap-1">
                                                 <p className={cn(
                                                     "font-medium text-xs truncate",
-                                                    activeDebate?.id === debate.id ? "text-orange-400" : "text-green-300"
+                                                    actualActive?.id === debate.id ? "text-orange-400" : "text-green-300"
                                                 )}>
                                                     {displayTitle}
                                                 </p>

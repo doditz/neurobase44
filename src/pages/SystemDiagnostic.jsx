@@ -1,624 +1,324 @@
-
 import React, { useState } from 'react';
 import { base44 } from '@/api/base44Client';
-import { User } from '@/entities/User';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-    Stethoscope, 
-    Play, 
-    Loader2, 
-    CheckCircle2, 
-    AlertCircle, 
-    MessageSquare, 
-    FlaskConical,
-    Clock,
-    Zap,
-    Brain,
-    Shield
+import { Progress } from '@/components/ui/progress';
+import {
+    Activity,
+    AlertTriangle,
+    CheckCircle2,
+    XCircle,
+    Loader2,
+    Database,
+    FileCode,
+    GitBranch,
+    Shield,
+    Zap
 } from 'lucide-react';
 import { toast } from 'sonner';
-import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function SystemDiagnosticPage() {
-    const [user, setUser] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
-    const [testResults, setTestResults] = useState({
-        chatOrchestrator: null,
-        benchmarkOrchestrator: null
-    });
-    const [logs, setLogs] = useState([]);
+    const [report, setReport] = useState(null);
 
-    React.useEffect(() => {
-        const loadUser = async () => {
-            try {
-                const currentUser = await User.me();
-                setUser(currentUser);
-            } catch (error) {
-                console.error('Failed to load user:', error);
-            }
-        };
-        loadUser();
-    }, []);
-
-    const runChatOrchestratorTest = async () => {
+    const runDiagnostic = async () => {
         setIsRunning(true);
-        const startTime = Date.now();
-        
+        setReport(null);
+
         try {
-            toast.info('🧪 Test Chat Orchestrator...');
-            
-            // Utilisation correcte du SDK avec le bon import
-            const { data } = await base44.functions.invoke('chatOrchestrator', {
-                conversation_id: 'diagnostic_test',
-                agent_name: 'smas_debater',
-                user_message: 'Test diagnostic: Quelle est la capitale de la France?',
-                settings: {
-                    temperature: 0.7,
-                    maxPersonas: 3,
-                    debateRounds: 2,
-                    mode: 'eco'
-                },
-                file_urls: [],
-                metadata: { test: true }
-            });
+            toast.info('🔍 Running system diagnostic...');
 
-            const duration = Date.now() - startTime;
+            const { data } = await base44.functions.invoke('diagnosticReport', {});
 
-            if (data && data.success) {
-                setTestResults(prev => ({
-                    ...prev,
-                    chatOrchestrator: {
-                        status: 'success',
-                        duration,
-                        response: data.response?.substring(0, 200),
-                        metadata: data.metadata,
-                        logs: data.logs || []
-                    }
-                }));
-                
-                if (data.logs) {
-                    setLogs(prev => [...prev, ...data.logs]);
-                }
-                
-                toast.success(`✅ Chat Orchestrator OK (${duration}ms)`);
-            } else {
-                throw new Error(data?.error || 'Unknown error');
+            if (!data.success) {
+                throw new Error(data.error || 'Diagnostic failed');
             }
+
+            setReport(data.report);
+            
+            const status = data.report.health_metrics.status;
+            if (status === 'HEALTHY') {
+                toast.success('✅ System is healthy!');
+            } else if (status === 'WARNING' || status === 'DEGRADED') {
+                toast.warning(`⚠️ System status: ${status}`);
+            } else {
+                toast.error(`🔴 System status: ${status}`);
+            }
+
         } catch (error) {
-            const duration = Date.now() - startTime;
-            
-            setTestResults(prev => ({
-                ...prev,
-                chatOrchestrator: {
-                    status: 'error',
-                    duration,
-                    error: error.message
-                }
-            }));
-            
-            toast.error(`❌ Chat Orchestrator Failed: ${error.message}`);
+            console.error('[Diagnostic] Error:', error);
+            toast.error(`Diagnostic failed: ${error.message}`);
         } finally {
             setIsRunning(false);
         }
     };
 
-    const runBenchmarkOrchestratorTest = async () => {
-        setIsRunning(true);
-        const startTime = Date.now();
-        
-        try {
-            toast.info('🧪 Test Benchmark Orchestrator...');
-            
-            // Utilisation correcte du SDK avec le bon import
-            const { data } = await base44.functions.invoke('benchmarkOrchestrator', {
-                question_text: 'Test diagnostic: Calculer 2 + 2',
-                question_id: 'DIAG_TEST_001',
-                run_mode: 'ab_test'
-            });
-
-            const duration = Date.now() - startTime;
-
-            if (data && data.success) {
-                setTestResults(prev => ({
-                    ...prev,
-                    benchmarkOrchestrator: {
-                        status: 'success',
-                        duration,
-                        winner: data.winner,
-                        improvement: data.improvement,
-                        spg: data.spg,
-                        mode_a_time: data.mode_a?.time_ms,
-                        mode_b_time: data.mode_b?.time_ms,
-                        logs: data.logs || []
-                    }
-                }));
-                
-                if (data.logs) {
-                    setLogs(prev => [...prev, ...data.logs]);
-                }
-                
-                toast.success(`✅ Benchmark Orchestrator OK (${duration}ms)`);
-            } else {
-                throw new Error(data?.error || 'Unknown error');
-            }
-        } catch (error) {
-            const duration = Date.now() - startTime;
-            
-            setTestResults(prev => ({
-                ...prev,
-                benchmarkOrchestrator: {
-                    status: 'error',
-                    duration,
-                    error: error.message
-                }
-            }));
-            
-            toast.error(`❌ Benchmark Orchestrator Failed: ${error.message}`);
-        } finally {
-            setIsRunning(false);
+    const getStatusColor = (status) => {
+        switch(status) {
+            case 'HEALTHY': return 'text-green-400';
+            case 'WARNING': return 'text-yellow-400';
+            case 'DEGRADED': return 'text-orange-400';
+            case 'CRITICAL': return 'text-red-400';
+            default: return 'text-slate-400';
         }
     };
 
-    const runFullDiagnostic = async () => {
-        setTestResults({
-            chatOrchestrator: null,
-            benchmarkOrchestrator: null
-        });
-        setLogs([]);
-        
-        await runChatOrchestratorTest();
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        await runBenchmarkOrchestratorTest();
+    const getStatusBg = (status) => {
+        switch(status) {
+            case 'HEALTHY': return 'bg-green-900/20 border-green-600/30';
+            case 'WARNING': return 'bg-yellow-900/20 border-yellow-600/30';
+            case 'DEGRADED': return 'bg-orange-900/20 border-orange-600/30';
+            case 'CRITICAL': return 'bg-red-900/20 border-red-600/30';
+            default: return 'bg-slate-800 border-slate-700';
+        }
     };
-
-    if (!user) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-900">
-                <Loader2 className="w-8 h-8 animate-spin text-green-400" />
-            </div>
-        );
-    }
-
-    const isAdmin = user.role === 'admin';
-
-    if (!isAdmin) {
-        return (
-            <div className="flex items-center justify-center min-h-screen bg-slate-900">
-                <Card className="bg-slate-800 border-orange-600 max-w-md">
-                    <CardHeader>
-                        <CardTitle className="text-orange-400 flex items-center gap-2">
-                            <Shield className="w-5 h-5" />
-                            Accès Réservé Administrateur
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p className="text-slate-300">
-                            Cette page de diagnostic est réservée aux administrateurs.
-                        </p>
-                    </CardContent>
-                </Card>
-            </div>
-        );
-    }
 
     return (
         <div className="min-h-screen bg-slate-900 p-6">
-            <div className="max-w-7xl mx-auto">
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-                        <Stethoscope className="w-6 h-6 text-white" />
-                    </div>
+            <div className="max-w-7xl mx-auto space-y-6">
+                <div className="flex items-center justify-between mb-8">
                     <div>
-                        <h1 className="text-3xl font-bold text-green-400">System Diagnostic</h1>
-                        <p className="text-slate-400 text-sm">Tests de santé des orchestrateurs unifiés</p>
+                        <h1 className="text-3xl font-bold text-green-400 flex items-center gap-3">
+                            <Activity className="w-8 h-8" />
+                            System Diagnostic
+                        </h1>
+                        <p className="text-slate-400 mt-1">
+                            Comprehensive health check and issue detection
+                        </p>
                     </div>
+                    <Button
+                        onClick={runDiagnostic}
+                        disabled={isRunning}
+                        className="bg-green-600 hover:bg-green-700"
+                    >
+                        {isRunning ? (
+                            <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Running...
+                            </>
+                        ) : (
+                            <>
+                                <Zap className="w-4 h-4 mr-2" />
+                                Run Diagnostic
+                            </>
+                        )}
+                    </Button>
                 </div>
 
-                <Card className="bg-slate-800 border-slate-700 mb-6">
-                    <CardHeader>
-                        <CardTitle className="text-green-400">Architecture Unifiée - v2.0</CardTitle>
-                        <CardDescription className="text-slate-400">
-                            2 points d'entrée uniques pour toute l'application
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="bg-slate-700 p-4 rounded-lg">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <MessageSquare className="w-5 h-5 text-blue-400" />
-                                    <h3 className="font-semibold text-green-300">Chat Orchestrator</h3>
-                                </div>
-                                <p className="text-xs text-slate-400 mb-3">
-                                    Point d'entrée pour toutes les conversations et débats
-                                </p>
-                                <div className="space-y-1 text-xs text-slate-300">
-                                    <div>• smas_debater</div>
-                                    <div>• suno_prompt_architect</div>
-                                    <div>• qronas_dispatcher</div>
-                                </div>
-                                <Button
-                                    onClick={runChatOrchestratorTest}
-                                    disabled={isRunning}
-                                    className="w-full mt-4 bg-blue-600 hover:bg-blue-700"
-                                    size="sm"
-                                >
-                                    {isRunning ? (
-                                        <>
-                                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                            Testing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Play className="w-3 h-3 mr-2" />
-                                            Test Chat
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-
-                            <div className="bg-slate-700 p-4 rounded-lg">
-                                <div className="flex items-center gap-2 mb-2">
-                                    <FlaskConical className="w-5 h-5 text-orange-400" />
-                                    <h3 className="font-semibold text-green-300">Benchmark Orchestrator</h3>
-                                </div>
-                                <p className="text-xs text-slate-400 mb-3">
-                                    Point d'entrée pour tous les tests et benchmarks
-                                </p>
-                                <div className="space-y-1 text-xs text-slate-300">
-                                    <div>• A/B Testing</div>
-                                    <div>• Auto-Optimization</div>
-                                    <div>• SPG Calculation</div>
-                                </div>
-                                <Button
-                                    onClick={runBenchmarkOrchestratorTest}
-                                    disabled={isRunning}
-                                    className="w-full mt-4 bg-orange-600 hover:bg-orange-700"
-                                    size="sm"
-                                >
-                                    {isRunning ? (
-                                        <>
-                                            <Loader2 className="w-3 h-3 mr-2 animate-spin" />
-                                            Testing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Play className="w-3 h-3 mr-2" />
-                                            Test Benchmark
-                                        </>
-                                    )}
-                                </Button>
-                            </div>
-                        </div>
-
-                        <div className="mt-6 flex justify-center">
-                            <Button
-                                onClick={runFullDiagnostic}
-                                disabled={isRunning}
-                                className="bg-purple-600 hover:bg-purple-700"
-                            >
-                                {isRunning ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Diagnostic en cours...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Stethoscope className="w-4 h-4 mr-2" />
-                                        Lancer Diagnostic Complet
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Tabs defaultValue="results" className="space-y-6">
-                    <TabsList className="bg-slate-800">
-                        <TabsTrigger value="results">Résultats des Tests</TabsTrigger>
-                        <TabsTrigger value="logs">Logs Unifiés</TabsTrigger>
-                        <TabsTrigger value="documentation">Documentation</TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="results" className="space-y-4">
-                        {/* Chat Orchestrator Results */}
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-green-400 flex items-center gap-2">
-                                    <MessageSquare className="w-5 h-5" />
-                                    Chat Orchestrator - Résultats
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {testResults.chatOrchestrator ? (
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            {testResults.chatOrchestrator.status === 'success' ? (
-                                                <CheckCircle2 className="w-6 h-6 text-green-400" />
-                                            ) : (
-                                                <AlertCircle className="w-6 h-6 text-red-400" />
-                                            )}
-                                            <div>
-                                                <Badge className={
-                                                    testResults.chatOrchestrator.status === 'success' 
-                                                        ? 'bg-green-600' 
-                                                        : 'bg-red-600'
-                                                }>
-                                                    {testResults.chatOrchestrator.status}
-                                                </Badge>
-                                                <p className="text-xs text-slate-400 mt-1">
-                                                    <Clock className="w-3 h-3 inline mr-1" />
-                                                    {testResults.chatOrchestrator.duration}ms
-                                                </p>
-                                            </div>
+                {report && (
+                    <div className="space-y-6">
+                        {/* Overall Health */}
+                        <Card className={`border-2 ${getStatusBg(report.health_metrics.status)}`}>
+                            <CardContent className="p-6">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <Shield className={`w-8 h-8 ${getStatusColor(report.health_metrics.status)}`} />
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-green-400">
+                                                System Status: {report.health_metrics.status}
+                                            </h2>
+                                            <p className="text-slate-400">
+                                                Health Score: {report.health_metrics.overall_score}/100
+                                            </p>
                                         </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-sm text-slate-400">Issues</div>
+                                        <div className={`text-3xl font-bold ${report.health_metrics.total_issues > 0 ? 'text-red-400' : 'text-green-400'}`}>
+                                            {report.health_metrics.total_issues}
+                                        </div>
+                                    </div>
+                                </div>
+                                <Progress value={report.health_metrics.overall_score} className="h-3" />
+                            </CardContent>
+                        </Card>
 
-                                        {testResults.chatOrchestrator.status === 'success' && (
-                                            <div className="bg-slate-700 p-4 rounded-lg space-y-3">
-                                                <div>
-                                                    <p className="text-xs text-slate-400 mb-1">Réponse:</p>
-                                                    <p className="text-sm text-slate-300">
-                                                        {testResults.chatOrchestrator.response}...
-                                                    </p>
-                                                </div>
-                                                {testResults.chatOrchestrator.metadata && (
-                                                    <div>
-                                                        <p className="text-xs text-slate-400 mb-1">Métadonnées:</p>
-                                                        <div className="grid grid-cols-2 gap-2 text-xs">
-                                                            <div>
-                                                                <span className="text-slate-500">Tokens:</span>
-                                                                <span className="ml-2 text-green-400">
-                                                                    {testResults.chatOrchestrator.metadata.total_tokens || 'N/A'}
-                                                                </span>
-                                                            </div>
-                                                            <div>
-                                                                <span className="text-slate-500">LLM Calls:</span>
-                                                                <span className="ml-2 text-blue-400">
-                                                                    {testResults.chatOrchestrator.metadata.llm_calls || 'N/A'}
-                                                                </span>
-                                                            </div>
+                        {/* Issues */}
+                        {report.issues.length > 0 && (
+                            <Card className="bg-red-900/20 border-red-600">
+                                <CardHeader>
+                                    <CardTitle className="text-red-400 flex items-center gap-2">
+                                        <XCircle className="w-5 h-5" />
+                                        Critical Issues ({report.issues.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {report.issues.map((issue, idx) => (
+                                            <div key={idx} className="bg-slate-800 p-4 rounded-lg border border-red-600/30">
+                                                <div className="flex items-start gap-3">
+                                                    <AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                                                    <div className="flex-1">
+                                                        <div className="font-semibold text-red-300">
+                                                            {issue.type.replace(/_/g, ' ').toUpperCase()}
                                                         </div>
+                                                        <p className="text-sm text-slate-300 mt-1">
+                                                            {issue.message || issue.error || JSON.stringify(issue)}
+                                                        </p>
+                                                        {issue.details && (
+                                                            <pre className="text-xs text-slate-400 mt-2 bg-slate-900 p-2 rounded overflow-x-auto">
+                                                                {JSON.stringify(issue.details, null, 2)}
+                                                            </pre>
+                                                        )}
                                                     </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {/* Warnings */}
+                        {report.warnings.length > 0 && (
+                            <Card className="bg-yellow-900/20 border-yellow-600">
+                                <CardHeader>
+                                    <CardTitle className="text-yellow-400 flex items-center gap-2">
+                                        <AlertTriangle className="w-5 h-5" />
+                                        Warnings ({report.warnings.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {report.warnings.map((warning, idx) => (
+                                            <div key={idx} className="bg-slate-800 p-4 rounded-lg border border-yellow-600/30">
+                                                <div className="font-semibold text-yellow-300">
+                                                    {warning.type.replace(/_/g, ' ').toUpperCase()}
+                                                </div>
+                                                <p className="text-sm text-slate-300 mt-1">
+                                                    {warning.message || JSON.stringify(warning)}
+                                                </p>
+                                                {warning.ids && (
+                                                    <details className="text-xs text-slate-400 mt-2">
+                                                        <summary className="cursor-pointer hover:text-slate-300">
+                                                            Show affected IDs ({warning.ids.length})
+                                                        </summary>
+                                                        <div className="mt-2 space-y-1">
+                                                            {warning.ids.map((id, i) => (
+                                                                <div key={i} className="font-mono">{id}</div>
+                                                            ))}
+                                                        </div>
+                                                    </details>
                                                 )}
                                             </div>
-                                        )}
-
-                                        {testResults.chatOrchestrator.status === 'error' && (
-                                            <div className="bg-red-900/20 border border-red-600/50 p-4 rounded-lg">
-                                                <p className="text-sm text-red-400">
-                                                    {testResults.chatOrchestrator.error}
-                                                </p>
-                                            </div>
-                                        )}
+                                        ))}
                                     </div>
-                                ) : (
-                                    <p className="text-slate-400 text-sm">Aucun test exécuté</p>
-                                )}
-                            </CardContent>
-                        </Card>
+                                </CardContent>
+                            </Card>
+                        )}
 
-                        {/* Benchmark Orchestrator Results */}
+                        {/* Entity Audit */}
                         <Card className="bg-slate-800 border-slate-700">
                             <CardHeader>
                                 <CardTitle className="text-green-400 flex items-center gap-2">
-                                    <FlaskConical className="w-5 h-5" />
-                                    Benchmark Orchestrator - Résultats
+                                    <Database className="w-5 h-5" />
+                                    Entity Audit
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                {testResults.benchmarkOrchestrator ? (
-                                    <div className="space-y-4">
-                                        <div className="flex items-center gap-3">
-                                            {testResults.benchmarkOrchestrator.status === 'success' ? (
-                                                <CheckCircle2 className="w-6 h-6 text-green-400" />
-                                            ) : (
-                                                <AlertCircle className="w-6 h-6 text-red-400" />
-                                            )}
-                                            <div>
-                                                <Badge className={
-                                                    testResults.benchmarkOrchestrator.status === 'success' 
-                                                        ? 'bg-green-600' 
-                                                        : 'bg-red-600'
-                                                }>
-                                                    {testResults.benchmarkOrchestrator.status}
-                                                </Badge>
-                                                <p className="text-xs text-slate-400 mt-1">
-                                                    <Clock className="w-3 h-3 inline mr-1" />
-                                                    {testResults.benchmarkOrchestrator.duration}ms
-                                                </p>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                                    {Object.entries(report.entity_audits).map(([name, audit]) => (
+                                        <div key={name} className={`p-3 rounded-lg border ${
+                                            audit.status === 'OK' 
+                                                ? 'bg-green-900/20 border-green-600/30'
+                                                : 'bg-red-900/20 border-red-600/30'
+                                        }`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <span className="font-medium text-green-300 text-sm">
+                                                    {name}
+                                                </span>
+                                                {audit.status === 'OK' ? (
+                                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                                ) : (
+                                                    <XCircle className="w-4 h-4 text-red-400" />
+                                                )}
                                             </div>
-                                        </div>
-
-                                        {testResults.benchmarkOrchestrator.status === 'success' && (
-                                            <div className="bg-slate-700 p-4 rounded-lg">
-                                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                                    <div>
-                                                        <p className="text-xs text-slate-400">Winner</p>
-                                                        <p className="text-lg font-bold text-green-400">
-                                                            {testResults.benchmarkOrchestrator.winner === 'mode_b' ? 'Mode B' : 'Mode A'}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-slate-400">Improvement</p>
-                                                        <p className="text-lg font-bold text-orange-400">
-                                                            {testResults.benchmarkOrchestrator.improvement?.toFixed(1)}%
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-slate-400">SPG</p>
-                                                        <p className="text-lg font-bold text-purple-400">
-                                                            {testResults.benchmarkOrchestrator.spg?.toFixed(3) || 'N/A'}
-                                                        </p>
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-xs text-slate-400">Time Diff</p>
-                                                        <p className="text-lg font-bold text-blue-400">
-                                                            {(testResults.benchmarkOrchestrator.mode_b_time - testResults.benchmarkOrchestrator.mode_a_time)}ms
-                                                        </p>
-                                                    </div>
+                                            {audit.status === 'OK' ? (
+                                                <div className="text-xs text-slate-400">
+                                                    {audit.record_count} records
                                                 </div>
-                                            </div>
-                                        )}
+                                            ) : (
+                                                <div className="text-xs text-red-400">
+                                                    {audit.error}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
 
-                                        {testResults.benchmarkOrchestrator.status === 'error' && (
-                                            <div className="bg-red-900/20 border border-red-600/50 p-4 rounded-lg">
-                                                <p className="text-sm text-red-400">
-                                                    {testResults.benchmarkOrchestrator.error}
-                                                </p>
+                        {/* Data Integrity */}
+                        {report.data_integrity.test_results && (
+                            <Card className="bg-slate-800 border-slate-700">
+                                <CardHeader>
+                                    <CardTitle className="text-green-400 flex items-center gap-2">
+                                        <FileCode className="w-5 h-5" />
+                                        Data Integrity
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                        <div className="bg-slate-700 p-3 rounded-lg">
+                                            <div className="text-xs text-slate-400 mb-1">Total Results</div>
+                                            <div className="text-2xl font-bold text-green-400">
+                                                {report.data_integrity.test_results.total}
                                             </div>
-                                        )}
+                                        </div>
+                                        <div className="bg-slate-700 p-3 rounded-lg">
+                                            <div className="text-xs text-slate-400 mb-1">Complete</div>
+                                            <div className="text-2xl font-bold text-green-400">
+                                                {report.data_integrity.test_results.complete}
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-700 p-3 rounded-lg">
+                                            <div className="text-xs text-slate-400 mb-1">Incomplete</div>
+                                            <div className="text-2xl font-bold text-orange-400">
+                                                {report.data_integrity.test_results.incomplete}
+                                            </div>
+                                        </div>
+                                        <div className="bg-slate-700 p-3 rounded-lg">
+                                            <div className="text-xs text-slate-400 mb-1">Completion Rate</div>
+                                            <div className="text-2xl font-bold text-blue-400">
+                                                {report.data_integrity.test_results.completion_rate}%
+                                            </div>
+                                        </div>
                                     </div>
-                                ) : (
-                                    <p className="text-slate-400 text-sm">Aucun test exécuté</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
+                                </CardContent>
+                            </Card>
+                        )}
 
-                    <TabsContent value="logs" className="space-y-4">
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-green-400">Logs Unifiés de Diagnostic</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {logs.length > 0 ? (
-                                    <UnifiedLogViewer logs={logs} />
-                                ) : (
-                                    <p className="text-slate-400 text-sm">Aucun log disponible. Lancez un diagnostic.</p>
-                                )}
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-
-                    <TabsContent value="documentation" className="space-y-4">
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-green-400">Documentation Architecturale</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div>
-                                    <h3 className="text-lg font-semibold text-green-300 mb-3">Vue d'ensemble</h3>
-                                    <p className="text-slate-300 text-sm leading-relaxed">
-                                        L'architecture Neuronas v2.0 est basée sur deux orchestrateurs unifiés qui centralisent 
-                                        toute la logique d'exécution de l'application. Cette approche garantit la cohérence, 
-                                        la maintenabilité et la performance.
+                        {/* Recommendations */}
+                        {report.issues.length === 0 && report.warnings.length === 0 && (
+                            <Card className="bg-green-900/20 border-green-600">
+                                <CardContent className="p-6 text-center">
+                                    <CheckCircle2 className="w-12 h-12 text-green-400 mx-auto mb-4" />
+                                    <h3 className="text-xl font-semibold text-green-400 mb-2">
+                                        All Systems Operational
+                                    </h3>
+                                    <p className="text-slate-400">
+                                        No issues or warnings detected
                                     </p>
-                                </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                )}
 
-                                <div>
-                                    <h3 className="text-lg font-semibold text-green-300 mb-3">1. Chat Orchestrator</h3>
-                                    <div className="bg-slate-700 p-4 rounded-lg space-y-2 text-sm">
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Fonction:</strong> <code className="text-blue-300">chatOrchestrator</code>
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Responsabilité:</strong> Gère toutes les interactions conversationnelles
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Agents supportés:</strong>
-                                        </p>
-                                        <ul className="list-disc list-inside ml-4 text-slate-400">
-                                            <li>smas_debater (débats multi-personas)</li>
-                                            <li>suno_prompt_architect (génération prompts Suno)</li>
-                                            <li>qronas_dispatcher (dispatch intelligent)</li>
-                                        </ul>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Intégrations:</strong> D3STIB, QRONAS, Perplexity, Persona Optimizer
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-green-300 mb-3">2. Benchmark Orchestrator</h3>
-                                    <div className="bg-slate-700 p-4 rounded-lg space-y-2 text-sm">
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Fonction:</strong> <code className="text-blue-300">benchmarkOrchestrator</code>
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Responsabilité:</strong> Exécute et orchestre tous les tests de benchmark
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Modes supportés:</strong>
-                                        </p>
-                                        <ul className="list-disc list-inside ml-4 text-slate-400">
-                                            <li>ab_test (comparaison Mode A vs Mode B)</li>
-                                            <li>auto_tune (optimisation automatique itérative)</li>
-                                            <li>single_llm (appel unique pour tests rapides)</li>
-                                        </ul>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">Calculs:</strong> SPG, ARS, Token efficiency, Quality scores
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-green-300 mb-3">Avantages de l'architecture unifiée</h3>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div className="bg-green-900/20 border border-green-600/50 p-3 rounded-lg">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Zap className="w-4 h-4 text-green-400" />
-                                                <span className="font-semibold text-green-300 text-sm">Performance</span>
-                                            </div>
-                                            <p className="text-xs text-slate-400">
-                                                Points d'entrée uniques permettent des optimisations globales et du caching efficace
-                                            </p>
-                                        </div>
-
-                                        <div className="bg-blue-900/20 border border-blue-600/50 p-3 rounded-lg">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Brain className="w-4 h-4 text-blue-400" />
-                                                <span className="font-semibold text-blue-300 text-sm">Maintenabilité</span>
-                                            </div>
-                                            <p className="text-xs text-slate-400">
-                                                Code centralisé facilite les corrections de bugs et les évolutions
-                                            </p>
-                                        </div>
-
-                                        <div className="bg-purple-900/20 border border-purple-600/50 p-3 rounded-lg">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <CheckCircle2 className="w-4 h-4 text-purple-400" />
-                                                <span className="font-semibold text-purple-300 text-sm">Cohérence</span>
-                                            </div>
-                                            <p className="text-xs text-slate-400">
-                                                Logs unifiés, gestion d'erreurs standardisée, patterns réutilisables
-                                            </p>
-                                        </div>
-
-                                        <div className="bg-orange-900/20 border border-orange-600/50 p-3 rounded-lg">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <Shield className="w-4 h-4 text-orange-400" />
-                                                <span className="font-semibold text-orange-300 text-sm">Sécurité</span>
-                                            </div>
-                                            <p className="text-xs text-slate-400">
-                                                Validation centralisée, gestion des permissions, protection contre les abus
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h3 className="text-lg font-semibold text-green-300 mb-3">Migration des anciennes fonctions</h3>
-                                    <div className="bg-slate-700 p-4 rounded-lg space-y-2 text-xs">
-                                        <p className="text-slate-300">
-                                            <strong className="text-red-400">❌ Supprimé:</strong> neuronasOrchestrator.js
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-red-400">❌ Supprimé:</strong> benchmarkRunner.js
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">✅ Remplacé par:</strong> benchmarkOrchestrator.js (unique)
-                                        </p>
-                                        <p className="text-slate-300">
-                                            <strong className="text-green-400">✅ Nouveau:</strong> chatOrchestrator.js (unique)
-                                        </p>
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </TabsContent>
-                </Tabs>
+                {!report && !isRunning && (
+                    <Card className="bg-slate-800 border-slate-700">
+                        <CardContent className="p-12 text-center">
+                            <Activity className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                            <h3 className="text-xl font-semibold text-slate-400 mb-2">
+                                Ready to Run Diagnostic
+                            </h3>
+                            <p className="text-slate-500 mb-6">
+                                Click the button above to perform a comprehensive system health check
+                            </p>
+                        </CardContent>
+                    </Card>
+                )}
             </div>
         </div>
     );

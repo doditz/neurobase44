@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * BENCHMARK ANALYTICS ENGINE - Analyse Groupée et Détection de Patterns
@@ -37,7 +37,7 @@ Deno.serve(async (req) => {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - lookback_days);
         
-        const allBenchmarks = await base44.asServiceRole.entities.BenchmarkResult.list('-created_date', 500);
+        const allBenchmarks = await base44.asServiceRole.entities.DevTestResult.list('-created_date', 500);
         const benchmarks = allBenchmarks.filter(b => 
             new Date(b.created_date) > cutoffDate &&
             b.global_score_performance !== null &&

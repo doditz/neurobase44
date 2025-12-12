@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 Deno.serve(async (req) => {
     try {
@@ -14,7 +14,7 @@ Deno.serve(async (req) => {
         console.log(`[Export All] Fetching up to ${limit} benchmarks for format: ${format}`);
 
         // Récupérer tous les benchmarks de l'utilisateur
-        const benchmarks = await base44.entities.BenchmarkResult.list('-created_date', limit);
+        const benchmarks = await base44.entities.DevTestResult.list('-created_date', limit);
 
         if (benchmarks.length === 0) {
             return Response.json({ error: 'No benchmarks found' }, { status: 404 });

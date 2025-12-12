@@ -1,5 +1,4 @@
-
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * BENCHMARK ORCHESTRATOR v3 - Avec Vérification de Création des Entités
@@ -44,7 +43,7 @@ Deno.serve(async (req) => {
             addLog(`BATCH MODE: ${batch_count} questions`);
             
             try {
-                const questions = await base44.asServiceRole.entities.BenchmarkQuestion.list('-created_date', batch_count);
+                const questions = await base44.asServiceRole.entities.DevTestQuestion.list('-created_date', batch_count);
                 
                 if (!questions || questions.length === 0) {
                     throw new Error('No benchmark questions found. Please create questions first.');
@@ -227,7 +226,7 @@ Deno.serve(async (req) => {
                             
                             for (const id of resultIds) {
                                 try {
-                                    const bench = await base44.asServiceRole.entities.BenchmarkResult.get(id);
+                                    const bench = await base44.asServiceRole.entities.DevTestResult.get(id);
                                     benchmarks.push(bench);
                                 } catch (loadError) {
                                     addLog(`  ⚠️ Could not load benchmark ${id}: ${loadError.message}`, 'WARNING');
@@ -359,7 +358,7 @@ Deno.serve(async (req) => {
         
         if (question_id) {
             try {
-                const questions = await base44.asServiceRole.entities.BenchmarkQuestion.filter({
+                const questions = await base44.asServiceRole.entities.DevTestQuestion.filter({
                     question_id: question_id
                 });
                 
@@ -480,7 +479,7 @@ Deno.serve(async (req) => {
         
         try {
             addLog('Creating benchmark entity...');
-            const benchmark = await base44.asServiceRole.entities.BenchmarkResult.create({
+            const benchmark = await base44.asServiceRole.entities.DevTestResult.create({
                 scenario_name: question_id || 'Custom Test',
                 scenario_category: benchQuestion?.question_type || 'custom',
                 test_prompt: question_text,
@@ -514,7 +513,7 @@ Deno.serve(async (req) => {
             for (let attempt = 1; attempt <= 8; attempt++) {
                 try {
                     addLog(`Verifying benchmark creation (attempt ${attempt}/8)...`);
-                    await base44.asServiceRole.entities.BenchmarkResult.get(benchmark_id);
+                    await base44.asServiceRole.entities.DevTestResult.get(benchmark_id);
                     verificationSuccess = true;
                     addLog(`✅ Benchmark verified as accessible!`, 'SUCCESS');
                     break;
