@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Clock, Zap, Brain, TrendingUp, ChevronDown, ChevronRight,
-    FileText, CheckCircle2, AlertCircle, Users, Download
+    FileText, CheckCircle2, AlertCircle, Users, Download, MessageSquare, Highlighter
 } from 'lucide-react';
+import CommentThread from '@/components/collaboration/CommentThread';
+import AnnotationPanel from '@/components/collaboration/AnnotationPanel';
 
 import UnifiedLogViewer from '../debug/UnifiedLogViewer';
 import { base44 } from '@/api/base44Client';

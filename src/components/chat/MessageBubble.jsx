@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
     Copy, Zap, CheckCircle2, AlertCircle, Loader2, 
-    ChevronRight, Clock, Shield, Brain,
-    TrendingUp, Users, FileText, Award,
+    ChevronRight, Clock, ChevronDown, Shield, Brain,
+    TrendingUp, Users, FileText, ExternalLink, Award,
     BarChart3
 } from 'lucide-react';
 import { cn } from "@/lib/utils";
@@ -380,6 +380,7 @@ export default function MessageBubble({ message }) {
     const [displayedText, setDisplayedText] = useState('');
     const isUser = message.role === 'user';
     const metadata = message.metadata || {};
+    const toneAnalysis = metadata?.tone_analysis;
     
     // Progressive text reveal for better perceived latency
     React.useEffect(() => {
@@ -421,6 +422,13 @@ export default function MessageBubble({ message }) {
                 </div>
             )}
             <div className={cn("max-w-[85%]", isUser && "flex flex-col items-end")}>
+                {/* Tone Indicator for User Messages */}
+                {isUser && toneAnalysis && (
+                    <div className="mb-2">
+                        <ToneIndicator toneAnalysis={toneAnalysis} />
+                    </div>
+                )}
+                
                 {/* User Files Display */}
                 {message.files && message.files.length > 0 && (
                     <div className="mb-2 space-y-1">
