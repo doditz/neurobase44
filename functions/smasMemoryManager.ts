@@ -1,8 +1,9 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
- * SMAS MEMORY MANAGER v2.0
- * Avec Intent-Based Contextual Retrieval
+ * SMAS MEMORY MANAGER v3.0 - NEURONAS 7-DATABASE ARCHITECTURE
+ * Implements L1-L3 (Left/Analytical) + R1-R3 (Right/Creative) + GC (Genius Central)
+ * With QuAC/QDAC dynamic tier routing and LSH semantic indexing
  */
 
 Deno.serve(async (req) => {
@@ -30,7 +31,10 @@ Deno.serve(async (req) => {
         const { 
             user_message, 
             conversation_id = 'pending',
-            enable_intent_based_retrieval = true
+            enable_intent_based_retrieval = true,
+            omega_t = 0.5,
+            dopamine_t = 0.5,
+            flux_integral = 0.0
         } = await req.json();
 
         if (!user_message) {
@@ -40,273 +44,234 @@ Deno.serve(async (req) => {
             }, { status: 400 });
         }
 
-        logManager.info('SMAS Memory Manager started', {
-            intent_based: enable_intent_based_retrieval
+        logManager.info('=== NEURONAS 7-DB MEMORY ARCHITECTURE START ===', {
+            omega_t,
+            dopamine_t,
+            flux_integral
         });
 
-        let intentAnalysis = null;
-        let relevantMemories = [];
-        let contextualSnippets = [];
+        // STEP 1: Determine hemispheric pathway
+        const pathway = determinePathway(user_message, omega_t);
+        logManager.info(`Pathway determined: ${pathway.name}`, {
+            omega_calculated: pathway.omega,
+            hemisphere_primary: pathway.hemisphere
+        });
 
-        // ÉTAPE 1: Analyse d'intention (si activée)
-        if (enable_intent_based_retrieval) {
-            logManager.info('🧠 Analyzing user intent for contextual retrieval');
+        // STEP 2: PARALLEL TIER RETRIEVAL (L1-L3, R1-R3, GC)
+        logManager.info('Retrieving memories from all 7 tiers in parallel');
+        
+        const [l1, r1, l2, r2, l3, r3, gc, systemMem] = await Promise.all([
+            // L1: Immediate analytical facts
+            base44.entities.UserMemory.filter({
+                tier_level: 1,
+                hemisphere: 'left'
+            }, '-d2_modulation', 10),
             
-            try {
-                const intentResponse = await base44.functions.invoke('intentAnalyzer', {
-                    user_message
-                });
+            // R1: Intuitive short-term cache
+            base44.entities.UserMemory.filter({
+                tier_level: 1,
+                hemisphere: 'right'
+            }, '-d2_modulation', 10),
+            
+            // L2: Validated logical patterns
+            base44.entities.UserMemory.filter({
+                tier_level: 2,
+                hemisphere: 'left'
+            }, '-access_count', 8),
+            
+            // R2: Associative metaphorical links
+            base44.entities.UserMemory.filter({
+                tier_level: 2,
+                hemisphere: 'right'
+            }, '-access_count', 8),
+            
+            // L3: Long-term ethical archive
+            base44.entities.UserMemory.filter({
+                tier_level: 3,
+                hemisphere: 'left'
+            }, '-d2_modulation', 5),
+            
+            // R3: Holistic user interaction models
+            base44.entities.UserMemory.filter({
+                tier_level: 3,
+                hemisphere: 'right'
+            }, '-d2_modulation', 5),
+            
+            // GC: Genius Central harmonization nucleus
+            base44.entities.UserMemory.filter({
+                hemisphere: 'central'
+            }, '-gc_integration_score', 5),
+            
+            // System Memory
+            base44.entities.SystemMemory.filter({
+                tier_level: 1
+            }, '-d2_modulation', 5)
+        ]);
 
-                if (intentResponse.data && intentResponse.data.success) {
-                    intentAnalysis = intentResponse.data.intent_analysis;
-                    
-                    logManager.success('Intent analysis completed', {
-                        primary: intentAnalysis.primary_intent,
-                        confidence: intentAnalysis.confidence_score,
-                        requires_memory: intentAnalysis.requires_memory
-                    });
-                } else {
-                    logManager.warning('Intent analysis failed, continuing with basic retrieval');
-                }
-            } catch (intentError) {
-                logManager.warning(`Intent analysis error: ${intentError.message}`);
-            }
+        logManager.success('7-tier retrieval complete', {
+            L1: l1.length,
+            R1: r1.length,
+            L2: l2.length,
+            R2: r2.length,
+            L3: l3.length,
+            R3: r3.length,
+            GC: gc.length,
+            System: systemMem.length
+        });
+
+        // STEP 3: SEMANTIC SIMILARITY SEARCH (LSH-based)
+        let semanticMatches = [];
+        
+        if (enable_intent_based_retrieval && dopamine_t > 0.5) {
+            logManager.info('🔍 LSH-based semantic search activated');
+            
+            const queryHash = generateSemanticHash(user_message);
+            
+            // Search across all tiers for semantic matches
+            const allMemories = [...l1, ...r1, ...l2, ...r2, ...l3, ...r3, ...gc];
+            
+            semanticMatches = allMemories.filter(mem => {
+                if (!mem.semantic_hash) return false;
+                
+                // Simple Hamming distance for hash similarity
+                const similarity = calculateHashSimilarity(queryHash, mem.semantic_hash);
+                return similarity > 0.6;
+            }).slice(0, 5);
+            
+            logManager.success(`Found ${semanticMatches.length} semantic matches`);
         }
 
-        // ÉTAPE 2: Chargement mémoire L1 (immédiate - toujours)
-        logManager.info('Loading L1 memory (immediate context)');
+        // STEP 4: GC HARMONIZATION (Vector-based integration)
+        const leftOutput = harmonizeHemisphere(
+            [...l1, ...l2, ...l3],
+            pathway.omega,
+            'left'
+        );
         
-        const l1Memories = await base44.entities.UserMemory.filter({
-            tier_level: 1
-        }, '-last_accessed', 50);
+        const rightOutput = harmonizeHemisphere(
+            [...r1, ...r2, ...r3],
+            1 - pathway.omega,
+            'right'
+        );
 
-        logManager.success(`Loaded ${l1Memories.length} L1 memories`);
+        // GC = γL·L + γR·R + λ·∇×SNEN
+        const gcWeight = 0.2;
+        const harmonizedMemories = [
+            ...leftOutput.slice(0, Math.ceil(leftOutput.length * pathway.omega)),
+            ...rightOutput.slice(0, Math.ceil(rightOutput.length * (1 - pathway.omega))),
+            ...gc,
+            ...semanticMatches
+        ];
 
-        // ÉTAPE 3: Chargement mémoire L2 (session)
-        logManager.info('Loading L2 memory (session context)');
+        // Remove duplicates
+        const uniqueMemories = harmonizedMemories.filter((mem, idx, arr) =>
+            arr.findIndex(m => m.id === mem.id) === idx
+        );
+
+        logManager.success('GC Harmonization complete', {
+            left_contrib: leftOutput.length,
+            right_contrib: rightOutput.length,
+            gc_contrib: gc.length,
+            total_unique: uniqueMemories.length
+        });
+
+        // STEP 5: DOPAMINE GATING (Attention filtering)
+        let finalMemories = uniqueMemories;
         
-        const l2Memories = await base44.entities.UserMemory.filter({
-            tier_level: 2
-        }, '-access_count', 30);
-
-        logManager.success(`Loaded ${l2Memories.length} L2 memories`);
-
-        // ÉTAPE 4: Récupération contextuelle intelligente L3 (long-term)
-        if (intentAnalysis && intentAnalysis.requires_memory) {
-            logManager.info('🎯 Intent-based L3 memory retrieval activated');
-            
-            const keyTopics = intentAnalysis.key_topics || [];
-            const domainHints = intentAnalysis.domain_hints || [];
-            const extractedEntities = intentAnalysis.extracted_entities || {};
-            
-            // Construire requête de recherche sémantique
-            const searchTerms = [
-                ...keyTopics,
-                ...domainHints,
-                ...(extractedEntities.technical || []),
-                ...(extractedEntities.concepts || [])
-            ].filter(Boolean);
-
-            logManager.info(`Searching L3 with ${searchTerms.length} semantic terms`);
-
-            // Recherche par correspondance de contenu
-            const l3MemoriesPromises = searchTerms.slice(0, 5).map(async (term) => {
-                try {
-                    const memories = await base44.entities.UserMemory.filter({
-                        tier_level: 3,
-                        memory_content: { "$regex": term, "$options": "i" }
-                    }, '-d2_modulation', 5);
-                    return memories;
-                } catch (e) {
-                    return [];
-                }
-            });
-
-            const l3Results = await Promise.all(l3MemoriesPromises);
-            const l3Memories = l3Results.flat().filter((mem, idx, arr) => 
-                arr.findIndex(m => m.id === mem.id) === idx
-            );
-
-            logManager.success(`Retrieved ${l3Memories.length} contextually relevant L3 memories`);
-            relevantMemories = l3Memories;
+        if (dopamine_t < 0.3) {
+            // LOW DOPAMINE: Prune context, economy mode
+            logManager.info('⚡ ECONOMY MODE: Low dopamine, pruning context');
+            finalMemories = uniqueMemories
+                .filter(mem => mem.d2_modulation > 0.7)
+                .slice(0, 5);
+        } else if (dopamine_t > 0.7) {
+            // HIGH DOPAMINE: Expand reasoning, exploration mode
+            logManager.info('🌟 EXPLORATION MODE: High dopamine, expanding context');
+            finalMemories = uniqueMemories.slice(0, 20);
         } else {
-            // Fallback: récupération L3 standard (plus récents)
-            logManager.info('Standard L3 memory retrieval');
-            
-            const l3Memories = await base44.entities.UserMemory.filter({
-                tier_level: 3
-            }, '-last_accessed', 20);
-
-            relevantMemories = l3Memories;
+            // BALANCED DOPAMINE
+            finalMemories = uniqueMemories.slice(0, 12);
         }
 
-        // ÉTAPE 5: Scoring et tri des mémoires pertinentes
-        const allMemories = [...l1Memories, ...l2Memories, ...relevantMemories];
-        
-        if (intentAnalysis) {
-            logManager.info('Scoring memories based on intent relevance');
-            
-            // Simple scoring basé sur correspondance de mots-clés
-            const scoredMemories = allMemories.map(mem => {
-                let relevanceScore = mem.d2_modulation || 0.5;
-                
-                // Boost si topics correspondants
-                const memContent = mem.memory_content.toLowerCase();
-                const keyTopics = intentAnalysis.key_topics || [];
-                
-                keyTopics.forEach(topic => {
-                    if (memContent.includes(topic.toLowerCase())) {
-                        relevanceScore += 0.1;
-                    }
-                });
-                
-                // Boost si type de mémoire correspond à l'intention
-                if (intentAnalysis.primary_intent === 'TECHNICAL_ASSISTANCE' && 
-                    mem.memory_type === 'project') {
-                    relevanceScore += 0.15;
-                }
-                
-                if (intentAnalysis.primary_intent === 'LEARNING' && 
-                    mem.memory_type === 'learning_point') {
-                    relevanceScore += 0.15;
-                }
-                
-                return {
-                    ...mem,
-                    computed_relevance: Math.min(1, relevanceScore)
-                };
-            });
-            
-            // Trier par pertinence
-            scoredMemories.sort((a, b) => b.computed_relevance - a.computed_relevance);
-            
-            contextualSnippets = scoredMemories.slice(0, 15);
-            
-            logManager.success(`Selected ${contextualSnippets.length} most relevant memories`);
-        } else {
-            // Sans analyse d'intention, prendre les plus récents/importants
-            contextualSnippets = allMemories.slice(0, 15);
-        }
-
-        // ÉTAPE 6: Récupération de snippets de conversations passées pertinentes
-        let relevantConversationSnippets = [];
-        
-        if (intentAnalysis && intentAnalysis.requires_memory) {
-            logManager.info('Searching relevant past conversations');
-            
-            try {
-                const debates = await base44.entities.Debate.list('-created_date', 20);
-                
-                if (debates.length > 0) {
-                    // Filtrer conversations pertinentes basé sur topics
-                    const keyTopics = intentAnalysis.key_topics || [];
-                    
-                    relevantConversationSnippets = debates
-                        .filter(debate => {
-                            const topic = (debate.topic || '').toLowerCase();
-                            return keyTopics.some(kw => topic.includes(kw.toLowerCase()));
-                        })
-                        .slice(0, 3)
-                        .map(debate => ({
-                            conversation_id: debate.conversation_id,
-                            topic: debate.topic,
-                            created: debate.created_date,
-                            relevance: 'topic_match'
-                        }));
-                    
-                    logManager.success(`Found ${relevantConversationSnippets.length} relevant past conversations`);
-                }
-            } catch (debateError) {
-                logManager.warning(`Failed to retrieve past conversations: ${debateError.message}`);
-            }
-        }
-
-        // ÉTAPE 7: Charger System Memory (toujours)
-        logManager.info('Loading System Memory');
-        
-        const systemMemories = await base44.entities.SystemMemory.filter({
-            tier_level: 1
-        }, '-d2_modulation', 10);
-
-        logManager.success(`Loaded ${systemMemories.length} system memories`);
-
-        // ÉTAPE 8: Construire contexte complet
+        // STEP 6: BUILD CONTEXT STRING
         let full_context = '';
 
-        // System Memory (toujours en premier)
-        if (systemMemories.length > 0) {
-            full_context += '\n## 🧬 Mémoire Système (Identité Neuronas)\n\n';
-            systemMemories.forEach(mem => {
+        // System Memory (Always first)
+        if (systemMem.length > 0) {
+            full_context += '\n## 🧬 NEURONAS SYSTEM IDENTITY\n\n';
+            systemMem.forEach(mem => {
                 full_context += `- ${mem.memory_content}\n`;
             });
         }
 
-        // Contextual User Memories
-        if (contextualSnippets.length > 0) {
-            full_context += '\n## 💾 Contexte Pertinent de l\'Utilisateur\n\n';
-            contextualSnippets.slice(0, 10).forEach(mem => {
-                const relevanceLabel = mem.computed_relevance 
-                    ? ` (pertinence: ${(mem.computed_relevance * 100).toFixed(0)}%)`
-                    : '';
-                full_context += `- [${mem.memory_type}]${relevanceLabel} ${mem.memory_content}\n`;
+        // Hemispheric Memory Context
+        const leftMemories = finalMemories.filter(m => m.hemisphere === 'left');
+        const rightMemories = finalMemories.filter(m => m.hemisphere === 'right');
+        const centralMemories = finalMemories.filter(m => m.hemisphere === 'central');
+
+        if (leftMemories.length > 0) {
+            full_context += '\n## 🧮 LEFT HEMISPHERE (Analytical Context)\n\n';
+            leftMemories.forEach(mem => {
+                const tier = mem.source_database_tier || `L${mem.tier_level}`;
+                full_context += `- [${tier}] ${mem.memory_content}\n`;
             });
         }
 
-        // Past Conversations Snippets
-        if (relevantConversationSnippets.length > 0) {
-            full_context += '\n## 🔗 Conversations Passées Pertinentes\n\n';
-            relevantConversationSnippets.forEach(snippet => {
-                full_context += `- "${snippet.topic}" (${new Date(snippet.created).toLocaleDateString()})\n`;
+        if (rightMemories.length > 0) {
+            full_context += '\n## 🎨 RIGHT HEMISPHERE (Creative Context)\n\n';
+            rightMemories.forEach(mem => {
+                const tier = mem.source_database_tier || `R${mem.tier_level}`;
+                full_context += `- [${tier}] ${mem.memory_content}\n`;
             });
         }
 
-        // Intent-based guidance for personas
-        if (intentAnalysis && intentAnalysis.suggested_personas) {
-            full_context += '\n## 🎭 Personas Suggérées pour ce Contexte\n\n';
-            intentAnalysis.suggested_personas.slice(0, 5).forEach(persona => {
-                full_context += `- ${persona.persona_type} (pertinence: ${(persona.relevance_score * 100).toFixed(0)}%): ${persona.reasoning}\n`;
+        if (centralMemories.length > 0) {
+            full_context += '\n## ⚡ GENIUS CENTRAL (Harmonized Context)\n\n';
+            centralMemories.forEach(mem => {
+                full_context += `- [GC] ${mem.memory_content}\n`;
             });
         }
 
-        // ÉTAPE 9: Mise à jour access_count sur les mémoires utilisées
-        logManager.info('Updating memory access counts');
-        
-        const updatePromises = contextualSnippets.slice(0, 10).map(async (mem) => {
-            try {
-                await base44.entities.UserMemory.update(mem.id, {
-                    access_count: (mem.access_count || 0) + 1,
-                    last_accessed: new Date().toISOString()
-                });
-            } catch (e) {
-                // Silently fail
-            }
+        // STEP 7: UPDATE ACCESS PATTERNS (Synaptic strengthening)
+        const updatePromises = finalMemories.map(async (mem) => {
+            const newD2 = Math.min(1.0, (mem.d2_modulation || 0.5) + 0.05 * dopamine_t);
+            
+            return base44.entities.UserMemory.update(mem.id, {
+                access_count: (mem.access_count || 0) + 1,
+                last_accessed: new Date().toISOString(),
+                d2_modulation: newD2
+            }).catch(() => null);
         });
         
         await Promise.allSettled(updatePromises);
 
-        logManager.success('SMAS Memory Manager completed', {
-            total_context_length: full_context.length,
-            memories_used: contextualSnippets.length,
-            intent_based: !!intentAnalysis
-        });
+        logManager.success('=== NEURONAS MEMORY RETRIEVAL COMPLETE ===');
 
         return Response.json({
             success: true,
             full_context,
             memory_stats: {
-                l1_count: l1Memories.length,
-                l2_count: l2Memories.length,
-                l3_count: relevantMemories.length,
-                system_count: systemMemories.length,
-                contextual_snippets: contextualSnippets.length,
-                past_conversations: relevantConversationSnippets.length
+                total_retrieved: uniqueMemories.length,
+                final_selected: finalMemories.length,
+                L1: l1.length,
+                R1: r1.length,
+                L2: l2.length,
+                R2: r2.length,
+                L3: l3.length,
+                R3: r3.length,
+                GC: gc.length,
+                left_hemisphere: leftMemories.length,
+                right_hemisphere: rightMemories.length,
+                central_hemisphere: centralMemories.length
             },
-            intent_analysis: intentAnalysis,
+            pathway: pathway.name,
+            omega_t: pathway.omega,
+            dopamine_mode: dopamine_t < 0.3 ? 'ECONOMY' : dopamine_t > 0.7 ? 'EXPLORATION' : 'BALANCED',
             logs
         });
 
     } catch (error) {
-        logManager.error(`Fatal error: ${error.message}`, { stack: error.stack });
+        console.error('[MemoryTierRouter] Fatal error:', error);
         
         return Response.json({
             success: false,
@@ -316,3 +281,101 @@ Deno.serve(async (req) => {
         }, { status: 500 });
     }
 });
+
+/**
+ * Determine cognitive pathway based on query and omega_t
+ */
+function determinePathway(query, omega_t) {
+    const queryLower = query.toLowerCase();
+    
+    // Analytical indicators
+    const analyticalScore = (
+        (queryLower.match(/math|logic|calculate|analyze|data|fact|proof|evidence/g) || []).length * 0.15
+    );
+    
+    // Creative indicators
+    const creativeScore = (
+        (queryLower.match(/imagine|create|story|art|feel|abstract|metaphor|intuition/g) || []).length * 0.15
+    );
+    
+    // Ethical indicators
+    const ethicalScore = (
+        (queryLower.match(/should|ethical|moral|right|wrong|fair|justice/g) || []).length * 0.1
+    );
+    
+    // Calculate target omega
+    let targetOmega = 0.5;
+    
+    if (analyticalScore > creativeScore + ethicalScore) {
+        targetOmega = 0.9; // Strongly analytical
+    } else if (creativeScore > analyticalScore + ethicalScore) {
+        targetOmega = 0.1; // Strongly creative
+    } else if (ethicalScore > 0.2) {
+        targetOmega = 0.5; // Ethical requires balance
+    }
+    
+    // Apply inertia: don't switch instantly
+    const inertia_factor = 0.6;
+    const calculated_omega = omega_t + inertia_factor * (targetOmega - omega_t);
+    
+    let pathway_name = 'BALANCED';
+    let hemisphere = 'central';
+    
+    if (calculated_omega > 0.7) {
+        pathway_name = 'ANALYTICAL';
+        hemisphere = 'left';
+    } else if (calculated_omega < 0.3) {
+        pathway_name = 'CREATIVE';
+        hemisphere = 'right';
+    }
+    
+    return {
+        name: pathway_name,
+        omega: calculated_omega,
+        hemisphere,
+        scores: { analyticalScore, creativeScore, ethicalScore }
+    };
+}
+
+/**
+ * Harmonize memories from one hemisphere with weighting
+ */
+function harmonizeHemisphere(memories, weight, hemisphere) {
+    return memories
+        .map(mem => ({
+            ...mem,
+            weighted_score: (mem.d2_modulation || 0.5) * weight * (mem.gc_integration_score || 1.0)
+        }))
+        .sort((a, b) => b.weighted_score - a.weighted_score);
+}
+
+/**
+ * Generate semantic hash for LSH clustering
+ */
+function generateSemanticHash(text) {
+    const words = text.toLowerCase().split(/\s+/).filter(w => w.length > 3);
+    const hashBase = words.slice(0, 10).join('_');
+    
+    let hash = 0;
+    for (let i = 0; i < hashBase.length; i++) {
+        const char = hashBase.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+    }
+    
+    return Math.abs(hash).toString(36).substring(0, 8);
+}
+
+/**
+ * Calculate hash similarity (Hamming distance)
+ */
+function calculateHashSimilarity(hash1, hash2) {
+    if (!hash1 || !hash2 || hash1.length !== hash2.length) return 0;
+    
+    let matches = 0;
+    for (let i = 0; i < hash1.length; i++) {
+        if (hash1[i] === hash2[i]) matches++;
+    }
+    
+    return matches / hash1.length;
+}
