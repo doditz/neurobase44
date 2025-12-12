@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -6,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
     Clock, Zap, Brain, TrendingUp, ChevronDown, ChevronRight,
-    FileText, Users, Download
+    FileText, CheckCircle2, AlertCircle, Users, Download
 } from 'lucide-react';
 
 import UnifiedLogViewer from '../debug/UnifiedLogViewer';
@@ -41,7 +40,8 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
         modeB: false,
         quality: true,
         comparison: true,
-        qualitative: true
+        qualitative: true,
+        collaboration: false
     });
     const [isExporting, setIsExporting] = React.useState(false);
 
@@ -523,6 +523,41 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                     </CardContent>
                 </Card>
             )}
+
+            {/* Collaboration Tools */}
+            <Card className="bg-slate-800 border-slate-700">
+                <CardHeader>
+                    <button
+                        onClick={() => toggleSection('collaboration')}
+                        className="flex items-center justify-between w-full text-left"
+                    >
+                        <CardTitle className="text-green-400 text-base flex items-center gap-2">
+                            {expandedSections.collaboration ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                            <Users className="w-4 h-4" />
+                            Collaboration & Discussion
+                        </CardTitle>
+                    </button>
+                </CardHeader>
+                {expandedSections.collaboration && (
+                    <CardContent>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <div>
+                                <CommentThread
+                                    targetType="benchmark"
+                                    targetId={benchmark.id}
+                                    autoRefresh={true}
+                                />
+                            </div>
+                            <div>
+                                <AnnotationPanel
+                                    targetType="benchmark"
+                                    targetId={benchmark.id}
+                                />
+                            </div>
+                        </div>
+                    </CardContent>
+                )}
+            </Card>
         </div>
     );
 }
