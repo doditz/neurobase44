@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/entities/User";
-import { MessageSquare, Users, Github, Brain, Menu, Settings, Plus, Zap, Music, FlaskConical, User as UserIcon, Activity, Shield, BarChart3, Search, BookOpen, Trash2 } from "lucide-react";
+import { MessageSquare, Users, Github, Brain, Menu, Settings, Plus, Zap, Music, FlaskConical, User as UserIcon, Activity, Shield, BarChart3, Search, Stethoscope, BookOpen, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
@@ -113,6 +113,13 @@ const navigationItems = [
     url: createPageUrl("SystemDocumentation"),
     icon: BookOpen,
     description: "System documentation",
+    adminOnly: true
+  },
+  {
+    title: "Diagnostic",
+    url: createPageUrl("SystemDiagnostic"),
+    icon: Stethoscope,
+    description: "System diagnostic & health check",
     adminOnly: true
   }
 ];
