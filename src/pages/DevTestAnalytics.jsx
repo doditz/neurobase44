@@ -1,19 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
     BarChart3,
+    TrendingUp,
+    AlertTriangle,
+    Sparkles,
     Loader2,
     RefreshCw,
+    Target,
+    Award,
+    Activity,
+    Eye,
+    LineChart,
     GitCompare
 } from 'lucide-react';
 import { toast } from 'sonner';
-
-
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import {
+    LineChart as RechartsLine,
+    Line,
+    BarChart as RechartsBar,
+    Bar,
+    XAxis,
+    YAxis,
+    CartesianGrid,
+    Tooltip as RechartsTooltip,
+    Legend,
+    ResponsiveContainer,
+    Area,
+    AreaChart,
+    ComposedChart
+} from 'recharts';
 import ExportAllButton from '@/components/benchmark/ExportAllButton';
 import ComparisonView from '@/components/benchmark/ComparisonView';
 import DevTestAIAnalysis from '@/components/benchmark/DevTestAIAnalysis';
+import BatchComparison from '@/components/benchmark/BatchComparison';
 
 const GROUP_BY_OPTIONS = [
     { value: 'scenario_category', label: 'Catégorie de Scénario' },
@@ -175,7 +201,10 @@ export default function DevTestAnalyticsPage() {
 
                 {/* Comparison View */}
                 {showComparison && (
-                    <ComparisonView />
+                    <>
+                        <ComparisonView />
+                        <BatchComparison />
+                    </>
                 )}
 
                 {/* AI-Powered Analysis Section */}

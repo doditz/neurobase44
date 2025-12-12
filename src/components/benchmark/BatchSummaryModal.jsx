@@ -14,7 +14,8 @@ import {
     Download, 
     CheckCircle2, 
     XCircle, 
-    TrendingUp,
+    TrendingUp, 
+    Clock,
     Zap,
     Cpu,
     HardDrive,
@@ -37,6 +38,7 @@ import {
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import BenchmarkComparison from './BenchmarkComparison';
+import EnhancedBatchLogs from './EnhancedBatchLogs';
 
 export default function BatchSummaryModal({ isOpen, onClose, progressData }) {
     const [results, setResults] = useState([]);
@@ -422,6 +424,12 @@ export default function BatchSummaryModal({ isOpen, onClose, progressData }) {
                             </div>
                         </CardContent>
                     </Card>
+
+                    {/* Enhanced Logs */}
+                    <EnhancedBatchLogs 
+                        results={results} 
+                        onRefresh={() => loadResults(0)}
+                    />
 
                     {/* Detailed Results Table */}
                     <Card className="bg-slate-900/50 border-slate-700">
