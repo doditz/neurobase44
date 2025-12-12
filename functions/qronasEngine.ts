@@ -1,0 +1,351 @@
+import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+
+/**
+ * QRONAS - Quantum-Symbolic Reasoning Core v6.0 (Agent Instructions Integration)
+ *
+ * NEW: Integrates agent-specific instructions into persona prompts
+ * - Receives agent_name and agent_instructions from chatOrchestrator
+ * - Passes agent instructions to personaTeamOptimizer for context-aware selection
+ * - Prepends agent instructions to each persona prompt for compliance
+ */
+
+// ===================================================================
+// HELPER FUNCTIONS
+// ===================================================================
+
+function withTimeout(promise, timeoutMs, errorMessage) {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(errorMessage)), timeoutMs)
+        )
+    ]);
+}
+
+// ===================================================================
+// MAIN DENO SERVE FUNCTION
+// ===================================================================
+
+Deno.serve(async (req) => {
+    const log = [];
+    const logManager = {
+        _log: log,
+        _formatEntry: (level, msg, data) => {
+            let entry = `[${new Date().toISOString()}] [${level.toUpperCase()}] ${msg}`;
+            if (data) {
+                try {
+                    entry += ` - ${JSON.stringify(data)}`;
+                } catch (e) {
+                    entry += ` - (Failed to stringify data)`;
+                }
+            }
+            return entry;
+        },
+        system: (msg, data) => {
+            const entry = logManager._formatEntry('SYSTEM', msg, data);
+            logManager._log.push(entry);
+            console.log(`[QRONAS] ${entry}`);
+        },
+        info: (msg, data) => {
+            const entry = logManager._formatEntry('INFO', msg, data);
+            logManager._log.push(entry);
+            console.log(`[QRONAS] ${entry}`);
+        },
+        warning: (msg, data) => {
+            const entry = logManager._formatEntry('WARNING', msg, data);
+            logManager._log.push(entry);
+            console.log(`[QRONAS] ${entry}`);
+        },
+        success: (msg, data) => {
+            const entry = logManager._formatEntry('SUCCESS', msg, data);
+            logManager._log.push(entry);
+            console.log(`[QRONAS] ${entry}`);
+        },
+        error: (msg, data) => {
+            const entry = logManager._formatEntry('ERROR', msg, data);
+            logManager._log.push(entry);
+            console.error(`[QRONAS] ${entry}`);
+        },
+        getFormattedLogs: () => logManager._log,
+        getLogs: () => logManager._log
+    };
+
+    try {
+        logManager.system('=== QRONAS ENGINE START v6.0 ===');
+
+        const base44 = createClientFromRequest(req);
+        const user = await base44.auth.me();
+
+        if (!user) {
+            logManager.error('Unauthorized');
+            return Response.json({ error: 'Unauthorized', success: false, logs: logManager.getFormattedLogs() }, { status: 401 });
+        }
+
+        let requestData;
+        try {
+            requestData = await req.json();
+        } catch (parseError) {
+            logManager.error(`Invalid JSON - ${parseError.message}`);
+            return Response.json({ error: 'Invalid JSON', success: false, logs: logManager.getFormattedLogs() }, { status: 400 });
+        }
+
+        const {
+            prompt,
+            agent_name = 'smas_debater',
+            agent_instructions = '',
+            max_paths = 5,
+            debate_rounds = 3,
+            temperature = 0.7,
+            archetype = 'balanced',
+            dominant_hemisphere = 'central',
+            needs_citations = false,
+            citation_enforcement_strict = false,
+            settings = {}
+        } = requestData;
+
+        logManager.info(`User: ${user.email}, Agent: ${agent_name}, Prompt: "${prompt.substring(0, 50)}..."`);
+        logManager.info('Agent instructions received', {
+            has_instructions: agent_instructions.length > 0,
+            instructions_length: agent_instructions.length,
+            preview: agent_instructions.substring(0, 150) + '...'
+        });
+        logManager.info('Configuration', {
+            max_personas: max_paths,
+            debate_rounds,
+            temperature,
+            archetype,
+            dominant_hemisphere,
+            citation_enforcement_strict
+        });
+
+        // Validation du nombre minimum de personas
+        const MIN_PERSONAS_FOR_DEBATE = 3;
+        if (max_paths < MIN_PERSONAS_FOR_DEBATE) {
+            logManager.warning(`Insufficient personas (${max_paths} < ${MIN_PERSONAS_FOR_DEBATE}) - Debate may be suboptimal`);
+        }
+
+        // ÉTAPE 1: Sélection des Personas (with agent context)
+        logManager.info('Selecting personas with agent context');
+
+        const personaSelectionResult = await base44.functions.invoke('personaTeamOptimizer', {
+            user_message: prompt,
+            agent_name: agent_name,
+            archetype,
+            dominant_hemisphere,
+            max_personas: max_paths,
+            settings: settings
+        });
+
+        if (!personaSelectionResult.data || !personaSelectionResult.data.success) {
+            throw new Error(`Persona selection failed: ${personaSelectionResult.data?.error || 'Unknown error'}`);
+        }
+
+        const selectedPersonas = personaSelectionResult.data.team;
+
+        logManager.success(`Selected ${selectedPersonas.length} personas`, {
+            personas: selectedPersonas.map(p => p.name),
+            min_required: MIN_PERSONAS_FOR_DEBATE,
+            meets_minimum: selectedPersonas.length >= MIN_PERSONAS_FOR_DEBATE
+        });
+
+        if (selectedPersonas.length < MIN_PERSONAS_FOR_DEBATE) {
+            logManager.warning(`⚠️ BELOW MINIMUM PERSONAS: Only ${selectedPersonas.length} personas selected (minimum: ${MIN_PERSONAS_FOR_DEBATE})`);
+        }
+
+        // STEP 2: Multi-Round Debate with Agent Instructions Integration
+        const debateHistory = [];
+        const extractedCitations = [];
+
+        for (let round = 0; round < debate_rounds; round++) {
+            logManager.info(`Starting debate round ${round + 1}/${debate_rounds}`);
+
+            const roundStart = Date.now();
+            const roundResponses = [];
+
+            for (const persona of selectedPersonas) {
+                // CRITICAL: Prepend agent instructions to ensure compliance
+                const agentInstructionsBlock = agent_instructions ? `
+## 🎯 AGENT MISSION & GUIDELINES (${agent_name.toUpperCase()})
+
+${agent_instructions}
+
+**YOUR ROLE:** You MUST strictly follow the above agent guidelines while applying your persona expertise below.
+
+---
+
+` : '';
+
+                const personaPrompt = `${agentInstructionsBlock}## 📋 CONTEXT AND QUESTION
+
+${prompt}
+
+## 👤 YOUR ROLE: ${persona.name} (${persona.domain})
+
+**Your specific instructions:**
+${persona.instructions_for_system || persona.default_instructions || 'Apply your domain expertise to address the question comprehensively.'}
+
+**Debate History:**
+${debateHistory.map(h => `- [R${h.round} ${h.persona}]: ${h.response.substring(0, 200)}...`).join('\n')}
+
+${citation_enforcement_strict ? `
+**⚠️ STRICT CITATION RULES (MANDATORY):**
+1. EVERY factual claim MUST be followed by [Source: URL or context]
+2. If no source available, prefix claim with "HYPOTHESIS:" or "REASONING:"
+3. Unsourced claims will be heavily penalized
+4. Perfect example: "AI progressed 40% in 2024 [Source: UNESCO 2024 report]"
+5. If concept repeated, CITE it first time then reference without re-citing
+` : needs_citations ? `
+**Citation Guidelines (Strongly Recommended):**
+Cite your sources when available with [Source: URL or context] to strengthen your arguments.
+` : `
+**Guidelines:**
+Provide your unique perspective and argue clearly.
+`}
+
+Provide your unique perspective in ${Math.max(100, 300 - round * 50)} words.
+This is Round ${round + 1} of the debate.
+`;
+
+                try {
+                    const response = await base44.integrations.Core.InvokeLLM({
+                        prompt: personaPrompt,
+                        temperature,
+                        add_context_from_internet: false
+                    });
+
+                    // Extract citations from response
+                    const citationMatches = response.match(/\[Source:\s*([^\]]+)\]/g) || [];
+                    citationMatches.forEach(match => {
+                        const source = match.replace(/\[Source:\s*/, '').replace(/\]/, '');
+                        extractedCitations.push({
+                            source,
+                            persona: persona.name,
+                            round: round + 1,
+                            context: `Debate round ${round + 1}`
+                        });
+                    });
+
+                    // Check for unsourced claims if strict enforcement
+                    if (citation_enforcement_strict) {
+                        const factualClaimRegex = /(\d{1,3}(,\d{3})*(\.\d+)?%|\d{4,}|étude|recherche|rapport|données|statistique|montre que|prouve que|selon (des|l')?experts|la science|l'historique|un sondage)/i;
+                        const potentialFactualClaims = response.split(/[.!?\n]/).filter(sentence => factualClaimRegex.test(sentence));
+
+                        let hasUncitedFactualClaim = false;
+                        for (const claim of potentialFactualClaims) {
+                            if (!/\[Source:/.test(claim) && !/(HYPOTHÈSE|RAISONNEMENT|HYPOTHESIS|REASONING):/i.test(claim)) {
+                                hasUncitedFactualClaim = true;
+                                break;
+                            }
+                        }
+
+                        if (hasUncitedFactualClaim) {
+                            logManager.warning(`${persona.name}: Factual claims without explicit source detected in round ${round + 1}.`, {
+                                excerpt: response.substring(0, 200)
+                            });
+                        }
+                    }
+
+                    roundResponses.push({
+                        persona: persona.name,
+                        response,
+                        citations_count: citationMatches.length
+                    });
+
+                    debateHistory.push({
+                        round: round + 1,
+                        persona: persona.name,
+                        response,
+                        time_ms: Date.now() - roundStart
+                    });
+                } catch (personaError) {
+                    logManager.error(`Persona ${persona.name} failed in round ${round + 1}: ${personaError.message}`, {
+                        stack: personaError.stack,
+                        promptExcerpt: personaPrompt.substring(0, 500)
+                    });
+                    debateHistory.push({
+                        round: round + 1,
+                        persona: persona.name,
+                        response: `(Error: Persona failed to respond due to ${personaError.message.substring(0, 100)})`,
+                        time_ms: Date.now() - roundStart,
+                        error: true
+                    });
+                }
+            }
+
+            logManager.success(`Round ${round + 1} completed: ${roundResponses.length} responses, ${roundResponses.reduce((sum, r) => sum + r.citations_count, 0)} citations detected.`);
+        }
+
+        // STEP 3: Magistral Synthesis with Citation Preservation
+        logManager.info('Generating magistral synthesis with citations');
+
+        const synthesisPrompt = `You are the Magistral Synthesizer. Analyze this multi-perspective debate and create a masterful, coherent, and engaging synthesis based on the interventions of different personas.
+
+**Complete Debate (${debateHistory.length} interventions):**
+${debateHistory.map(h => `
+---
+[${h.persona} - Round ${h.round}]
+${h.response}
+`).join('\n')}
+---
+
+${needs_citations ? `
+**CITATION AND STRUCTURE IMPERATIVES:**
+- Preserve ALL citations [Source: ...] exactly as provided in the debate. Do not modify them.
+- Integrate them fluidly into the synthesis.
+- Start with a clear introduction, followed by thematic sections that integrate and contrast persona perspectives.
+- Conclude with key points and implications.
+- The synthesis must reflect all arguments and evidence presented.
+` : `
+**Synthesis Objectives:**
+- Create a coherent synthesis integrating all perspectives.
+- Summarize key arguments and points of disagreement/consensus.
+- The synthesis should be informative and well-structured.
+`}
+
+**Conciseness and Fluidity Guidelines:**
+- Avoid repetition. Each point should be made once.
+- Maintain argumentative richness while being concise.
+- Structure text with clear titles and subtitles.
+- Limit length to approximately ${Math.max(600, 400 + debate_rounds * 100)} words for quality synthesis.
+`;
+
+        const masterSynthesis = await withTimeout(
+            base44.integrations.Core.InvokeLLM({
+                prompt: synthesisPrompt,
+                temperature: temperature * 0.85,
+                add_context_from_internet: false
+            }),
+            30000,
+            'Final synthesis timeout'
+        );
+
+        logManager.success('Synthesis completed', {
+            length: masterSynthesis.length,
+            total_citations: extractedCitations.length
+        });
+
+        return Response.json({
+            success: true,
+            synthesis: masterSynthesis,
+            agent_name,
+            agent_instructions_used: agent_instructions.length > 0,
+            personas_used: selectedPersonas.map(p => p.name),
+            personas_count: selectedPersonas.length,
+            rounds_executed: debate_rounds,
+            meets_min_personas: selectedPersonas.length >= MIN_PERSONAS_FOR_DEBATE,
+            citations: extractedCitations,
+            citation_enforcement: citation_enforcement_strict,
+            debate_history: debateHistory,
+            logs: logManager.getLogs()
+        });
+
+    } catch (error) {
+        logManager.error(`FATAL ERROR in qronasEngine: ${error.message}`, { stack: error.stack });
+        return Response.json({
+            error: error.message,
+            success: false,
+            logs: logManager.getFormattedLogs(),
+            stack: error.stack
+        }, { status: 500 });
+    }
+});
