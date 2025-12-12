@@ -261,7 +261,6 @@ Key guidelines:
         
         thinkingSteps.push({
             step: 'KNOWLEDGE_ENRICHMENT',
-            external_search_executed: shouldQueryExternal,
             web_search_executed: webSearchExecuted,
             total_sources_found: citations.length
         });
