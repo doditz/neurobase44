@@ -394,10 +394,54 @@ Key guidelines:
             memory_system_enabled: isMemorySystemEnabled
         });
 
+        // STEP 3.5: SARCASM & TONE DETECTION (if enabled)
+        logManager.system('=== STEP 3.5: TONE DETECTION ===');
+        let tone_analysis = null;
+        
+        if (settings.enableSarcasmDetection || settings.sarcasm_sensitivity) {
+            logManager.info('🎭 Detecting tone and sarcasm...');
+            try {
+                const { data: toneData } = await base44.functions.invoke('sarcasmDetector', {
+                    text: user_message,
+                    sensitivity: settings.sarcasm_sensitivity || 'medium',
+                    conversation_id: conversation_id,
+                    include_meta_commentary: true
+                });
+                
+                if (toneData && toneData.success) {
+                    tone_analysis = toneData.analysis;
+                    logManager.success(`🎭 Tone detected: sarcasm=${tone_analysis.is_sarcastic} (${(tone_analysis.sarcasm_confidence * 100).toFixed(0)}%)`);
+                }
+            } catch (toneError) {
+                logManager.warning(`Tone detection failed: ${toneError.message}`);
+            }
+        }
+        
+        thinkingSteps.push({
+            step: 'TONE_DETECTION',
+            enabled: settings.enableSarcasmDetection || false,
+            tone_analysis: tone_analysis
+        });
+
         // STEP 4: RETRIEVE (CONDITIONAL MEMORY)
         logManager.system('=== STEP 4: RETRIEVE ===');
         
-        let full_context = webSearchContext + '\n\n## Question Utilisateur:\n' + user_message;
+        let full_context = webSearchContext;
+        
+        // Add tone context if detected
+        if (tone_analysis && (tone_analysis.is_sarcastic || tone_analysis.detected_tones.length > 0)) {
+            full_context += `\n\n## 🎭 TONE CONTEXT\n`;
+            full_context += `Detected tones: ${tone_analysis.detected_tones.map(t => `${t.tone} (${(t.confidence * 100).toFixed(0)}%)`).join(', ')}\n`;
+            if (tone_analysis.implied_meaning) {
+                full_context += `Implied meaning: ${tone_analysis.implied_meaning}\n`;
+            }
+            if (tone_analysis.meta_commentary) {
+                full_context += `Meta-commentary: ${tone_analysis.meta_commentary}\n`;
+            }
+            full_context += '\n';
+        }
+        
+        full_context += '\n## Question Utilisateur:\n' + user_message;
         
         if (isMemorySystemEnabled) {
             logManager.info('Memory system ACTIVE - invoking smasMemoryManager');
@@ -535,7 +579,9 @@ Key guidelines:
             external_knowledge_queried: shouldQueryExternal,
             external_sources_count: citations.filter(c => c.external).length,
             debate_history: debateHistory,
-            debate_rounds_details: qronasResult?.data?.debate_rounds_details || []
+            debate_rounds_details: qronasResult?.data?.debate_rounds_details || [],
+            tone_analysis: tone_analysis || null,
+            sarcasm_detected: tone_analysis?.is_sarcastic || false
         };
 
         return Response.json({
