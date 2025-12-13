@@ -219,8 +219,66 @@ Key guidelines:
             dstib_routing: dstibRouting
         });
 
-        // STEP 2.5: CONDITIONAL WEB SEARCH (OPTIMIZED)
-        logManager.system('=== STEP 2.5: CONDITIONAL KNOWLEDGE ENRICHMENT ===');
+        // STEP 2.5: FACTUAL CACHE CHECK (L3 Optimization)
+        logManager.system('=== STEP 2.5: FACTUAL CACHE CHECK ===');
+        
+        let cachedAnswer = null;
+        let usedCache = false;
+        
+        // Check if this is a factual query that might be cached
+        const isFactualQuery = /what is|who is|when did|how many|define|explain/i.test(user_message);
+        
+        if (isFactualQuery && complexity_score < 0.7) {
+            logManager.info('🔍 Checking L3 factual cache...');
+            try {
+                const { data: cacheResult } = await base44.functions.invoke('factualCacheManager', {
+                    operation: 'check',
+                    query: user_message
+                });
+                
+                if (cacheResult.cached) {
+                    cachedAnswer = cacheResult.answer;
+                    usedCache = true;
+                    sourcingConfidence = cacheResult.metadata.confidence;
+                    
+                    logManager.success(`✅ L3 Cache HIT (${cacheResult.metadata.access_count} accesses)`, {
+                        age: new Date(cacheResult.metadata.created).toISOString(),
+                        confidence: cacheResult.metadata.confidence
+                    });
+                    
+                    // Return cached answer directly (MASSIVE speedup)
+                    const totalTime = Date.now() - startTime;
+                    
+                    return Response.json({
+                        success: true,
+                        response: cachedAnswer,
+                        metadata: {
+                            total_time_ms: totalTime,
+                            cached: true,
+                            cache_hit: true,
+                            complexity_score,
+                            agent_name,
+                            estimated_tokens: Math.ceil(cachedAnswer.length / 4),
+                            conversation_id,
+                            cache_metadata: cacheResult.metadata
+                        },
+                        logs,
+                        thinking_steps: [{
+                            step: 'CACHE_HIT',
+                            source: 'L3_FACTUAL_MEMORY',
+                            speedup: '~95%'
+                        }]
+                    });
+                }
+                
+                logManager.info('⚠️ L3 Cache MISS - proceeding with full pipeline');
+            } catch (cacheError) {
+                logManager.warning(`Cache check failed: ${cacheError.message}`);
+            }
+        }
+        
+        // STEP 2.6: CONDITIONAL WEB SEARCH (OPTIMIZED)
+        logManager.system('=== STEP 2.6: CONDITIONAL KNOWLEDGE ENRICHMENT ===');
         
         let externalKnowledgeContext = '';
         let webSearchContext = '';
