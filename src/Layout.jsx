@@ -82,6 +82,12 @@ const navigationItems = [
     adminOnly: true
   },
   {
+    title: "Memory Viz",
+    url: createPageUrl("MemoryVisualization"),
+    icon: Brain,
+    description: "7-tier memory visualization"
+  },
+  {
     title: "Profile",
     url: createPageUrl("Profile"),
     icon: UserIcon,

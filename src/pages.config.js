@@ -27,6 +27,7 @@ import DevTestAnalytics from './pages/DevTestAnalytics';
 import CollaborativeWorkspace from './pages/CollaborativeWorkspace';
 import NeuronasGauntlet from './pages/NeuronasGauntlet';
 import MemoryExplorer from './pages/MemoryExplorer';
+import MemoryVisualization from './pages/MemoryVisualization';
 import __Layout from './Layout.jsx';
 
 
@@ -60,6 +61,7 @@ export const PAGES = {
     "CollaborativeWorkspace": CollaborativeWorkspace,
     "NeuronasGauntlet": NeuronasGauntlet,
     "MemoryExplorer": MemoryExplorer,
+    "MemoryVisualization": MemoryVisualization,
 }
 
 export const pagesConfig = {
