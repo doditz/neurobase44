@@ -18,7 +18,9 @@ Deno.serve(async (req) => {
         const { 
             conversation_id,
             summarize_threshold = 15,
-            create_gc_memory = true
+            create_gc_memory = true,
+            consolidate_tier_3 = true,
+            enable_deep_analysis = true
         } = await req.json();
 
         if (!conversation_id) {
@@ -68,7 +70,25 @@ Deno.serve(async (req) => {
             .map(m => m.memory_content)
             .join('\n');
 
-        const summaryPrompt = `Analyze and summarize this conversation's key learnings and patterns:
+        // Enhanced LLM summarization with deep analysis
+        const summaryPrompt = enable_deep_analysis ? `You are a cognitive archivist analyzing conversation memory patterns. 
+
+CONVERSATION MEMORIES (${conversationMemories.length} entries):
+${memoryContents}
+
+FLUX INTEGRAL: ${flux_integral.toFixed(3)} (context change dynamics)
+
+Provide a comprehensive analysis:
+
+1. **Main Themes** (3-5 core topics)
+2. **Key Insights & Patterns** (recurring behaviors, preferences, learnings)
+3. **Critical Context** (must-preserve facts, relationships, commitments)
+4. **Semantic Keywords** (5-10 words for future retrieval)
+5. **Emotional/Behavioral Patterns** (if applicable)
+6. **Action Items or Commitments** (if any)
+
+Structure this as a dense, information-rich summary optimized for long-term retrieval.` 
+        : `Analyze and summarize this conversation's key learnings and patterns:
 
 ${memoryContents}
 
@@ -115,6 +135,70 @@ Keep it concise but comprehensive.`;
             });
         }
 
+        // TIER 3 CONSOLIDATION: Merge old L3/R3 memories
+        let consolidatedMemories = [];
+        if (consolidate_tier_3) {
+            const l3Memories = await base44.entities.UserMemory.filter({
+                tier_level: 3,
+                hemisphere: 'left'
+            }, '-created_date', 20);
+            
+            const r3Memories = await base44.entities.UserMemory.filter({
+                tier_level: 3,
+                hemisphere: 'right'
+            }, '-created_date', 20);
+
+            if (l3Memories.length > 10 || r3Memories.length > 10) {
+                // Consolidate L3
+                if (l3Memories.length > 10) {
+                    const l3Content = l3Memories.slice(0, 10).map(m => m.memory_content).join('\n\n');
+                    const l3Summary = await base44.integrations.Core.InvokeLLM({
+                        prompt: `Consolidate these long-term analytical memories into a single coherent knowledge base entry. Preserve all critical facts and patterns:\n\n${l3Content}`
+                    });
+
+                    const l3Consolidated = await base44.entities.UserMemory.create({
+                        memory_key: `L3_consolidated_${Date.now()}`,
+                        memory_content: l3Summary,
+                        memory_type: 'context',
+                        tier_level: 3,
+                        hemisphere: 'left',
+                        d2_modulation: 0.9,
+                        source_database_tier: 'L3',
+                        compression_type: 'lzma',
+                        pruning_protection: true,
+                        importance_score: 0.95,
+                        context: `Consolidated from ${l3Memories.slice(0, 10).length} L3 memories`
+                    });
+
+                    consolidatedMemories.push({ tier: 'L3', id: l3Consolidated.id });
+                }
+
+                // Consolidate R3
+                if (r3Memories.length > 10) {
+                    const r3Content = r3Memories.slice(0, 10).map(m => m.memory_content).join('\n\n');
+                    const r3Summary = await base44.integrations.Core.InvokeLLM({
+                        prompt: `Consolidate these long-term creative/intuitive memories into a single coherent narrative. Preserve emotional patterns and insights:\n\n${r3Content}`
+                    });
+
+                    const r3Consolidated = await base44.entities.UserMemory.create({
+                        memory_key: `R3_consolidated_${Date.now()}`,
+                        memory_content: r3Summary,
+                        memory_type: 'context',
+                        tier_level: 3,
+                        hemisphere: 'right',
+                        d2_modulation: 0.9,
+                        source_database_tier: 'R3',
+                        compression_type: 'lzma',
+                        pruning_protection: true,
+                        importance_score: 0.95,
+                        context: `Consolidated from ${r3Memories.slice(0, 10).length} R3 memories`
+                    });
+
+                    consolidatedMemories.push({ tier: 'R3', id: r3Consolidated.id });
+                }
+            }
+        }
+
         return Response.json({
             success: true,
             summary,
@@ -122,7 +206,12 @@ Keep it concise but comprehensive.`;
             gc_memory_id: gcMemory?.id,
             conversation_memories_summarized: conversationMemories.length,
             average_d2: gcMemory?.d2_modulation,
-            omega_avg: gcMemory?.omega_t
+            omega_avg: gcMemory?.omega_t,
+            tier_3_consolidation: {
+                performed: consolidate_tier_3,
+                consolidated_count: consolidatedMemories.length,
+                details: consolidatedMemories
+            }
         });
 
     } catch (error) {

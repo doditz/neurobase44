@@ -18,7 +18,10 @@ Deno.serve(async (req) => {
         const { 
             auto_promote = true,
             decay_inactive = true,
-            pruning_threshold = 0.2
+            pruning_threshold = 0.2,
+            smart_pruning = true,
+            importance_weight = 0.6,
+            recency_weight = 0.4
         } = await req.json();
 
         const promotionLog = [];
@@ -123,7 +126,7 @@ Deno.serve(async (req) => {
             }
         }
 
-        // STEP 2: DECAY - Apply decay factor to inactive memories
+        // STEP 2: INTELLIGENT DECAY - Importance-weighted decay
         if (decay_inactive) {
             const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
             
@@ -133,8 +136,14 @@ Deno.serve(async (req) => {
             });
 
             for (const mem of inactiveMemories) {
-                const decayFactor = mem.decay_factor || 0.995;
-                const newD2 = (mem.d2_modulation || 0.5) * decayFactor;
+                const importance = mem.importance_score || 0.5;
+                const baseFactor = mem.decay_factor || 0.995;
+                
+                // Higher importance = slower decay
+                const importanceMultiplier = 0.5 + (importance * 0.5); // 0.5-1.0
+                const adjustedDecay = 1 - ((1 - baseFactor) * importanceMultiplier);
+                
+                const newD2 = (mem.d2_modulation || 0.5) * adjustedDecay;
                 
                 await base44.entities.UserMemory.update(mem.id, {
                     d2_modulation: Math.max(0.1, newD2)
@@ -143,27 +152,73 @@ Deno.serve(async (req) => {
                 decayLog.push({
                     memory_id: mem.id,
                     old_d2: mem.d2_modulation,
-                    new_d2: newD2
+                    new_d2: newD2,
+                    importance,
+                    decay_rate: adjustedDecay
                 });
             }
         }
 
-        // STEP 3: PRUNING - Remove very low d2_modulation memories
-        const pruneCandidates = await base44.entities.UserMemory.filter({
-            d2_modulation: { "$lt": pruning_threshold },
-            pruning_protection: false,
-            tier_level: 1
-        });
-
-        for (const mem of pruneCandidates) {
-            await base44.entities.UserMemory.delete(mem.id);
-            
-            pruneLog.push({
-                memory_id: mem.id,
-                tier: mem.source_database_tier,
-                d2: mem.d2_modulation,
-                reason: 'low_attention'
+        // STEP 3: SMART PRUNING - Multi-factor scoring
+        if (smart_pruning) {
+            const allT1Memories = await base44.entities.UserMemory.filter({
+                tier_level: 1,
+                pruning_protection: false
             });
+            
+            // Calculate composite score for each memory
+            const scoredMemories = allT1Memories.map(mem => {
+                const importance = mem.importance_score || 0.5;
+                const d2 = mem.d2_modulation || 0.5;
+                const recency = calculateRecencyScore(mem.last_accessed || mem.created_date);
+                
+                // Composite score: weighted combination
+                const compositeScore = (
+                    (importance * importance_weight) +
+                    (recency * recency_weight) +
+                    (d2 * (1 - importance_weight - recency_weight))
+                );
+                
+                return { ...mem, compositeScore };
+            });
+            
+            // Sort by composite score and prune bottom 20%
+            scoredMemories.sort((a, b) => a.compositeScore - b.compositeScore);
+            const pruneCount = Math.max(1, Math.floor(scoredMemories.length * 0.2));
+            const pruneCandidates = scoredMemories.slice(0, pruneCount);
+            
+            for (const mem of pruneCandidates) {
+                if (mem.compositeScore < pruning_threshold) {
+                    await base44.entities.UserMemory.delete(mem.id);
+                    
+                    pruneLog.push({
+                        memory_id: mem.id,
+                        tier: mem.source_database_tier,
+                        d2: mem.d2_modulation,
+                        importance: mem.importance_score,
+                        composite_score: mem.compositeScore,
+                        reason: 'low_composite_score'
+                    });
+                }
+            }
+        } else {
+            // Simple pruning (legacy)
+            const pruneCandidates = await base44.entities.UserMemory.filter({
+                d2_modulation: { "$lt": pruning_threshold },
+                pruning_protection: false,
+                tier_level: 1
+            });
+
+            for (const mem of pruneCandidates) {
+                await base44.entities.UserMemory.delete(mem.id);
+                
+                pruneLog.push({
+                    memory_id: mem.id,
+                    tier: mem.source_database_tier,
+                    d2: mem.d2_modulation,
+                    reason: 'low_attention'
+                });
+            }
         }
 
         return Response.json({
@@ -186,3 +241,15 @@ Deno.serve(async (req) => {
         }, { status: 500 });
     }
 });
+
+/**
+ * Calculate recency score (0-1) based on last access
+ */
+function calculateRecencyScore(lastAccessed) {
+    const now = Date.now();
+    const accessed = new Date(lastAccessed).getTime();
+    const daysSince = (now - accessed) / (1000 * 60 * 60 * 24);
+    
+    // Exponential decay: 1.0 at day 0, 0.5 at day 30, 0.1 at day 90
+    return Math.max(0.1, Math.exp(-daysSince / 30));
+}

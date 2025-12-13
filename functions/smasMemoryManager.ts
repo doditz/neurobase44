@@ -119,26 +119,38 @@ Deno.serve(async (req) => {
             System: systemMem.length
         });
 
-        // STEP 3: SEMANTIC SIMILARITY SEARCH (LSH-based)
+        // STEP 3: ADVANCED SEMANTIC SEARCH (AI-powered embeddings)
         let semanticMatches = [];
         
         if (enable_intent_based_retrieval && dopamine_t > 0.5) {
-            logManager.info('🔍 LSH-based semantic search activated');
+            logManager.info('🔍 AI-powered semantic search activated');
             
-            const queryHash = generateSemanticHash(user_message);
-            
-            // Search across all tiers for semantic matches
-            const allMemories = [...l1, ...r1, ...l2, ...r2, ...l3, ...r3, ...gc];
-            
-            semanticMatches = allMemories.filter(mem => {
-                if (!mem.semantic_hash) return false;
-                
-                // Simple Hamming distance for hash similarity
-                const similarity = calculateHashSimilarity(queryHash, mem.semantic_hash);
-                return similarity > 0.6;
-            }).slice(0, 5);
-            
-            logManager.success(`Found ${semanticMatches.length} semantic matches`);
+            try {
+                const semanticSearchResult = await base44.functions.invoke('memorySemanticSearch', {
+                    query: user_message,
+                    max_results: 5,
+                    min_similarity: 0.65,
+                    use_ai_embeddings: true
+                });
+
+                if (semanticSearchResult.data?.success) {
+                    semanticMatches = semanticSearchResult.data.matches || [];
+                    logManager.success(`Found ${semanticMatches.length} AI semantic matches`);
+                } else {
+                    // Fallback to LSH
+                    logManager.warning('AI semantic search unavailable, using LSH fallback');
+                    const queryHash = generateSemanticHash(user_message);
+                    const allMemories = [...l1, ...r1, ...l2, ...r2, ...l3, ...r3, ...gc];
+                    
+                    semanticMatches = allMemories.filter(mem => {
+                        if (!mem.semantic_hash) return false;
+                        const similarity = calculateHashSimilarity(queryHash, mem.semantic_hash);
+                        return similarity > 0.6;
+                    }).slice(0, 5);
+                }
+            } catch (searchError) {
+                logManager.warning(`Semantic search failed: ${searchError.message}, skipping`);
+            }
         }
 
         // STEP 4: GC HARMONIZATION (Vector-based integration)
