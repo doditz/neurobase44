@@ -271,33 +271,76 @@ Deno.serve(async (req) => {
         testResults.total_tests++;
         testResults.modules_tested.push('VALIDATOR');
 
-        // TEST 8: Memory Tier Router
-        log('SYSTEM', 'MEMORY', '--- Testing Memory Tier Router ---');
+        // TEST 8: Memory System (Manager + Semantic Search)
+        log('SYSTEM', 'MEMORY', '--- Testing Memory System ---');
         try {
-            const { data } = await base44.functions.invoke('neuronasMemoryTierRouter', {
-                memory_content: 'Test memory content for pipeline validation',
-                memory_type: 'learning_point',
-                importance_score: 0.75,
-                d2_modulation: d2stimResult?.d2_activation || 0.7,
-                omega_t: qronasResult?.smas_dynamics?.final_omega_t || 0.5
+            // Test 8A: Memory Manager (7-tier retrieval)
+            const { data: memData } = await base44.functions.invoke('smasMemoryManager', {
+                user_message: test_prompt,
+                conversation_id: 'test_pipeline',
+                enable_intent_based_retrieval: true,
+                omega_t: qronasResult?.smas_dynamics?.final_omega_t || 0.5,
+                dopamine_t: qronasResult?.smas_dynamics?.final_D_t || 0.7
             });
             
-            if (data.success && data.memory_saved) {
-                log('SUCCESS', 'MEMORY', '✅ Memory Tier Router test passed', {
-                    tier_assigned: data.tier_level,
-                    hemisphere: data.hemisphere,
-                    compression: data.compression_type
+            if (memData.success) {
+                log('SUCCESS', 'MEMORY', '✅ Memory Manager test passed', {
+                    memories_retrieved: memData.memory_stats?.total_retrieved || 0,
+                    pathway: memData.pathway
                 });
                 testResults.passed++;
             } else {
-                throw new Error('Memory Tier Router returned invalid data');
+                throw new Error('Memory Manager returned invalid data');
+            }
+            
+            // Test 8B: Semantic Search
+            const { data: searchData } = await base44.functions.invoke('memorySemanticSearch', {
+                query: test_prompt,
+                max_results: 5,
+                use_ai_embeddings: true
+            });
+            
+            if (searchData.success) {
+                log('SUCCESS', 'MEMORY_SEARCH', '✅ Semantic Search test passed', {
+                    matches_found: searchData.matches?.length || 0
+                });
+                testResults.passed++;
+            } else {
+                throw new Error('Semantic Search returned invalid data');
             }
         } catch (error) {
-            log('ERROR', 'MEMORY', `❌ Memory Tier Router test failed: ${error.message}`);
+            log('ERROR', 'MEMORY', `❌ Memory tests failed: ${error.message}`);
+            testResults.failed += 2;
+        }
+        testResults.total_tests += 2;
+        testResults.modules_tested.push('MEMORY_MANAGER');
+        testResults.modules_tested.push('SEMANTIC_SEARCH');
+
+        // TEST 9: Memory Tier Promotion & Pruning
+        log('SYSTEM', 'MEMORY_OPS', '--- Testing Memory Promotion & Pruning ---');
+        try {
+            const { data: promData } = await base44.functions.invoke('memoryTierPromotion', {
+                auto_promote: true,
+                decay_inactive: true,
+                smart_pruning: true
+            });
+            
+            if (promData.success) {
+                log('SUCCESS', 'MEMORY_OPS', '✅ Memory operations test passed', {
+                    promotions: promData.promotions,
+                    decays: promData.decays,
+                    pruned: promData.pruned
+                });
+                testResults.passed++;
+            } else {
+                throw new Error('Memory operations returned invalid data');
+            }
+        } catch (error) {
+            log('ERROR', 'MEMORY_OPS', `❌ Memory operations test failed: ${error.message}`);
             testResults.failed++;
         }
         testResults.total_tests++;
-        testResults.modules_tested.push('MEMORY');
+        testResults.modules_tested.push('MEMORY_OPERATIONS');
 
         // FINAL SUMMARY
         testResults.execution_time_ms = Date.now() - startTime;

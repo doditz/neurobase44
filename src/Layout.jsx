@@ -88,6 +88,13 @@ const navigationItems = [
     description: "7-tier memory visualization"
   },
   {
+    title: "🧪 Pipeline Test",
+    url: createPageUrl("SystemPipelineTest"),
+    icon: Zap,
+    description: "Test complet du pipeline",
+    adminOnly: true
+  },
+  {
     title: "Profile",
     url: createPageUrl("Profile"),
     icon: UserIcon,
