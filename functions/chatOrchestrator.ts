@@ -565,6 +565,25 @@ Key guidelines:
 
         sourcingConfidence = Math.max(0, Math.min(1, sourcingConfidence));
 
+        // STEP 6: FACTUAL CACHE STORAGE (if applicable)
+        if (isFactualQuery && !usedCache && webSearchExecuted && sourcingConfidence > 0.8) {
+            logManager.system('=== STEP 6: CACHING FACTUAL ANSWER TO L3 ===');
+            
+            try {
+                await base44.functions.invoke('factualCacheManager', {
+                    operation: 'store',
+                    query: user_message,
+                    answer: masterSynthesis,
+                    sources: citations.map(c => c.url),
+                    confidence: sourcingConfidence
+                });
+                
+                logManager.success('✅ Factual answer cached to L3 for future speedup');
+            } catch (cacheStoreError) {
+                logManager.warning(`Failed to cache answer: ${cacheStoreError.message}`);
+            }
+        }
+
         const totalTime = Date.now() - startTime;
         logManager.system(`=== COMPLETED in ${totalTime}ms ===`);
 
