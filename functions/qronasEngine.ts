@@ -187,16 +187,64 @@ Deno.serve(async (req) => {
         const debateHistory = [];
         const extractedCitations = [];
         const dynamicsHistory = [];
+        let activePersonas = [...selectedPersonas]; // Track active personas
+        const personaAdjustments = []; // Track all adjustments made
 
         for (let round = 0; round < debate_rounds; round++) {
             logManager.info(`Starting debate round ${round + 1}/${debate_rounds}`);
 
+            // DYNAMIC ADAPTATION: Check personas after round 1
+            if (round > 0) {
+                logManager.info('🔄 Activating Dynamic Persona Adapter');
+                try {
+                    const adapterResult = await base44.functions.invoke('dynamicPersonaAdapter', {
+                        current_personas: activePersonas,
+                        debate_history: debateHistory,
+                        current_round: round,
+                        prompt,
+                        archetype,
+                        dominant_hemisphere,
+                        agent_name
+                    });
+
+                    if (adapterResult.data && adapterResult.data.success) {
+                        const { adjustments, summary } = adapterResult.data;
+
+                        logManager.success(`Adapter: ${summary.adjusting} adjusted, ${summary.removing} removed, ${summary.adding} added`);
+
+                        // Apply adjustments
+                        for (const adjustment of adjustments) {
+                            if (adjustment.type === 'REMOVE') {
+                                activePersonas = activePersonas.filter(p => p.handle !== adjustment.handle);
+                                logManager.warning(`Removed ${adjustment.persona}: ${adjustment.reason}`);
+                            } else if (adjustment.type === 'ADJUST') {
+                                const persona = activePersonas.find(p => p.handle === adjustment.handle);
+                                if (persona) {
+                                    persona.instructions_for_system = adjustment.adjusted_instructions;
+                                    logManager.success(`Adjusted ${adjustment.persona}: ${adjustment.reason}`);
+                                }
+                            } else if (adjustment.type === 'ADD') {
+                                activePersonas.push(adjustment.persona_data);
+                                logManager.success(`Added ${adjustment.persona}: ${adjustment.reason}`);
+                            }
+
+                            personaAdjustments.push({
+                                round,
+                                ...adjustment
+                            });
+                        }
+                    }
+                } catch (adapterError) {
+                    logManager.warning(`Dynamic adapter failed: ${adapterError.message}`);
+                }
+            }
+
             const roundStart = Date.now();
             const roundResponses = [];
-            
-            // Calculate hemisphere dynamics for this round
+
+            // Calculate hemisphere dynamics for this round (using ACTIVE personas)
             const hemisphereDynamics = await base44.functions.invoke('hemisphereDynamics', {
-                personas_active: selectedPersonas.map(p => p.handle),
+                personas_active: activePersonas.map(p => p.handle),
                 prompt_complexity: settings.complexity_score || 0.5,
                 debate_history: debateHistory,
                 current_time: Date.now()
@@ -204,7 +252,7 @@ Deno.serve(async (req) => {
             
             const { F_L, F_R } = hemisphereDynamics.data || { F_L: 0.5, F_R: 0.5 };
 
-            for (const persona of selectedPersonas) {
+            for (const persona of activePersonas) {
                 // CRITICAL: Prepend agent instructions to ensure compliance
                 const agentInstructionsBlock = agent_instructions ? `
 ## 🎯 AGENT MISSION & GUIDELINES (${agent_name.toUpperCase()})
@@ -316,9 +364,9 @@ This is Round ${round + 1} of the debate.
 
             // Calculate bias/reward for this round
             const biasReward = await base44.functions.invoke('biasRewardCalculator', {
-                personas_active: selectedPersonas.map(p => p.handle),
+                personas_active: activePersonas.map(p => p.handle),
                 debate_round_contributions: roundResponses.map(r => ({
-                    persona_handle: selectedPersonas.find(p => p.name === r.persona)?.handle,
+                    persona_handle: activePersonas.find(p => p.name === r.persona)?.handle,
                     quality_score: 0.7, // Will be enhanced with actual scoring
                     relevance: 0.8
                 }))
@@ -458,9 +506,13 @@ ${needs_citations ? `
             agent_name,
             agent_instructions_used: agent_instructions.length > 0,
             personas_used: selectedPersonas.map(p => p.name),
-            personas_count: selectedPersonas.length,
+            personas_initially_selected: selectedPersonas.length,
+            personas_final_active: activePersonas.length,
+            personas_count: activePersonas.length,
             rounds_executed: debate_rounds,
-            meets_min_personas: selectedPersonas.length >= MIN_PERSONAS_FOR_DEBATE,
+            meets_min_personas: activePersonas.length >= MIN_PERSONAS_FOR_DEBATE,
+            persona_adjustments: personaAdjustments,
+            dynamic_adaptation_enabled: true,
             citations: extractedCitations,
             citation_enforcement: citation_enforcement_strict,
             debate_history: debateHistory,
