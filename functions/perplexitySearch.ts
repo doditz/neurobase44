@@ -13,7 +13,16 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        const { query, model = 'llama-3.1-sonar-large-128k-online', max_tokens = 2000, conversation_id } = await req.json();
+        const { 
+            query, 
+            model = 'llama-3.1-sonar-large-128k-online', 
+            max_tokens = 2000, 
+            conversation_id,
+            search_domain_filter = [],
+            search_recency_filter = 'month',
+            return_citations = true,
+            return_images = false
+        } = await req.json();
         
         if (!query) {
             return Response.json({ error: 'Missing query parameter' }, { status: 400 });
@@ -38,7 +47,7 @@ Deno.serve(async (req) => {
                 messages: [
                     {
                         role: 'system',
-                        content: 'Tu es un assistant de recherche pour Neuronas AI. Fournis des informations factuelles avec sources citées.'
+                        content: 'You are a research assistant for Neuronas AI. Provide factual, grounded information with MANDATORY cited sources. ALWAYS include URLs.'
                     },
                     {
                         role: 'user',
@@ -48,8 +57,10 @@ Deno.serve(async (req) => {
                 max_tokens,
                 temperature: 0.2,
                 top_p: 0.9,
-                return_citations: true,
-                return_images: false,
+                return_citations,
+                return_images,
+                search_domain_filter: search_domain_filter.length > 0 ? search_domain_filter : undefined,
+                search_recency_filter,
                 stream: false
             })
         });
@@ -98,7 +109,11 @@ Deno.serve(async (req) => {
 
         return Response.json({
             success: true,
-            result: searchResult
+            answer: searchResult.answer,
+            citations: searchResult.citations,
+            model: searchResult.model,
+            usage: searchResult.usage,
+            conversation_id: searchResult.conversation_id
         });
 
     } catch (error) {
