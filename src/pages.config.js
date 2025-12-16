@@ -29,6 +29,7 @@ import NeuronasGauntlet from './pages/NeuronasGauntlet';
 import MemoryExplorer from './pages/MemoryExplorer';
 import MemoryVisualization from './pages/MemoryVisualization';
 import SystemPipelineTest from './pages/SystemPipelineTest';
+import SMASUpgradeTest from './pages/SMASUpgradeTest';
 import __Layout from './Layout.jsx';
 
 
@@ -64,6 +65,7 @@ export const PAGES = {
     "MemoryExplorer": MemoryExplorer,
     "MemoryVisualization": MemoryVisualization,
     "SystemPipelineTest": SystemPipelineTest,
+    "SMASUpgradeTest": SMASUpgradeTest,
 }
 
 export const pagesConfig = {
