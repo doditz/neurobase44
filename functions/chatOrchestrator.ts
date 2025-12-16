@@ -287,11 +287,12 @@ Key guidelines:
         const enableExternalKnowledge = settings.enableExternalKnowledge !== false;
         const enableWebSearch = settings.enableWebSearch !== false;
         
-        // Determine if web search is needed based on complexity and keywords
-        const needsCitations = complexity_score >= 0.6 || 
-            /research|study|evidence|source|citation|fact|data|statistics/i.test(user_message);
+        // MANDATORY web search for factual queries (GROUNDING ENFORCEMENT)
+        const factualKeywords = /what is|who is|when did|how many|where is|why did|define|explain|research|study|evidence|source|citation|fact|data|statistics|latest|recent|current|news/i.test(user_message);
+        const needsCitations = complexity_score >= 0.5 || factualKeywords;
         
-        const shouldSearchWeb = enableWebSearch && needsCitations;
+        // OVERRIDE: Force search for factual queries even if disabled
+        const shouldSearchWeb = needsCitations || (enableWebSearch && factualKeywords);
         
         if (shouldSearchWeb) {
             logManager.info('🌐 Web search activated (citations needed)');
@@ -303,14 +304,17 @@ Key guidelines:
         const enrichmentPromises = [];
         
         if (shouldSearchWeb) {
-            // Single optimized web search via InvokeLLM
-            logManager.info('Web search queued (InvokeLLM with context)');
+            // Real web search via Perplexity with mandatory citations
+            logManager.info('🔍 Real web search queued (Perplexity with citations)');
             enrichmentPromises.push(
-                base44.integrations.Core.InvokeLLM({
-                    prompt: `Provide factual context and recent information about: ${user_message.substring(0, 300)}`,
-                    add_context_from_internet: true
-                }).then(result => ({ type: 'web_search', result }))
-                .catch(error => ({ type: 'web_search', error }))
+                base44.functions.invoke('perplexitySearch', {
+                    query: user_message,
+                    search_domain_filter: [],
+                    search_recency_filter: 'month',
+                    return_citations: true,
+                    return_images: false
+                }).then(result => ({ type: 'perplexity_search', result: result.data }))
+                .catch(error => ({ type: 'perplexity_search', error }))
             );
         }
         
@@ -327,19 +331,25 @@ Key guidelines:
                         continue;
                     }
                     
-                    if (type === 'web_search' && result && typeof result === 'string' && result.length > 50) {
-                        webSearchContext = `\n\n## 🌐 WEB CONTEXT\n\n${result}\n\n`;
-                        const urlMatches = result.match(/https?:\/\/[^\s]+/g) || [];
-                        for (const url of urlMatches.slice(0, 5)) {
-                            citations.push({
-                                url: url.replace(/[.,;)]+$/, ''),
-                                context: 'Web search',
-                                verified: true
-                            });
+                    if (type === 'perplexity_search' && result && result.success) {
+                        webSearchContext = `\n\n## 🌐 GROUNDED WEB RESEARCH\n\n${result.answer}\n\n`;
+                        
+                        // Extract structured citations from Perplexity
+                        if (result.citations && Array.isArray(result.citations)) {
+                            for (const citation of result.citations) {
+                                citations.push({
+                                    url: citation,
+                                    source: 'Perplexity Research',
+                                    context: 'Real-time web search',
+                                    verified: true,
+                                    external: true
+                                });
+                            }
                         }
+                        
                         webSearchExecuted = true;
-                        sourcingConfidence += 0.7;
-                        logManager.success(`✅ Web search: ${urlMatches.length} sources`);
+                        sourcingConfidence = 0.95; // High confidence for Perplexity
+                        logManager.success(`✅ Perplexity search: ${citations.length} verified sources`);
                     }
                 }
             }
