@@ -147,7 +147,7 @@ Deno.serve(async (req) => {
         logManager.info('Selecting personas with agent context + DSTIB');
 
         const personaSelectionResult = await base44.functions.invoke('personaTeamOptimizer', {
-            user_message: prompt,
+            prompt: prompt,
             agent_name: agent_name,
             archetype,
             dominant_hemisphere,

@@ -139,7 +139,7 @@ Deno.serve(async (req) => {
         let personasResult = null;
         try {
             const { data } = await base44.functions.invoke('personaTeamOptimizer', {
-                user_message: test_prompt,
+                prompt: test_prompt,
                 agent_name: 'smas_debater',
                 archetype: smarceResult?.archetype_detected || 'balanced',
                 dominant_hemisphere: smarceResult?.dominant_hemisphere || 'central',
@@ -212,7 +212,7 @@ Deno.serve(async (req) => {
         let bronasResult = null;
         try {
             const { data } = await base44.functions.invoke('bronasValidator', {
-                response_text: qronasResult?.synthesis || 'Test response for validation',
+                validation_data: qronasResult?.synthesis || 'Test response for validation',
                 debate_history: qronasResult?.debate_history || [],
                 omega_t: qronasResult?.smas_dynamics?.final_omega_t || 0.5,
                 dopamine_t: qronasResult?.smas_dynamics?.final_D_t || 0.5
