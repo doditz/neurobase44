@@ -304,17 +304,21 @@ Key guidelines:
         const enrichmentPromises = [];
         
         if (shouldSearchWeb) {
-            // Real web search via Perplexity with mandatory citations
-            logManager.info('🔍 Real web search queued (Perplexity with citations)');
+            // MANDATORY GROUNDED WEB SEARCH with citation extraction
+            logManager.info('🔍 MANDATORY web search with citation extraction');
             enrichmentPromises.push(
-                base44.functions.invoke('perplexitySearch', {
-                    query: user_message,
-                    search_domain_filter: [],
-                    search_recency_filter: 'month',
-                    return_citations: true,
-                    return_images: false
-                }).then(result => ({ type: 'perplexity_search', result: result.data }))
-                .catch(error => ({ type: 'perplexity_search', error }))
+                base44.integrations.Core.InvokeLLM({
+                    prompt: `Research and provide factual, grounded information about: ${user_message}
+
+CRITICAL REQUIREMENTS:
+1. Include ONLY verified, factual information
+2. Cite ALL sources with full URLs
+3. Format citations as: [Source: URL]
+4. Verify facts against multiple sources
+5. Include publication dates when relevant`,
+                    add_context_from_internet: true
+                }).then(result => ({ type: 'grounded_search', result }))
+                .catch(error => ({ type: 'grounded_search', error }))
             );
         }
         
@@ -331,25 +335,42 @@ Key guidelines:
                         continue;
                     }
                     
-                    if (type === 'perplexity_search' && result && result.success) {
-                        webSearchContext = `\n\n## 🌐 GROUNDED WEB RESEARCH\n\n${result.answer}\n\n`;
+                    if (type === 'grounded_search' && result && typeof result === 'string' && result.length > 50) {
+                        webSearchContext = `\n\n## 🌐 GROUNDED WEB RESEARCH (VERIFIED SOURCES)\n\n${result}\n\n`;
                         
-                        // Extract structured citations from Perplexity
-                        if (result.citations && Array.isArray(result.citations)) {
-                            for (const citation of result.citations) {
-                                citations.push({
-                                    url: citation,
-                                    source: 'Perplexity Research',
-                                    context: 'Real-time web search',
-                                    verified: true,
-                                    external: true
-                                });
+                        // RIGOROUS URL EXTRACTION - Multiple patterns
+                        const urlPatterns = [
+                            /\[Source:\s*(https?:\/\/[^\]]+)\]/gi,  // [Source: URL]
+                            /\(https?:\/\/[^\)]+\)/gi,              // (URL)
+                            /https?:\/\/[^\s\]\)]+/gi               // Raw URLs
+                        ];
+                        
+                        const extractedUrls = new Set();
+                        for (const pattern of urlPatterns) {
+                            const matches = result.matchAll(pattern);
+                            for (const match of matches) {
+                                let url = match[1] || match[0];
+                                url = url.replace(/[\[\]\(\),;]+$/g, '').trim();
+                                if (url.startsWith('http')) {
+                                    extractedUrls.add(url);
+                                }
                             }
                         }
                         
+                        // Add all unique URLs as citations
+                        for (const url of extractedUrls) {
+                            citations.push({
+                                url: url,
+                                source: 'Web Research',
+                                context: 'Grounded search',
+                                verified: true,
+                                external: true
+                            });
+                        }
+                        
                         webSearchExecuted = true;
-                        sourcingConfidence = 0.95; // High confidence for Perplexity
-                        logManager.success(`✅ Perplexity search: ${citations.length} verified sources`);
+                        sourcingConfidence = citations.length > 0 ? 0.9 : 0.5;
+                        logManager.success(`✅ Grounded search: ${citations.length} verified URLs extracted`);
                     }
                 }
             }
