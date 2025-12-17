@@ -42,37 +42,65 @@ Deno.serve(async (req) => {
 
         let decayed = 0;
         let pruned = 0;
+        let reconsolidated = 0;
         const updates = [];
+        const pruneIds = [];
 
         for (const pathway of pathways) {
             const lastActivated = pathway.last_activated ? new Date(pathway.last_activated) : new Date(pathway.created_date);
+            const daysSinceActivation = (now - lastActivated) / (1000 * 60 * 60 * 24);
             
             // Si non-activé depuis le seuil, appliquer decay
             if (lastActivated < thresholdDate) {
                 const decayRate = pathway.decay_rate || 0.995;
-                const newStrength = pathway.pathway_strength * decayRate;
+                
+                // Decay exponentiel basé sur le temps
+                const decayPeriods = Math.floor(daysSinceActivation / (decay_threshold_hours / 24));
+                const newStrength = pathway.pathway_strength * Math.pow(decayRate, decayPeriods);
                 
                 if (newStrength >= min_strength_threshold) {
-                    // Décroissance simple
                     updates.push({
                         id: pathway.id,
                         pathway_strength: newStrength
                     });
                     decayed++;
                 } else if (auto_prune) {
-                    // Élagage: supprimer les pathways trop faibles
-                    await base44.entities.MemoryPathway.delete(pathway.id);
-                    pruned++;
+                    // Vérifier si reconsolidation possible (high activation history)
+                    if ((pathway.activation_count || 0) > 20) {
+                        // Reconsolidation: pathway historiquement fort, le garder mais affaibli
+                        updates.push({
+                            id: pathway.id,
+                            pathway_strength: min_strength_threshold * 1.5
+                        });
+                        reconsolidated++;
+                    } else {
+                        pruneIds.push(pathway.id);
+                        pruned++;
+                    }
                 }
             }
         }
 
-        // Appliquer les mises à jour
-        for (const update of updates) {
-            await base44.entities.MemoryPathway.update(update.id, {
+        // Batch updates
+        await Promise.all(updates.map(update => 
+            base44.entities.MemoryPathway.update(update.id, {
                 pathway_strength: update.pathway_strength
-            });
-        }
+            })
+        ));
+        
+        // Batch deletes
+        await Promise.all(pruneIds.map(id => 
+            base44.entities.MemoryPathway.delete(id)
+        ));
+        
+        addLog('Decay stats', { 
+            decayed, 
+            pruned, 
+            reconsolidated,
+            avg_decay_periods: updates.length > 0 
+                ? (decayed / updates.length).toFixed(2) 
+                : 0
+        });
 
         addLog('=== DECAY COMPLETE ===');
 

@@ -110,39 +110,58 @@ Deno.serve(async (req) => {
         // Construire les pathways (connexions entre mémoires similaires)
         addLog('Building memory pathways...');
         
+        // Charger aussi les indices existants pour comparaison cross-batch
+        const existingIndices = rebuild ? [] : await base44.entities.VectorIndex.filter({
+            created_by: user.email
+        });
+        
+        const allIndices = [...vectorIndices, ...existingIndices.filter(ei => 
+            !vectorIndices.find(vi => vi.memory_id === ei.memory_id)
+        )];
+        
         for (let i = 0; i < vectorIndices.length; i++) {
             const sourceIndex = vectorIndices[i];
             const sourceEmbedding = JSON.parse(sourceIndex.embedding_vector);
             const candidatePathways = [];
 
-            // Comparer avec toutes les autres mémoires du même cluster
-            for (let j = 0; j < vectorIndices.length; j++) {
-                if (i === j) continue;
+            // Comparer avec tous les indices (nouveau + existants)
+            for (const targetIndex of allIndices) {
+                if (sourceIndex.memory_id === targetIndex.memory_id) continue;
 
-                const targetIndex = vectorIndices[j];
-                
-                // Priorité aux pathways du même cluster
-                if (sourceIndex.semantic_cluster !== targetIndex.semantic_cluster) continue;
-
+                // Priorité au même cluster, mais autoriser cross-cluster si haute similarité
+                const sameCluster = sourceIndex.semantic_cluster === targetIndex.semantic_cluster;
                 const targetEmbedding = JSON.parse(targetIndex.embedding_vector);
                 const similarity = cosineSimilarity(sourceEmbedding, targetEmbedding);
 
-                if (similarity >= similarity_threshold) {
+                // Ajuster seuil: plus strict pour cross-cluster
+                const adjustedThreshold = sameCluster ? similarity_threshold : similarity_threshold + 0.1;
+
+                if (similarity >= adjustedThreshold) {
                     candidatePathways.push({
                         target: targetIndex,
                         similarity,
-                        distance: euclideanDistance(sourceEmbedding, targetEmbedding)
+                        distance: euclideanDistance(sourceEmbedding, targetEmbedding),
+                        same_cluster: sameCluster
                     });
                 }
             }
 
-            // Garder les top N pathways
-            candidatePathways.sort((a, b) => b.similarity - a.similarity);
+            // Garder les top N pathways, favoriser same-cluster
+            candidatePathways.sort((a, b) => {
+                const scoreA = a.similarity + (a.same_cluster ? 0.05 : 0);
+                const scoreB = b.similarity + (b.same_cluster ? 0.05 : 0);
+                return scoreB - scoreA;
+            });
             const topPathways = candidatePathways.slice(0, max_pathways_per_memory);
 
             for (const pw of topPathways) {
                 const isTierBridge = sourceIndex.memory_tier !== pw.target.memory_tier;
                 const isHemisphereBridge = sourceIndex.hemisphere !== pw.target.hemisphere;
+                
+                // Decay rate basé sur type de connexion
+                let decayRate = 0.995; // par défaut
+                if (isHemisphereBridge) decayRate = 0.99; // decay plus rapide pour cross-hemisphere
+                if (isTierBridge && !isHemisphereBridge) decayRate = 0.997; // decay moyen pour cross-tier
                 
                 pathways.push({
                     source_memory_id: sourceIndex.memory_id,
@@ -150,11 +169,12 @@ Deno.serve(async (req) => {
                     pathway_type: determinePathwayType(sourceIndex, pw.target, pw.similarity),
                     similarity_score: pw.similarity,
                     activation_count: 0,
-                    pathway_strength: pw.similarity, // Force initiale = similarité
+                    pathway_strength: pw.similarity * 0.8, // Force initiale légèrement réduite
                     embedding_distance: pw.distance,
                     tier_bridge: isTierBridge,
                     hemisphere_bridge: isHemisphereBridge,
-                    decay_rate: isHemisphereBridge ? 0.99 : 0.995
+                    decay_rate: decayRate,
+                    last_activated: new Date().toISOString()
                 });
             }
         }

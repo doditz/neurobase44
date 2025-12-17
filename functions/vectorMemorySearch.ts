@@ -94,51 +94,86 @@ Deno.serve(async (req) => {
 
         addLog('✓ Initial matches found', { count: topMatches.length });
 
-        // Si pathways activés, étendre la recherche
+        // Si pathways activés, étendre la recherche avec Hebbian reinforcement
         let expandedResults = [...topMatches];
+        const reinforcementUpdates = [];
         
         if (use_pathways && topMatches.length > 0) {
             addLog('Expanding via memory pathways...');
             const visited = new Set(topMatches.map(m => m.index.memory_id));
             
             for (const match of topMatches) {
-                const pathways = await base44.entities.MemoryPathway.filter({
-                    source_memory_id: match.index.memory_id
-                });
+                // Chercher bidirectionnel: source→target ET target→source
+                const [outbound, inbound] = await Promise.all([
+                    base44.entities.MemoryPathway.filter({
+                        source_memory_id: match.index.memory_id
+                    }),
+                    base44.entities.MemoryPathway.filter({
+                        target_memory_id: match.index.memory_id
+                    })
+                ]);
 
-                // Trier pathways par force
-                pathways.sort((a, b) => b.pathway_strength - a.pathway_strength);
+                const allPathways = [...outbound, ...inbound];
+
+                // Trier par force pondérée par type
+                allPathways.sort((a, b) => {
+                    const scoreA = a.pathway_strength * (a.tier_bridge ? 0.9 : 1.0);
+                    const scoreB = b.pathway_strength * (b.tier_bridge ? 0.9 : 1.0);
+                    return scoreB - scoreA;
+                });
                 
-                for (const pathway of pathways.slice(0, pathway_depth)) {
-                    if (visited.has(pathway.target_memory_id)) continue;
+                for (const pathway of allPathways.slice(0, pathway_depth)) {
+                    const targetId = pathway.source_memory_id === match.index.memory_id 
+                        ? pathway.target_memory_id 
+                        : pathway.source_memory_id;
+                        
+                    if (visited.has(targetId)) continue;
                     
-                    const targetIndex = indices.find(i => i.memory_id === pathway.target_memory_id);
+                    const targetIndex = indices.find(i => i.memory_id === targetId);
                     if (!targetIndex) continue;
                     
                     const targetEmbedding = JSON.parse(targetIndex.embedding_vector);
                     const targetSimilarity = cosineSimilarity(queryEmbedding, targetEmbedding);
                     
-                    // Score = similarité * force du pathway
-                    const pathwayScore = targetSimilarity * pathway.pathway_strength;
+                    // Score avec boost pour pathways forts
+                    const strengthBoost = pathway.pathway_strength > 0.8 ? 1.1 : 1.0;
+                    const pathwayScore = targetSimilarity * pathway.pathway_strength * strengthBoost;
                     
-                    expandedResults.push({
-                        index: targetIndex,
-                        similarity: pathwayScore,
-                        raw_similarity: targetSimilarity,
-                        via_pathway: true,
-                        pathway_strength: pathway.pathway_strength
-                    });
-                    
-                    visited.add(pathway.target_memory_id);
-                    
-                    // Renforcer le pathway (Hebbian learning)
-                    await base44.entities.MemoryPathway.update(pathway.id, {
-                        activation_count: (pathway.activation_count || 0) + 1,
-                        pathway_strength: Math.min(1.0, pathway.pathway_strength * 1.05),
-                        last_activated: new Date().toISOString()
-                    });
+                    if (pathwayScore > 0.3) { // Seuil minimum pour pertinence
+                        expandedResults.push({
+                            index: targetIndex,
+                            similarity: pathwayScore,
+                            raw_similarity: targetSimilarity,
+                            via_pathway: true,
+                            pathway_strength: pathway.pathway_strength,
+                            pathway_type: pathway.pathway_type
+                        });
+                        
+                        visited.add(targetId);
+                        
+                        // Hebbian learning: renforcement progressif
+                        const newActivationCount = (pathway.activation_count || 0) + 1;
+                        const reinforcementFactor = Math.min(1.1, 1.0 + (0.02 * Math.log(newActivationCount + 1)));
+                        const newStrength = Math.min(1.0, pathway.pathway_strength * reinforcementFactor);
+                        
+                        reinforcementUpdates.push({
+                            id: pathway.id,
+                            activation_count: newActivationCount,
+                            pathway_strength: newStrength,
+                            last_activated: new Date().toISOString()
+                        });
+                    }
                 }
             }
+            
+            // Batch update des pathways
+            await Promise.all(reinforcementUpdates.map(update => 
+                base44.entities.MemoryPathway.update(update.id, {
+                    activation_count: update.activation_count,
+                    pathway_strength: update.pathway_strength,
+                    last_activated: update.last_activated
+                })
+            ));
             
             // Re-trier les résultats étendus
             expandedResults.sort((a, b) => b.similarity - a.similarity);
@@ -146,7 +181,8 @@ Deno.serve(async (req) => {
             
             addLog('✓ Pathways expanded', { 
                 total_results: expandedResults.length,
-                via_pathways: expandedResults.filter(r => r.via_pathway).length
+                via_pathways: expandedResults.filter(r => r.via_pathway).length,
+                pathways_reinforced: reinforcementUpdates.length
             });
         }
 
