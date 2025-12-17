@@ -46,12 +46,12 @@ export default function KaomojiThemedMessage({ content }) {
                     components={{
                         h1: ({ children }) => (
                             <div style={headerStyle}>
-                                <(^-^)> {children}
+                                {'<(^-^)> '}{children}
                             </div>
                         ),
                         h2: ({ children }) => (
                             <div style={{ ...headerStyle, color: '#FFA500', fontSize: '1em' }}>
-                                (╯°□°)╯ {children}
+                                {'(╯°□°)╯ '}{children}
                             </div>
                         ),
                         h3: ({ children }) => (
