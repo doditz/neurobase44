@@ -31,6 +31,7 @@ import MemoryVisualization from './pages/MemoryVisualization';
 import SystemPipelineTest from './pages/SystemPipelineTest';
 import SMASUpgradeTest from './pages/SMASUpgradeTest';
 import VectorRoutingTest from './pages/VectorRoutingTest';
+import Phase3JerkFilterTest from './pages/Phase3JerkFilterTest';
 import __Layout from './Layout.jsx';
 
 
@@ -68,6 +69,7 @@ export const PAGES = {
     "SystemPipelineTest": SystemPipelineTest,
     "SMASUpgradeTest": SMASUpgradeTest,
     "VectorRoutingTest": VectorRoutingTest,
+    "Phase3JerkFilterTest": Phase3JerkFilterTest,
 }
 
 export const pagesConfig = {
