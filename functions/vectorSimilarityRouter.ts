@@ -25,7 +25,8 @@ Deno.serve(async (req) => {
         const { 
             user_message,
             user_input_embedding = null,
-            fallback_to_keywords = true
+            fallback_to_keywords = true,
+            use_hf_embeddings = false // NEW: Option to use HF embeddings
         } = await req.json();
 
         if (!user_message) {
@@ -39,20 +40,47 @@ Deno.serve(async (req) => {
 
         // Generate embedding if not provided
         let embedding = user_input_embedding;
+        let embeddingSource = 'provided';
+        
         if (!embedding) {
             addLog('Generating embedding for user input...');
-            const { data: embData } = await base44.functions.invoke('generateEmbedding', {
-                text: user_message,
-                dimension: 384,
-                normalize: true
-            });
             
-            if (!embData || !embData.success) {
-                throw new Error('Failed to generate input embedding');
+            if (use_hf_embeddings) {
+                // Use Hugging Face embeddings
+                try {
+                    const { data: hfEmbData } = await base44.functions.invoke('huggingFaceEmbeddings', { 
+                        text: user_message 
+                    });
+                    
+                    if (hfEmbData && hfEmbData.success) {
+                        embedding = hfEmbData.embedding;
+                        embeddingSource = 'hugging_face';
+                        addLog('✓ HF embedding generated', { dim: embedding.length });
+                    } else {
+                        throw new Error('HF embedding failed');
+                    }
+                } catch (hfError) {
+                    addLog('⚠️ HF embedding failed, falling back to default', hfError.message);
+                    use_hf_embeddings = false;
+                }
             }
             
-            embedding = embData.embedding;
-            addLog('✓ Input embedding generated', { dim: embedding.length });
+            if (!use_hf_embeddings) {
+                // Default embedding generation
+                const { data: embData } = await base44.functions.invoke('generateEmbedding', {
+                    text: user_message,
+                    dimension: 384,
+                    normalize: true
+                });
+                
+                if (!embData || !embData.success) {
+                    throw new Error('Failed to generate input embedding');
+                }
+                
+                embedding = embData.embedding;
+                embeddingSource = 'default';
+                addLog('✓ Default embedding generated', { dim: embedding.length });
+            }
         }
 
         // Load active DSTIB config
@@ -159,6 +187,7 @@ Deno.serve(async (req) => {
             success: true,
             routing_result,
             embedding_used: true,
+            embedding_source: embeddingSource,
             logs: log
         });
 

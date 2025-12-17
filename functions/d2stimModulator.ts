@@ -37,14 +37,16 @@ Deno.serve(async (req) => {
             needs_conversational_tone = false, // 🔥 NEW parameter
             fact_check_available = false, // NEW
             citation_count = 0, // NEW
-            dstib_routing = null // NEW: DSTIB-Hebden routing result
+            dstib_routing = null, // NEW: DSTIB-Hebden routing result
+            sentiment_analysis = null // NEW: HF sentiment analysis
         } = requestData;
 
         logManager.info('D2STIM Modulator invoked', {
             complexity_score,
             archetype,
             fact_check_available,
-            citation_count
+            citation_count,
+            sentiment_analysis
         });
 
         let d2_activation; // Renamed from optimal_d2_activation
@@ -86,6 +88,15 @@ Deno.serve(async (req) => {
         // Final d2_activation with fact-check consideration
         const fact_check_multiplier = fact_check_available ? 1.1 : (complexity_score > 0.5 ? 0.85 : 1.0);
         d2_activation = Math.max(0.0, Math.min(1.0, d2_activation * fact_check_multiplier));
+
+        // NEW: Adjust based on sentiment analysis
+        if (sentiment_analysis === 'NEGATIVE') {
+            d2_activation = Math.min(1.0, d2_activation + 0.1); // Increase D2Stim for critical focus
+            logManager.info('Sentiment: Negative - Increasing D2Stim', { d2_activation: d2_activation.toFixed(3) });
+        } else if (sentiment_analysis === 'POSITIVE') {
+            d2_activation = Math.max(0.0, d2_activation - 0.05); // Decrease D2Stim slightly
+            logManager.info('Sentiment: Positive - Decreasing D2Stim slightly', { d2_activation: d2_activation.toFixed(3) });
+        }
 
         // Ensure d2_activation is within valid range after all adjustments
         d2_activation = Math.max(0.2, Math.min(0.9, d2_activation));
@@ -206,6 +217,7 @@ Deno.serve(async (req) => {
                 fact_check_boost_applied: fact_check_available,
                 penalty_for_no_fact_check: !fact_check_available && complexity_score > 0.5,
                 conversational_tone_applied: needs_conversational_tone,
+                sentiment_analysis,
                 attention_level: parseFloat(attention_level.toFixed(3)),
                 cognitive_state,
                 adjustments_made: {

@@ -46,6 +46,26 @@ Deno.serve(async (req) => {
 
         // STEP 1: D³STIB Semantic Jerk Filter
         addLog('STEP 1: Applying Semantic Jerk Filter...');
+        
+        // Step 1.5: Perform sentiment analysis if enabled
+        let sentimentAnalysis = null;
+        if (settings.enable_hf_sentiment) {
+            addLog('Performing Hugging Face sentiment analysis...');
+            try {
+                const sentModel = settings.hf_sentiment_model || 'distilbert/distilbert-base-uncased-finetuned-sst-2-english';
+                const { data: hfSentimentData } = await base44.functions.invoke('huggingFaceSentiment', { 
+                    text: user_message,
+                    model: sentModel
+                });
+                if (hfSentimentData && hfSentimentData.success) {
+                    sentimentAnalysis = hfSentimentData.sentiment;
+                    addLog('✓ Hugging Face sentiment analysis complete', { sentiment: sentimentAnalysis });
+                }
+            } catch (hfSentimentError) {
+                addLog('⚠️ Hugging Face sentiment analysis failed', hfSentimentError.message);
+            }
+        }
+
         const jerkResult = await base44.functions.invoke('semanticJerkFilter', {
             user_message,
             conversation_history,
@@ -71,7 +91,8 @@ Deno.serve(async (req) => {
         addLog('STEP 2: Vector Semantic Routing...');
         const routeResult = await base44.functions.invoke('vectorSimilarityRouter', {
             user_message: filteredMessage,
-            fallback_to_keywords: true
+            fallback_to_keywords: true,
+            use_hf_embeddings: settings.use_hf_embeddings || false
         });
 
         if (!routeResult.data || !routeResult.data.success) {
@@ -159,7 +180,8 @@ Deno.serve(async (req) => {
                 action_taken: jerkData.filtering_action
             },
             processing_time_ms: totalTime,
-            logs: log
+            logs: log,
+            sentiment_analysis: sentimentAnalysis
         });
 
     } catch (error) {
