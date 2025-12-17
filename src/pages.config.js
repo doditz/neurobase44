@@ -32,6 +32,7 @@ import SystemPipelineTest from './pages/SystemPipelineTest';
 import SMASUpgradeTest from './pages/SMASUpgradeTest';
 import VectorRoutingTest from './pages/VectorRoutingTest';
 import Phase3JerkFilterTest from './pages/Phase3JerkFilterTest';
+import Phase4EnhancedSMASTest from './pages/Phase4EnhancedSMASTest';
 import __Layout from './Layout.jsx';
 
 
@@ -70,6 +71,7 @@ export const PAGES = {
     "SMASUpgradeTest": SMASUpgradeTest,
     "VectorRoutingTest": VectorRoutingTest,
     "Phase3JerkFilterTest": Phase3JerkFilterTest,
+    "Phase4EnhancedSMASTest": Phase4EnhancedSMASTest,
 }
 
 export const pagesConfig = {
