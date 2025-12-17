@@ -43,20 +43,45 @@ Deno.serve(async (req) => {
         let decayed = 0;
         let pruned = 0;
         let reconsolidated = 0;
+        let consolidated = 0;
         const updates = [];
         const pruneIds = [];
+        const consolidationCandidates = [];
 
         for (const pathway of pathways) {
             const lastActivated = pathway.last_activated ? new Date(pathway.last_activated) : new Date(pathway.created_date);
             const daysSinceActivation = (now - lastActivated) / (1000 * 60 * 60 * 24);
             
-            // Si non-activé depuis le seuil, appliquer decay
+            // CONSOLIDATION CHECK: pathway très actif devient abstract pathway
+            if ((pathway.activation_count || 0) > 50 && pathway.pathway_strength > 0.85) {
+                consolidationCandidates.push(pathway);
+                continue;
+            }
+            
+            // Si non-activé depuis le seuil, appliquer decay proportionnel
             if (lastActivated < thresholdDate) {
-                const decayRate = pathway.decay_rate || 0.995;
+                const baseDecayRate = pathway.decay_rate || 0.995;
                 
-                // Decay exponentiel basé sur le temps
+                // DECAY PROPORTIONNEL: adapté au type et force
+                let adjustedDecayRate = baseDecayRate;
+                
+                // Cross-hemisphere decay plus lent (connexions créatives rares)
+                if (pathway.hemisphere_bridge) {
+                    adjustedDecayRate = Math.min(0.998, baseDecayRate + 0.003);
+                }
+                
+                // Pathways forts décroissent plus lentement
+                const strengthFactor = pathway.pathway_strength;
+                adjustedDecayRate = adjustedDecayRate + ((1 - adjustedDecayRate) * strengthFactor * 0.1);
+                
+                // Decay exponentiel temporel
                 const decayPeriods = Math.floor(daysSinceActivation / (decay_threshold_hours / 24));
-                const newStrength = pathway.pathway_strength * Math.pow(decayRate, decayPeriods);
+                let newStrength = pathway.pathway_strength * Math.pow(adjustedDecayRate, decayPeriods);
+                
+                // SMART DECAY: plateau pour pathways moyennement actifs
+                if ((pathway.activation_count || 0) > 10 && newStrength < 0.4) {
+                    newStrength = Math.max(newStrength, 0.35); // Plateau protecteur
+                }
                 
                 if (newStrength >= min_strength_threshold) {
                     updates.push({
@@ -65,9 +90,8 @@ Deno.serve(async (req) => {
                     });
                     decayed++;
                 } else if (auto_prune) {
-                    // Vérifier si reconsolidation possible (high activation history)
                     if ((pathway.activation_count || 0) > 20) {
-                        // Reconsolidation: pathway historiquement fort, le garder mais affaibli
+                        // Reconsolidation
                         updates.push({
                             id: pathway.id,
                             pathway_strength: min_strength_threshold * 1.5
@@ -81,24 +105,56 @@ Deno.serve(async (req) => {
             }
         }
 
-        // Batch updates
-        await Promise.all(updates.map(update => 
-            base44.entities.MemoryPathway.update(update.id, {
-                pathway_strength: update.pathway_strength
-            })
-        ));
+        // CONSOLIDATION: créer abstract pathways
+        for (const candidate of consolidationCandidates) {
+            // Chercher pathways similaires pour fusion
+            const relatedPathways = pathways.filter(p => 
+                p.id !== candidate.id &&
+                (p.source_memory_id === candidate.source_memory_id || 
+                 p.target_memory_id === candidate.target_memory_id) &&
+                p.pathway_type === candidate.pathway_type &&
+                (p.activation_count || 0) > 30
+            );
+            
+            if (relatedPathways.length >= 2) {
+                // Créer abstract pathway (conceptual_bridge de haut niveau)
+                const avgStrength = relatedPathways.reduce((sum, p) => sum + p.pathway_strength, candidate.pathway_strength) / (relatedPathways.length + 1);
+                
+                await base44.entities.MemoryPathway.create({
+                    source_memory_id: candidate.source_memory_id,
+                    target_memory_id: candidate.target_memory_id,
+                    pathway_type: 'conceptual_bridge',
+                    similarity_score: avgStrength,
+                    activation_count: Math.floor((candidate.activation_count + relatedPathways.reduce((sum, p) => sum + (p.activation_count || 0), 0)) / (relatedPathways.length + 1)),
+                    pathway_strength: Math.min(1.0, avgStrength * 1.2),
+                    embedding_distance: 0,
+                    tier_bridge: candidate.tier_bridge,
+                    hemisphere_bridge: candidate.hemisphere_bridge,
+                    decay_rate: 0.999,
+                    last_activated: new Date().toISOString()
+                });
+                
+                consolidated++;
+            }
+        }
+
+        // Batch operations
+        await Promise.all([
+            ...updates.map(update => 
+                base44.entities.MemoryPathway.update(update.id, {
+                    pathway_strength: update.pathway_strength
+                })
+            ),
+            ...pruneIds.map(id => base44.entities.MemoryPathway.delete(id))
+        ]);
         
-        // Batch deletes
-        await Promise.all(pruneIds.map(id => 
-            base44.entities.MemoryPathway.delete(id)
-        ));
-        
-        addLog('Decay stats', { 
+        addLog('Decay & consolidation complete', { 
             decayed, 
             pruned, 
             reconsolidated,
-            avg_decay_periods: updates.length > 0 
-                ? (decayed / updates.length).toFixed(2) 
+            consolidated,
+            avg_strength_remaining: updates.length > 0 
+                ? (updates.reduce((sum, u) => sum + u.pathway_strength, 0) / updates.length).toFixed(3)
                 : 0
         });
 
