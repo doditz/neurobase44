@@ -40,12 +40,63 @@ Deno.serve(async (req) => {
         }
 
         addLog('=== QRONAS DISPATCHER v4.7 START ===');
+        addLog('=== NEURONAS COGNITIVE PIPELINE ACTIVATION ===');
         addLog('Input', { msg_length: user_message.length, history_count: conversation_history.length });
 
         const startTime = Date.now();
 
-        // STEP 1: D³STIB Semantic Jerk Filter
-        addLog('STEP 1: Applying Semantic Jerk Filter...');
+        // ═══════════════════════════════════════════════════════
+        // PHASE 0: GROUNDING VALIDATION (Truth Before Noise)
+        // ═══════════════════════════════════════════════════════
+        addLog('PHASE 0: Grounding Validation...');
+        const groundingResult = await base44.functions.invoke('groundingValidator', {
+            user_message,
+            enable_web_search: settings.enable_web_search !== false,
+            confidence_threshold: 0.7
+        });
+
+        if (!groundingResult.data || !groundingResult.data.success) {
+            addLog('⚠️ Grounding validation failed or unavailable');
+        } else if (groundingResult.data.verification_status === 'FAILED') {
+            addLog('❌ GROUNDING FAILURE - Unverified factual claims');
+            return Response.json({
+                success: false,
+                error: 'Factual premises could not be verified',
+                grounding_report: groundingResult.data,
+                message: 'Je ne peux pas répondre car les prémisses factuelles ne sont pas vérifiées. Veuillez reformuler avec des informations vérifiables.',
+                logs: log
+            });
+        }
+        addLog('✓ Grounding validated or not applicable', { 
+            status: groundingResult.data?.verification_status 
+        });
+
+        // ═══════════════════════════════════════════════════════
+        // PHASE 1: D²STIB SEMANTIC PROCESSING (Filter Noise)
+        // ═══════════════════════════════════════════════════════
+        addLog('PHASE 1: D²STIB Semantic Processing...');
+
+        const dstibResult = await base44.functions.invoke('dstibSemanticProcessor', {
+            user_message,
+            sensitivity_1st: 0.03,
+            sensitivity_2nd: 0.12,
+            sensitivity_3rd: 0.10,
+            use_hf_embeddings: settings.use_hf_embeddings || false
+        });
+
+        const filteredMessage = dstibResult.data?.filtered_message || user_message;
+        const keyTokens = dstibResult.data?.key_tokens || [];
+        const computationalSavings = dstibResult.data?.metrics?.computational_savings || 0;
+
+        addLog('✓ D²STIB complete', {
+            original_length: user_message.length,
+            filtered_length: filteredMessage.length,
+            key_tokens: keyTokens.length,
+            savings: computationalSavings.toFixed(1) + '%'
+        });
+
+        // STEP 1.5: Legacy Jerk Filter (kept for backwards compatibility)
+        addLog('Applying legacy Semantic Jerk Filter...');
         
         // Step 1.5: Perform sentiment analysis if enabled
         let sentimentAnalysis = null;
@@ -87,8 +138,10 @@ Deno.serve(async (req) => {
             action: jerkData.filtering_action
         });
 
-        // STEP 2: Vector-based Semantic Routing
-        addLog('STEP 2: Vector Semantic Routing...');
+        // ═══════════════════════════════════════════════════════
+        // PHASE 2: SEMANTIC ROUTING (Pathway Selection)
+        // ═══════════════════════════════════════════════════════
+        addLog('PHASE 2: Vector Semantic Routing...');
         const routeResult = await base44.functions.invoke('vectorSimilarityRouter', {
             user_message: filteredMessage,
             fallback_to_keywords: true,
@@ -163,11 +216,37 @@ Deno.serve(async (req) => {
 
         const totalTime = Date.now() - startTime;
 
-        addLog('=== DISPATCHER COMPLETE ===', { duration_ms: totalTime });
+        // ═══════════════════════════════════════════════════════
+        // PHASE 6: PREPARE NEURONAS CONTEXT
+        // ═══════════════════════════════════════════════════════
+        const neuronasContext = {
+            dstib_filtering: {
+                original_message: user_message,
+                filtered_message: filteredMessage,
+                key_tokens: keyTokens,
+                computational_savings: computationalSavings
+            },
+            grounding: {
+                status: groundingResult.data?.verification_status || 'NOT_CHECKED',
+                verified_claims: groundingResult.data?.verification_results || []
+            },
+            routing: finalRouting,
+            complexity: {
+                score: complexity_score,
+                factors: complexityFactors
+            },
+            pipeline_config: pipelineConfig,
+            sentiment: sentimentAnalysis,
+            requires_smas_debate: pipelineConfig.use_smas,
+            requires_bronas_validation: true
+        };
+
+        addLog('=== QRONAS DISPATCHER COMPLETE ===', { duration_ms: totalTime });
 
         return Response.json({
             success: true,
             dispatcher_version: '4.7',
+            neuronas_context: neuronasContext,
             filtered_message: filteredMessage,
             routing: finalRouting,
             complexity_score,
