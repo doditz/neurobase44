@@ -30,6 +30,7 @@ import MemoryExplorer from './pages/MemoryExplorer';
 import MemoryVisualization from './pages/MemoryVisualization';
 import SystemPipelineTest from './pages/SystemPipelineTest';
 import SMASUpgradeTest from './pages/SMASUpgradeTest';
+import VectorRoutingTest from './pages/VectorRoutingTest';
 import __Layout from './Layout.jsx';
 
 
@@ -66,6 +67,7 @@ export const PAGES = {
     "MemoryVisualization": MemoryVisualization,
     "SystemPipelineTest": SystemPipelineTest,
     "SMASUpgradeTest": SMASUpgradeTest,
+    "VectorRoutingTest": VectorRoutingTest,
 }
 
 export const pagesConfig = {
