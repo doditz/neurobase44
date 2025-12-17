@@ -9,7 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import {
     Play, Loader2, Zap, BarChart3, CheckCircle2,
-    AlertCircle, Brain, TrendingUp, Clock, MessageSquare
+    AlertCircle, Brain, TrendingUp, Clock, Award,
+    FileText, MessageSquare
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -24,6 +25,23 @@ export default function DynamicGradingTestPage() {
     useEffect(() => {
         loadQuestions();
     }, []);
+
+    const handleFixDatasets = async () => {
+        setIsLoading(true);
+        try {
+            const { data } = await base44.functions.invoke('fixDatasetLoading');
+            if (data.success) {
+                toast.success(`✅ ${data.message}`);
+                await loadQuestions();
+            } else {
+                toast.error('❌ Fix failed');
+            }
+        } catch (error) {
+            toast.error(`Error: ${error.message}`);
+        } finally {
+            setIsLoading(false);
+        }
+    };
 
     const loadQuestions = async () => {
         try {
