@@ -10,7 +10,7 @@ import { Progress } from '@/components/ui/progress';
 import {
     Play, Loader2, Zap, BarChart3, CheckCircle2,
     AlertCircle, Brain, TrendingUp, Clock, Award,
-    FileText, MessageSquare
+    FileText, MessageSquare, Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -19,6 +19,7 @@ export default function DynamicGradingTestPage() {
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [customPrompt, setCustomPrompt] = useState('');
     const [isRunning, setIsRunning] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [activeTab, setActiveTab] = useState('dataset');
 
@@ -159,9 +160,21 @@ export default function DynamicGradingTestPage() {
             <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <Zap className="w-8 h-8 text-orange-500" />
-                        <h1 className="text-3xl font-bold text-green-300">Test d'Efficacité avec LLM Grader</h1>
+                    <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-3">
+                            <Zap className="w-8 h-8 text-orange-500" />
+                            <h1 className="text-3xl font-bold text-green-300">Test d'Efficacité avec LLM Grader</h1>
+                        </div>
+                        {questions.length === 0 && !isLoading && (
+                            <Button
+                                onClick={handleFixDatasets}
+                                className="bg-orange-600 hover:bg-orange-700"
+                                disabled={isLoading}
+                            >
+                                <Wrench className="w-4 h-4 mr-2" />
+                                Fix Datasets
+                            </Button>
+                        )}
                     </div>
                     <p className="text-slate-400">
                         Évaluation dynamique de qualité par un LLM arbitre • Mode A (baseline) vs Mode B (Neuronas)

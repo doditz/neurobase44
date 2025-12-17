@@ -1,14 +1,16 @@
-
-import React, { useState } from "react";
-import { InvokeLLM } from "@/integrations/Core";
+import React, { useState, useEffect } from "react";
+import { base44 } from '@/api/base44Client';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Search, Download, CheckCircle2, Database } from "lucide-react"; // Added Database import
+import { Loader2, Search, Download, CheckCircle2, Database, Shield, Wrench } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { toast } from 'sonner';
 
 export default function BenchmarkDatasetBuilder() {
     const [loading, setLoading] = useState(false);
     const [currentPhase, setCurrentPhase] = useState(null);
+    const [questions, setQuestions] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [results, setResults] = useState({
         phase1: null,
         phase2: null,
@@ -17,13 +19,44 @@ export default function BenchmarkDatasetBuilder() {
         finalDataset: []
     });
 
+    useEffect(() => {
+        loadQuestions();
+    }, []);
+
+    const loadQuestions = async () => {
+        setIsLoading(true);
+        try {
+            const data = await base44.entities.BenchmarkQuestion.list();
+            setQuestions(data);
+        } catch (error) {
+            console.error('Failed to load questions:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleAutoFix = async () => {
+        try {
+            toast.info('🔧 Running auto-fix...');
+            const { data } = await base44.functions.invoke('fixDatasetLoading');
+            if (data.success) {
+                toast.success(data.message);
+                await loadQuestions();
+            } else {
+                toast.error('Auto-fix failed');
+            }
+        } catch (error) {
+            toast.error(`Error: ${error.message}`);
+        }
+    };
+
     // Phase 2.1: Recherche des Benchmarks LLM Standards
     const searchStandardBenchmarks = async () => {
         setLoading(true);
         setCurrentPhase("phase2.1");
         
         try {
-            const response = await InvokeLLM({
+            const response = await base44.integrations.Core.InvokeLLM({
                 prompt: `Recherche les principaux datasets et benchmarks utilisés pour évaluer les LLM en 2024-2025, en particulier:
 
 1. MMLU (Massive Multitask Language Understanding)
@@ -97,7 +130,7 @@ Fournis des liens directs vers les datasets quand disponibles.`,
         setCurrentPhase("phase2.2");
         
         try {
-            const response = await InvokeLLM({
+            const response = await base44.integrations.Core.InvokeLLM({
                 prompt: `Recherche les datasets et benchmarks spécifiques à l'éthique, aux biais et à l'équité dans l'IA:
 
 1. ETHICS (Hendrycks et al.)
@@ -169,7 +202,7 @@ Focus particulier sur les questions qui nécessitent une analyse multi-perspecti
         setCurrentPhase("phase2.3");
         
         try {
-            const response = await InvokeLLM({
+            const response = await base44.integrations.Core.InvokeLLM({
                 prompt: `Recherche les benchmarks et tests pour évaluer la créativité, le raisonnement complexe et la résolution de problèmes ouverts dans les LLM:
 
 1. BIG-Bench Creative Writing tasks
@@ -236,7 +269,7 @@ Focus sur les questions sans réponse unique, nécessitant exploration de possib
         setCurrentPhase("phase3");
         
         try {
-            const response = await InvokeLLM({
+            const response = await base44.integrations.Core.InvokeLLM({
                 prompt: `Génère 30 questions originales spécifiquement conçues pour tester les capacités uniques de NEURONAS (système biomimétique avec débat multi-personas, validation éthique UNESCO, sensibilité culturelle québécoise).
 
 Ces questions doivent être IMPOSSIBLES ou TRÈS DIFFICILES pour un LLM standard, mais gérables par NEURONAS grâce à son architecture Système 2.
@@ -393,14 +426,25 @@ Pour chaque question, fournis:
                 <div className="flex items-center justify-between">
                     <div>
                         <h1 className="text-3xl font-bold text-green-400 flex items-center gap-3">
-                            <Database className="w-8 h-8" /> {/* Added Database icon */}
+                            <Database className="w-8 h-8" />
                             Constructeur de Dataset de Tests
                         </h1>
                         <p className="text-slate-400 mt-1">
-                            Créez et gérez des questions pour les tests d'efficacité Neuronas
+                            Créez et gérez des questions pour les tests d'efficacité Neuronas • {questions.length} questions chargées
                         </p>
                     </div>
-                    <Badge className="bg-orange-600 px-4 py-2">Admin Only</Badge> {/* Added Admin Only Badge */}
+                    <div className="flex items-center gap-2">
+                        <Badge className="bg-orange-600 px-4 py-2">Admin Only</Badge>
+                        {questions.length === 0 && !isLoading && (
+                            <Button
+                                onClick={handleAutoFix}
+                                className="bg-red-600 hover:bg-red-700"
+                            >
+                                <Wrench className="w-4 h-4 mr-2" />
+                                Auto-Fix Datasets
+                            </Button>
+                        )}
+                    </div>
                 </div>
 
                 {/* Phase 1: Définition (Déjà complétée) */}
