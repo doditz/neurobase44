@@ -16,6 +16,7 @@ import SourcingConfidenceIndicator from './SourcingConfidenceIndicator';
 import CitationBadge from './CitationBadge';
 import DebateAnalysisDisplay from './DebateAnalysisDisplay';
 import ExternalSourcesBadge from './ExternalSourcesBadge';
+import KaomojiThemedMessage from './KaomojiThemedMessage';
 
 const FunctionDisplay = ({ toolCall }) => {
     const [expanded, setExpanded] = useState(false);
@@ -382,6 +383,13 @@ export default function MessageBubble({ message }) {
     const metadata = message.metadata || {};
     const toneAnalysis = metadata?.tone_analysis;
     
+    // Check if message contains Neuronas audit log (kaomoji theming)
+    const isKaomojiThemed = message.content && (
+        message.content.includes('<(^-^)>') || 
+        message.content.includes('(╯°□°)╯') ||
+        message.content.includes('NEURONAS_AUDIT_LOG')
+    );
+    
     // Progressive text reveal for better perceived latency
     React.useEffect(() => {
         if (!isUser && message.progressive && message.content) {
@@ -445,10 +453,12 @@ export default function MessageBubble({ message }) {
                 {message.content && (
                     <div className={cn(
                         "rounded-2xl px-4 py-2.5",
-                        isUser ? "bg-slate-800 text-white" : "bg-white border border-slate-200"
+                        isUser ? "bg-slate-800 text-white" : isKaomojiThemed ? "" : "bg-white border border-slate-200"
                     )}>
                         {isUser ? (
                             <p className="text-sm leading-relaxed">{message.content}</p>
+                        ) : isKaomojiThemed ? (
+                            <KaomojiThemedMessage content={message.content} />
                         ) : (
                             <ReactMarkdown 
                                 className="text-sm prose prose-sm prose-slate max-w-none [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
