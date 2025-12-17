@@ -8,6 +8,16 @@ import { toast } from "sonner";
  * KaomojiThemedMessage - Renders Neuronas messages with Retro Kaomoji Cyberpunk theming
  */
 export default function KaomojiThemedMessage({ content }) {
+    // Enhance content with kaomoji formatting
+    const enhancedContent = content
+        .replace(/\[NEURONAS_AUDIT_LOG/g, '# <(^-^)> NEURONAS_AUDIT_LOG')
+        .replace(/\[D²STIB/g, '## (⌐■_■) D²STIB')
+        .replace(/\[GROUNDING/g, '## (◕_◕) GROUNDING')
+        .replace(/\[HEMISPHERIC/g, '## (◕‿◕✿) ↔ (⌐■_■) HEMISPHERIC')
+        .replace(/\[BRONAS/g, '## (✓/✗) BRONAS')
+        .replace(/\[SMARCE/g, '## (📊) SMARCE')
+        .replace(/\[SYNTHESIZED RESPONSE\]/g, '# <(^-^)> SYNTHESIZED RESPONSE');
+
     const kaomojiStyle = {
         fontFamily: "'Courier New', monospace",
         color: '#FFA500',
@@ -15,8 +25,8 @@ export default function KaomojiThemedMessage({ content }) {
         padding: '1rem',
         borderRadius: '8px',
         border: '2px solid #FFA500',
-        boxShadow: '0 0 10px rgba(255, 165, 0, 0.3)',
-        lineHeight: '1.6'
+        boxShadow: '0 0 20px rgba(255, 165, 0, 0.5), 0 0 40px rgba(0, 255, 255, 0.3)',
+        lineHeight: '1.8'
     };
 
     const headerStyle = {
@@ -45,17 +55,39 @@ export default function KaomojiThemedMessage({ content }) {
                 <ReactMarkdown
                     components={{
                         h1: ({ children }) => (
-                            <div style={headerStyle}>
-                                {'<(^-^)> '}{children}
+                            <div style={{ 
+                                ...headerStyle, 
+                                fontSize: '1.3em', 
+                                borderBottom: '2px solid #FFA500',
+                                paddingBottom: '0.5rem',
+                                marginTop: '1rem',
+                                textShadow: '0 0 10px rgba(255, 165, 0, 0.8)'
+                            }}>
+                                {children}
                             </div>
                         ),
                         h2: ({ children }) => (
-                            <div style={{ ...headerStyle, color: '#FFA500', fontSize: '1em' }}>
-                                {'(╯°□°)╯ '}{children}
+                            <div style={{ 
+                                ...headerStyle, 
+                                color: '#00FFFF', 
+                                fontSize: '1.1em',
+                                marginTop: '1rem',
+                                marginBottom: '0.5rem',
+                                borderLeft: '4px solid #00FFFF',
+                                paddingLeft: '0.75rem',
+                                textShadow: '0 0 10px rgba(0, 255, 255, 0.6)'
+                            }}>
+                                {children}
                             </div>
                         ),
                         h3: ({ children }) => (
-                            <div style={{ color: '#00FFFF', fontWeight: 'bold', marginTop: '0.5rem' }}>
+                            <div style={{ 
+                                color: '#FFD700', 
+                                fontWeight: 'bold', 
+                                marginTop: '0.75rem',
+                                marginBottom: '0.25rem',
+                                fontSize: '1em'
+                            }}>
                                 {children}
                             </div>
                         ),
@@ -70,10 +102,65 @@ export default function KaomojiThemedMessage({ content }) {
                             </ul>
                         ),
                         strong: ({ children }) => (
-                            <strong style={{ color: '#FF6B6B' }}>{children}</strong>
+                            <strong style={{ 
+                                color: '#FF6B6B', 
+                                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                                padding: '0.1rem 0.3rem',
+                                borderRadius: '3px'
+                            }}>{children}</strong>
                         ),
                         em: ({ children }) => (
-                            <em style={{ color: '#FFD93D' }}>{children}</em>
+                            <em style={{ 
+                                color: '#FFD93D',
+                                borderBottom: '1px dotted #FFD93D'
+                            }}>{children}</em>
+                        ),
+                        table: ({ children }) => (
+                            <div style={{ overflowX: 'auto', margin: '1rem 0' }}>
+                                <table style={{
+                                    width: '100%',
+                                    borderCollapse: 'collapse',
+                                    border: '2px solid #00FFFF',
+                                    boxShadow: '0 0 15px rgba(0, 255, 255, 0.3)'
+                                }}>
+                                    {children}
+                                </table>
+                            </div>
+                        ),
+                        thead: ({ children }) => (
+                            <thead style={{ 
+                                backgroundColor: 'rgba(0, 255, 255, 0.2)',
+                                color: '#FFA500',
+                                fontWeight: 'bold'
+                            }}>
+                                {children}
+                            </thead>
+                        ),
+                        tbody: ({ children }) => (
+                            <tbody>{children}</tbody>
+                        ),
+                        tr: ({ children }) => (
+                            <tr style={{ borderBottom: '1px solid rgba(0, 255, 255, 0.3)' }}>
+                                {children}
+                            </tr>
+                        ),
+                        th: ({ children }) => (
+                            <th style={{ 
+                                padding: '0.5rem', 
+                                textAlign: 'left',
+                                borderRight: '1px solid rgba(0, 255, 255, 0.3)'
+                            }}>
+                                {children}
+                            </th>
+                        ),
+                        td: ({ children }) => (
+                            <td style={{ 
+                                padding: '0.5rem',
+                                color: '#00FFFF',
+                                borderRight: '1px solid rgba(0, 255, 255, 0.2)'
+                            }}>
+                                {children}
+                            </td>
                         ),
                         code: ({ inline, className, children, ...props }) => {
                             const match = /language-(\w+)/.exec(className || '');
@@ -143,14 +230,20 @@ export default function KaomojiThemedMessage({ content }) {
                             </blockquote>
                         ),
                         hr: () => (
-                            <div style={{
-                                borderTop: '1px dashed #FFA500',
-                                margin: '1rem 0'
-                            }} />
+                            <div style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                margin: '1.5rem 0',
+                                gap: '0.5rem'
+                            }}>
+                                <div style={{ flex: 1, borderTop: '2px solid #FFA500' }} />
+                                <span style={{ color: '#FFA500', fontSize: '0.8em' }}>(◕‿◕)</span>
+                                <div style={{ flex: 1, borderTop: '2px solid #FFA500' }} />
+                            </div>
                         )
                     }}
                 >
-                    {content}
+                    {enhancedContent}
                 </ReactMarkdown>
             </div>
         );
