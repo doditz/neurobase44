@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Debate } from '@/entities/Debate';
+import { ResourceUsage } from '@/entities/ResourceUsage';
 import { UserBudget } from '@/entities/UserBudget';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, CornerDownLeft, AlertCircle, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare } from 'lucide-react';
+import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { LogManager } from '@/components/utils/LogManager';
 import { toast } from 'sonner';
 import DebateVisualizationModal from '@/components/benchmark/DebateVisualizationModal';
@@ -61,17 +63,26 @@ export default function ChatInterface({
         }, 100);
     }, []);
 
-    // Initialize conversation
+    // Initialize conversation and load message history
     useEffect(() => {
         const initConversation = async () => {
             if (initialConversationId) {
+                setIsLoading(true);
                 try {
                     const debates = await Debate.filter({ conversation_id: initialConversationId });
                     if (debates.length > 0) {
                         setConversation(debates[0]);
+                        
+                        // Load conversation history from agent
+                        const conversationData = await base44.agents.getConversation(initialConversationId);
+                        if (conversationData && conversationData.messages) {
+                            setMessages(conversationData.messages);
+                        }
                     }
                 } catch (error) {
                     console.error('[ChatInterface] Failed to load conversation:', error);
+                } finally {
+                    setIsLoading(false);
                 }
             }
         };
