@@ -69,25 +69,38 @@ export default function ChatInterface({
             if (initialConversationId) {
                 setIsLoading(true);
                 try {
+                    console.log('[ChatInterface] Loading conversation:', initialConversationId);
+                    
                     const debates = await Debate.filter({ conversation_id: initialConversationId });
                     if (debates.length > 0) {
                         setConversation(debates[0]);
-                        
-                        // Load conversation history from agent
-                        const conversationData = await base44.agents.getConversation(initialConversationId);
-                        if (conversationData && conversationData.messages) {
-                            setMessages(conversationData.messages);
-                        }
+                        console.log('[ChatInterface] Debate record loaded:', debates[0]);
+                    }
+                    
+                    // Load conversation history from agent SDK
+                    const conversationData = await base44.agents.getConversation(initialConversationId);
+                    console.log('[ChatInterface] Conversation data:', conversationData);
+                    
+                    if (conversationData && conversationData.messages && conversationData.messages.length > 0) {
+                        console.log('[ChatInterface] Setting messages:', conversationData.messages.length);
+                        setMessages(conversationData.messages);
+                        scrollToBottom();
+                    } else {
+                        console.log('[ChatInterface] No messages in conversation');
+                        setMessages([]);
                     }
                 } catch (error) {
                     console.error('[ChatInterface] Failed to load conversation:', error);
+                    setMessages([]);
                 } finally {
                     setIsLoading(false);
                 }
+            } else {
+                setMessages([]);
             }
         };
         initConversation();
-    }, [initialConversationId]);
+    }, [initialConversationId, scrollToBottom]);
 
     // Load user budget
     useEffect(() => {
