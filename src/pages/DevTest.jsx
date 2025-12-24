@@ -123,7 +123,8 @@ export default function DevTestPage() {
     const loadHistory = async () => {
         setIsLoadingHistory(true);
         try {
-            const results = await base44.entities.DevTestResult.list('-created_date', 100);
+            // FIXED: Use BenchmarkResult which has data
+            const results = await base44.entities.BenchmarkResult.list('-created_date', 100);
             setBenchmarkHistory(results);
         } catch (error) {
             console.error('[DevTest] Failed to load history:', error);

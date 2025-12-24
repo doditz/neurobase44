@@ -31,7 +31,8 @@ export default function UnifiedHistory() {
 
   const load = async () => {
     setLoading(true);
-    const results = await base44.entities.DevTestResult.list("-created_date", 200);
+    // FIXED: Use BenchmarkResult which has data
+    const results = await base44.entities.BenchmarkResult.list("-created_date", 200);
     setBenchmarks(results);
     if (!selected && results.length > 0) setSelected(results[0]);
     setLoading(false);

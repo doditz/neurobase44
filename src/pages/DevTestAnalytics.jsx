@@ -84,33 +84,60 @@ export default function DevTestAnalyticsPage() {
         try {
             toast.info('🔍 Analyse des tests en cours...');
             
-            const { data } = await base44.functions.invoke('benchmarkAnalytics', {
-                group_by: selectedGroupBy,
-                lookback_days: lookbackDays,
-                min_samples_per_group: 3,
-                outlier_threshold_z_score: 2.0,
-                include_trend_analysis: true
+            // FIXED: Load directly from BenchmarkResult instead of calling function
+            const results = await base44.entities.BenchmarkResult.list('-created_date', 200);
+            
+            if (results.length === 0) {
+                setAnalyticsReport(null);
+                toast.info('Aucun test disponible. Lancez des tests pour commencer!');
+                return;
+            }
+
+            // Calculate analytics locally
+            const totalTests = results.length;
+            const recent = results.slice(0, Math.min(20, results.length));
+            
+            const avgSpg = recent.reduce((sum, r) => sum + (r.global_score_performance || 0), 0) / recent.length;
+            const wins = recent.filter(r => r.winner === 'mode_b').length;
+            const passRate = wins / recent.length;
+            
+            const groupedByCategory = {};
+            results.forEach(r => {
+                const cat = r.scenario_category || 'unknown';
+                if (!groupedByCategory[cat]) {
+                    groupedByCategory[cat] = { tests: [], total: 0, avgSpg: 0, wins: 0 };
+                }
+                groupedByCategory[cat].tests.push(r);
+                groupedByCategory[cat].total++;
+                groupedByCategory[cat].avgSpg += (r.global_score_performance || 0);
+                if (r.winner === 'mode_b') groupedByCategory[cat].wins++;
+            });
+            
+            Object.keys(groupedByCategory).forEach(cat => {
+                const group = groupedByCategory[cat];
+                group.avgSpg = group.avgSpg / group.total;
+                group.passRate = group.wins / group.total;
             });
 
-            if (data && data.success) {
-                setAnalyticsReport(data.analytics_report);
-                toast.success(`✅ Analyse terminée: ${data.analytics_report.total_benchmarks} tests analysés`);
-            } else {
-                if (data?.error && data.error.includes('Insufficient data')) {
-                    setAnalyticsReport(null);
-                    toast.info('Aucun test disponible. Lancez des tests pour commencer!');
-                } else {
-                    throw new Error(data?.error || 'Analytics failed');
-                }
-            }
+            setAnalyticsReport({
+                total_benchmarks: totalTests,
+                overall_stats: {
+                    mean_spg: avgSpg,
+                    pass_rate: passRate
+                },
+                groups: {
+                    scenario_category: groupedByCategory
+                },
+                results: results,
+                outliers: [],
+                insights: []
+            });
+            
+            toast.success(`✅ Analyse terminée: ${totalTests} tests analysés`);
         } catch (error) {
             console.error('Analytics error:', error);
-            if (error.message.includes('Insufficient data')) {
-                setAnalyticsReport(null);
-                toast.info('Aucun test disponible.');
-            } else {
-                toast.error(`Erreur: ${error.message}`);
-            }
+            toast.error(`Erreur: ${error.message}`);
+            setAnalyticsReport(null);
         } finally {
             setIsLoading(false);
         }

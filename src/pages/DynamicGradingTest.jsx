@@ -47,10 +47,20 @@ export default function DynamicGradingTestPage() {
 
     const loadQuestions = async () => {
         try {
-            const data = await base44.entities.DevTestQuestion.list();
+            // Try DevTestQuestion first
+            let data = await base44.entities.DevTestQuestion.list();
+            
+            // FALLBACK: If empty, try BenchmarkQuestion
+            if (data.length === 0) {
+                console.log('[DynamicGradingTest] DevTestQuestion empty, trying BenchmarkQuestion');
+                data = await base44.entities.BenchmarkQuestion.list();
+            }
+            
             setQuestions(data);
             if (data.length > 0) {
                 setSelectedQuestion(data[0]);
+            } else {
+                console.log('[DynamicGradingTest] No questions found in any entity');
             }
         } catch (error) {
             console.error('Failed to load questions:', error);
