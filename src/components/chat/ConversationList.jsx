@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
-import { MessageSquare, Clock, Brain, Pencil, Check, X, Music } from 'lucide-react';
+import { MessageSquare, Clock, Brain, Pencil, Check, X, Music, ChevronLeft, ChevronRight } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Debate } from '@/entities/Debate';
