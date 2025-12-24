@@ -10,12 +10,15 @@ import { Input } from '@/components/ui/input';
 import { 
     Play, Zap, 
     Target, Settings, Activity,
-    CheckCircle2, AlertCircle, Loader2, BarChart3, Sparkles
+    CheckCircle2, AlertCircle, Loader2, BarChart3, Sparkles, Database, List, RefreshCw
 } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TunableParameter } from '@/entities/TunableParameter';
 import { OptimizationStrategy } from '@/entities/OptimizationStrategy';
 import { SPGConfiguration } from '@/entities/SPGConfiguration';
 import { BenchmarkResult } from '@/entities/BenchmarkResult';
+import { BenchmarkQuestion } from '@/entities/BenchmarkQuestion';
+import { DevTestQuestion } from '@/entities/DevTestQuestion';
 import { autoTuningLoop } from '@/functions/autoTuningLoop';
 import { parameterSensitivityAnalysis } from '@/functions/parameterSensitivityAnalysis';
 import { systemStateManager } from '@/functions/systemStateManager';
@@ -29,6 +32,10 @@ export default function SelfOptimizationDashboard() {
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [optimizationStatus, setOptimizationStatus] = useState(null);
     const [selectedTestQuestion, setSelectedTestQuestion] = useState('');
+    const [datasetType, setDatasetType] = useState('custom');
+    const [availableQuestions, setAvailableQuestions] = useState([]);
+    const [selectedQuestionId, setSelectedQuestionId] = useState('');
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [autoOptimizationSettings, setAutoOptimizationSettings] = useState({
         max_iterations: 10,
         convergence_threshold: 0.92,
@@ -83,6 +90,37 @@ export default function SelfOptimizationDashboard() {
             toast.error('Échec du chargement des données');
         }
     };
+
+    const loadQuestions = async (type) => {
+        setLoadingQuestions(true);
+        try {
+            let questions = [];
+            if (type === 'benchmark') {
+                questions = await BenchmarkQuestion.list('-created_date', 50);
+            } else if (type === 'devtest') {
+                questions = await DevTestQuestion.list('-created_date', 50);
+            }
+            setAvailableQuestions(questions);
+            if (questions.length > 0) {
+                setSelectedQuestionId(questions[0].id);
+                setSelectedTestQuestion(questions[0].question_text);
+            }
+        } catch (error) {
+            console.error('Failed to load questions:', error);
+            toast.error('Échec du chargement des questions');
+        } finally {
+            setLoadingQuestions(false);
+        }
+    };
+
+    useEffect(() => {
+        if (datasetType !== 'custom') {
+            loadQuestions(datasetType);
+        } else {
+            setAvailableQuestions([]);
+            setSelectedQuestionId('');
+        }
+    }, [datasetType]);
 
     const startAutoOptimization = async () => {
         if (!selectedTestQuestion.trim()) {
@@ -284,17 +322,96 @@ export default function SelfOptimizationDashboard() {
                                 </CardDescription>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                {/* Dataset Selection */}
+                                <div className="bg-slate-700 rounded-lg p-4 border border-slate-600">
+                                    <label className="text-sm font-medium text-green-300 mb-3 flex items-center gap-2">
+                                        <Database className="w-4 h-4" />
+                                        Source de Test
+                                    </label>
+                                    <div className="grid md:grid-cols-3 gap-3">
+                                        <Button
+                                            variant={datasetType === 'custom' ? 'default' : 'outline'}
+                                            onClick={() => setDatasetType('custom')}
+                                            className={datasetType === 'custom' ? 'bg-purple-600' : 'border-slate-500'}
+                                            disabled={isOptimizing}
+                                        >
+                                            <Sparkles className="w-4 h-4 mr-2" />
+                                            Question Personnalisée
+                                        </Button>
+                                        <Button
+                                            variant={datasetType === 'benchmark' ? 'default' : 'outline'}
+                                            onClick={() => setDatasetType('benchmark')}
+                                            className={datasetType === 'benchmark' ? 'bg-purple-600' : 'border-slate-500'}
+                                            disabled={isOptimizing}
+                                        >
+                                            <Target className="w-4 h-4 mr-2" />
+                                            Dataset Benchmark
+                                        </Button>
+                                        <Button
+                                            variant={datasetType === 'devtest' ? 'default' : 'outline'}
+                                            onClick={() => setDatasetType('devtest')}
+                                            className={datasetType === 'devtest' ? 'bg-purple-600' : 'border-slate-500'}
+                                            disabled={isOptimizing}
+                                        >
+                                            <List className="w-4 h-4 mr-2" />
+                                            Dataset Dev Tests
+                                        </Button>
+                                    </div>
+                                </div>
+
+                                {/* Question Selection */}
+                                {datasetType !== 'custom' && (
+                                    <div>
+                                        <label className="text-sm font-medium text-green-300 mb-2 flex items-center gap-2">
+                                            Sélectionner une Question
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() => loadQuestions(datasetType)}
+                                                disabled={loadingQuestions}
+                                                className="h-6 w-6 p-0"
+                                            >
+                                                <RefreshCw className={`w-3 h-3 ${loadingQuestions ? 'animate-spin' : ''}`} />
+                                            </Button>
+                                        </label>
+                                        <Select
+                                            value={selectedQuestionId}
+                                            onValueChange={(value) => {
+                                                setSelectedQuestionId(value);
+                                                const q = availableQuestions.find(q => q.id === value);
+                                                if (q) setSelectedTestQuestion(q.question_text);
+                                            }}
+                                            disabled={isOptimizing || loadingQuestions}
+                                        >
+                                            <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300">
+                                                <SelectValue placeholder={loadingQuestions ? "Chargement..." : "Choisir une question"} />
+                                            </SelectTrigger>
+                                            <SelectContent className="bg-slate-800 border-slate-700">
+                                                {availableQuestions.map((q) => (
+                                                    <SelectItem key={q.id} value={q.id} className="text-green-300">
+                                                        {q.question_id || q.scenario_name} - {q.question_text?.substring(0, 60)}...
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                )}
+
                                 <div>
                                     <label className="text-sm font-medium text-green-300 mb-2 block">
-                                        Question de Test
+                                        {datasetType === 'custom' ? 'Question de Test (Personnalisée)' : 'Question Sélectionnée (Aperçu)'}
                                     </label>
                                     <Textarea
-                                        placeholder="Entrez une question complexe pour tester l'optimisation..."
+                                        placeholder={datasetType === 'custom' ? "Entrez une question complexe pour tester l'optimisation..." : "Aperçu de la question sélectionnée"}
                                         value={selectedTestQuestion}
-                                        onChange={(e) => setSelectedTestQuestion(e.target.value)}
+                                        onChange={(e) => {
+                                            if (datasetType === 'custom') {
+                                                setSelectedTestQuestion(e.target.value);
+                                            }
+                                        }}
                                         className="bg-slate-700 border-slate-600 text-green-300 placeholder:text-slate-500"
-                                        rows={3}
-                                        disabled={isOptimizing}
+                                        rows={4}
+                                        disabled={isOptimizing || datasetType !== 'custom'}
                                     />
                                 </div>
 
