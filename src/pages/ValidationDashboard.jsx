@@ -188,7 +188,6 @@ export default function ValidationDashboardPage() {
               <Activity className="w-4 h-4" />
               Historique & Logs Unifiés
             </CardTitle>
-          </CardTitle>
           </CardHeader>
           <CardContent>
             <UnifiedHistory />
