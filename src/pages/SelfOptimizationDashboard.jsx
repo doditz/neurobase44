@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/input';
 import { 
     Play, Zap, 
     Target, Settings, Activity,
-    CheckCircle2, AlertCircle, Loader2, BarChart3, Sparkles, Database, List, RefreshCw
+    CheckCircle2, AlertCircle, Loader2, BarChart3, Sparkles, Database, List, RefreshCw, History
 } from 'lucide-react';
+import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { TunableParameter } from '@/entities/TunableParameter';
 import { OptimizationStrategy } from '@/entities/OptimizationStrategy';
@@ -659,63 +660,58 @@ export default function SelfOptimizationDashboard() {
 
                     {/* History Tab */}
                     <TabsContent value="history">
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-green-300">Historique des Optimisations</CardTitle>
-                                <CardDescription className="text-slate-400">
-                                    Derniers benchmarks et évolution du SPG
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ScrollArea className="h-96">
-                                    <div className="space-y-3">
-                                        {recentBenchmarks.map((benchmark, idx) => (
-                                            <div key={benchmark.id} className="bg-slate-700 rounded-lg p-4 border border-slate-600">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div>
-                                                        <h4 className="font-medium text-green-300">{benchmark.scenario_name}</h4>
-                                                        <p className="text-xs text-slate-500">
-                                                            {new Date(benchmark.created_date).toLocaleString('fr-FR')}
-                                                        </p>
-                                                    </div>
-                                                    <Badge className={
-                                                        benchmark.global_score_performance >= 0.9 
-                                                            ? 'bg-green-600' 
-                                                            : benchmark.global_score_performance >= 0.7 
-                                                            ? 'bg-yellow-600' 
-                                                            : 'bg-red-600'
-                                                    }>
-                                                        SPG: {benchmark.global_score_performance?.toFixed(3) || 'N/A'}
-                                                    </Badge>
-                                                </div>
-
-                                                <div className="grid grid-cols-3 gap-3 text-sm mt-3">
-                                                    <div>
-                                                        <div className="text-slate-500 text-xs">Amélioration</div>
-                                                        <div className="font-mono text-green-400">
-                                                            {benchmark.performance_improvement > 0 ? '+' : ''}
-                                                            {benchmark.performance_improvement?.toFixed(1)}%
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-slate-500 text-xs">Tokens Mode B</div>
-                                                        <div className="font-mono text-slate-300">
-                                                            {benchmark.mode_b_token_count?.toLocaleString() || 'N/A'}
-                                                        </div>
-                                                    </div>
-                                                    <div>
-                                                        <div className="text-slate-500 text-xs">Temps Mode B</div>
-                                                        <div className="font-mono text-slate-300">
-                                                            {benchmark.mode_b_time_ms?.toLocaleString()}ms
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
+                        <div className="space-y-4">
+                            <Card className="bg-slate-800 border-slate-700">
+                                <CardHeader>
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <CardTitle className="text-green-300 flex items-center gap-2">
+                                                <History className="w-5 h-5" />
+                                                Historique Complet des Optimisations
+                                            </CardTitle>
+                                            <CardDescription className="text-slate-400 mt-1">
+                                                {recentBenchmarks.length} tests • Détails complets avec logs
+                                            </CardDescription>
+                                        </div>
+                                        <Button
+                                            onClick={loadData}
+                                            variant="outline"
+                                            size="sm"
+                                            className="border-green-600 text-green-400"
+                                        >
+                                            <RefreshCw className="w-4 h-4 mr-2" />
+                                            Rafraîchir
+                                        </Button>
                                     </div>
-                                </ScrollArea>
-                            </CardContent>
-                        </Card>
+                                </CardHeader>
+                            </Card>
+
+                            <ScrollArea className="h-[800px]">
+                                <div className="space-y-3 pr-4">
+                                    {recentBenchmarks.map((benchmark, idx) => (
+                                        <OptimizationHistoryItem
+                                            key={benchmark.id}
+                                            benchmark={benchmark}
+                                            index={idx}
+                                        />
+                                    ))}
+
+                                    {recentBenchmarks.length === 0 && (
+                                        <Card className="bg-slate-800 border-slate-700">
+                                            <CardContent className="p-12 text-center">
+                                                <BarChart3 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
+                                                <h3 className="text-lg font-semibold text-slate-400 mb-2">
+                                                    Aucun Test Disponible
+                                                </h3>
+                                                <p className="text-sm text-slate-500">
+                                                    Lancez une auto-optimisation pour voir l'historique
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    )}
+                                </div>
+                            </ScrollArea>
+                        </div>
                     </TabsContent>
                 </Tabs>
             </div>
