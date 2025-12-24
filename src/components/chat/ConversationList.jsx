@@ -16,6 +16,8 @@ export default function ConversationList({ conversations, activeConversation, on
     const actualOnSelect = onSelectConversation || arguments[0]?.onSelectDebate;
     const [editingId, setEditingId] = useState(null);
     const [editingTitle, setEditingTitle] = useState('');
+    const [currentPage, setCurrentPage] = useState(0);
+    const itemsPerPage = 12;
 
     const startEditing = (debate, e) => {
         e.stopPropagation();
@@ -95,7 +97,7 @@ export default function ConversationList({ conversations, activeConversation, on
             </div>
             <ScrollArea className="flex-1">
                 <div className="p-1 space-y-1">
-                    {actualConversations.map((debate) => {
+                    {actualConversations.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage).map((debate) => {
                         const isEditing = editingId === debate.id;
                         const displayTitle = getConversationTitle(debate);
                         
@@ -175,6 +177,35 @@ export default function ConversationList({ conversations, activeConversation, on
                     })}
                 </div>
             </ScrollArea>
+
+            {/* Pagination */}
+            {actualConversations.length > itemsPerPage && (
+                <div className="p-2 border-t border-slate-700 flex items-center justify-between bg-slate-900">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.max(0, p - 1))}
+                        disabled={currentPage === 0}
+                        className="h-7 text-xs text-slate-400 hover:text-green-300"
+                    >
+                        <ChevronLeft className="w-3 h-3 mr-1" />
+                        Préc
+                    </Button>
+                    <span className="text-xs text-slate-500">
+                        {currentPage + 1} / {Math.ceil(actualConversations.length / itemsPerPage)}
+                    </span>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCurrentPage(p => Math.min(Math.ceil(actualConversations.length / itemsPerPage) - 1, p + 1))}
+                        disabled={currentPage >= Math.ceil(actualConversations.length / itemsPerPage) - 1}
+                        className="h-7 text-xs text-slate-400 hover:text-green-300"
+                    >
+                        Suiv
+                        <ChevronRight className="w-3 h-3 ml-1" />
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }
