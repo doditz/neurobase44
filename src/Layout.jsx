@@ -2,12 +2,18 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { createPageUrl } from "@/utils";
 import { User } from "@/entities/User";
-import { MessageSquare, Users, Github, Brain, Menu, Settings, Plus, Zap, Music, FlaskConical, User as UserIcon, Activity, Shield, BarChart3, Search, Stethoscope, BookOpen, Trash2 } from "lucide-react";
+import { MessageSquare, Users, Github, Brain, Menu, Settings, Plus, Zap, Music, FlaskConical, User as UserIcon, Activity, Shield, BarChart3, Search, Stethoscope, BookOpen, Trash2, Target, TestTube, Database, TrendingUp, Layers, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 
 const navigationItems = [
+  {
+    title: "Home",
+    url: createPageUrl("Home"),
+    icon: Home,
+    description: "Dashboard principal"
+  },
   {
     title: "AI Chat",
     url: createPageUrl("Chat"),
@@ -25,36 +31,6 @@ const navigationItems = [
     url: createPageUrl("PerplexityHistory"),
     icon: Search,
     description: "Web search history"
-  },
-  {
-    title: "Tests Dev",
-    url: createPageUrl("DevTest"),
-    icon: FlaskConical,
-    description: "Tests de développement A/B"
-  },
-  {
-    title: "Analytics Dev",
-    url: createPageUrl("DevTestAnalytics"),
-    icon: BarChart3,
-    description: "Analyse tests de développement"
-  },
-  {
-    title: "🧪 LLM Grader",
-    url: createPageUrl("DynamicGradingTest"),
-    icon: Zap,
-    description: "Test dev évaluation dynamique"
-  },
-  {
-    title: "Validation",
-    url: createPageUrl("ValidationDashboard"),
-    icon: BarChart3,
-    description: "Dashboard de validation"
-  },
-  {
-    title: "Resources",
-    url: createPageUrl("ResourceMonitoring"),
-    icon: Activity,
-    description: "Resource monitoring"
   },
   {
     title: "GitHub",
@@ -75,36 +51,174 @@ const navigationItems = [
     description: "Suno AI personas"
   },
   {
-    title: "Cleanup",
-    url: createPageUrl("PersonaCleanup"),
-    icon: Trash2,
-    description: "Persona cleanup tool",
-    adminOnly: true
-  },
-  {
     title: "Memory Viz",
     url: createPageUrl("MemoryVisualization"),
     icon: Brain,
     description: "7-tier memory visualization"
   },
   {
-    title: "🧪 Pipeline Test",
-    url: createPageUrl("SystemPipelineTest"),
-    icon: Zap,
-    description: "Test complet du pipeline",
-    adminOnly: true
+    title: "Memory Explorer",
+    url: createPageUrl("MemoryExplorer"),
+    icon: Brain,
+    description: "Explore memory pathways"
   },
   {
     title: "Profile",
     url: createPageUrl("Profile"),
     icon: UserIcon,
-    description: "Manage your profile and settings"
+    description: "User profile"
+  },
+  {
+    title: "Workspace",
+    url: createPageUrl("CollaborativeWorkspace"),
+    icon: Users,
+    description: "Team collaboration"
+  },
+  {
+    title: "Benchmark",
+    url: createPageUrl("Benchmark"),
+    icon: Target,
+    description: "Benchmark tests"
+  },
+  {
+    title: "Benchmark Analytics",
+    url: createPageUrl("BenchmarkAnalytics"),
+    icon: TrendingUp,
+    description: "Benchmark analytics"
+  },
+  {
+    title: "Tests Dev",
+    url: createPageUrl("DevTest"),
+    icon: FlaskConical,
+    description: "Tests A/B"
+  },
+  {
+    title: "Analytics Dev",
+    url: createPageUrl("DevTestAnalytics"),
+    icon: BarChart3,
+    description: "Dev analytics"
+  },
+  {
+    title: "LLM Grader",
+    url: createPageUrl("DynamicGradingTest"),
+    icon: TestTube,
+    description: "Dynamic grading"
+  },
+  {
+    title: "Validation",
+    url: createPageUrl("ValidationDashboard"),
+    icon: Shield,
+    description: "Validation dashboard"
+  },
+  {
+    title: "Resources",
+    url: createPageUrl("ResourceMonitoring"),
+    icon: Activity,
+    description: "Resource monitoring"
+  },
+  {
+    title: "Gauntlet",
+    url: createPageUrl("NeuronasGauntlet"),
+    icon: Zap,
+    description: "Neuronas gauntlet"
+  },
+  {
+    title: "Vector Test",
+    url: createPageUrl("VectorRoutingTest"),
+    icon: Layers,
+    description: "Vector routing test"
+  },
+  {
+    title: "Self-Opt",
+    url: createPageUrl("SelfOptimizationDashboard"),
+    icon: TrendingUp,
+    description: "Self-optimization"
+  }
+];
+
+const adminNavigationItems = [
+  {
+    title: "Auto-Opt",
+    url: createPageUrl("AutoOptimization"),
+    icon: Zap,
+    description: "Self-Optimization",
+    adminOnly: true
+  },
+  {
+    title: "Test DSTIB",
+    url: createPageUrl("AutoOptimizationTest"),
+    icon: Zap,
+    description: "Test Auto-Opt",
+    adminOnly: true
+  },
+  {
+    title: "Test Runner",
+    url: createPageUrl("DevTestRunner"),
+    icon: FlaskConical,
+    description: "Dev test runner",
+    adminOnly: true
+  },
+  {
+    title: "Dataset Builder",
+    url: createPageUrl("DevTestDatasetBuilder"),
+    icon: Database,
+    description: "Dataset builder",
+    adminOnly: true
+  },
+  {
+    title: "Benchmark Dataset",
+    url: createPageUrl("BenchmarkDatasetBuilder"),
+    icon: Database,
+    description: "Benchmark dataset",
+    adminOnly: true
+  },
+  {
+    title: "Benchmark Runner",
+    url: createPageUrl("BenchmarkRunner"),
+    icon: Target,
+    description: "Benchmark runner",
+    adminOnly: true
+  },
+  {
+    title: "Benchmark Test",
+    url: createPageUrl("BenchmarkTestRunner"),
+    icon: TestTube,
+    description: "Benchmark test",
+    adminOnly: true
+  },
+  {
+    title: "Pipeline Test",
+    url: createPageUrl("SystemPipelineTest"),
+    icon: Layers,
+    description: "Pipeline test",
+    adminOnly: true
+  },
+  {
+    title: "Phase3 Jerk",
+    url: createPageUrl("Phase3JerkFilterTest"),
+    icon: TestTube,
+    description: "Phase3 jerk test",
+    adminOnly: true
+  },
+  {
+    title: "Phase4 SMAS",
+    url: createPageUrl("Phase4EnhancedSMASTest"),
+    icon: TestTube,
+    description: "Phase4 SMAS test",
+    adminOnly: true
+  },
+  {
+    title: "SMAS Upgrade",
+    url: createPageUrl("SMASUpgradeTest"),
+    icon: TestTube,
+    description: "SMAS upgrade test",
+    adminOnly: true
   },
   {
     title: "System Health",
     url: createPageUrl("SystemHealth"),
     icon: Activity,
-    description: "System health & auto-repair",
+    description: "System health",
     adminOnly: true
   },
   {
@@ -118,58 +232,28 @@ const navigationItems = [
     title: "RCA & AI",
     url: createPageUrl("RootCauseAnalysis"),
     icon: Search,
-    description: "Root cause analysis & ML anomalies",
+    description: "Root cause analysis",
     adminOnly: true
   },
   {
     title: "Documentation",
     url: createPageUrl("SystemDocumentation"),
     icon: BookOpen,
-    description: "System documentation",
+    description: "System docs",
     adminOnly: true
   },
   {
     title: "Diagnostic",
     url: createPageUrl("SystemDiagnostic"),
     icon: Stethoscope,
-    description: "System diagnostic & health check",
+    description: "System diagnostic",
     adminOnly: true
   },
   {
-    title: "Workspace",
-    url: createPageUrl("CollaborativeWorkspace"),
-    icon: Users,
-    description: "Team collaboration workspaces"
-  }
-];
-
-const adminNavigationItems = [
-  {
-    title: "Auto-Opt",
-    url: createPageUrl("AutoOptimization"),
-    icon: Zap,
-    description: "Self-Optimization Engine",
-    adminOnly: true
-  },
-  {
-    title: "Test DSTIB",
-    url: createPageUrl("AutoOptimizationTest"),
-    icon: Zap,
-    description: "Test Auto-Optimization",
-    adminOnly: true
-  },
-  {
-    title: "Test Runner",
-    url: createPageUrl("DevTestRunner"),
-    icon: Zap,
-    description: "Runner tests de développement",
-    adminOnly: true
-  },
-  {
-    title: "Dataset Builder",
-    url: createPageUrl("DevTestDatasetBuilder"),
-    icon: Plus,
-    description: "Créer datasets tests dev",
+    title: "Cleanup",
+    url: createPageUrl("PersonaCleanup"),
+    icon: Trash2,
+    description: "Persona cleanup",
     adminOnly: true
   }
 ];
@@ -330,8 +414,9 @@ export default function Layout({ children, currentPageName }) {
             </div>
           </div>
 
-          <nav className="max-w-7xl mx-auto">
-            <div className="grid grid-cols-7 gap-1 mb-1">
+          <nav className="max-w-7xl mx-auto space-y-1">
+            {/* Row 1: Core features */}
+            <div className="grid grid-cols-7 gap-1">
               {allNavigationItems.slice(0, 7).map((item) => {
                 const isActive = location.pathname === item.url ||
                                 (item.url === createPageUrl('Chat') && location.pathname === '/');
@@ -339,45 +424,103 @@ export default function Layout({ children, currentPageName }) {
                   <Link
                     key={item.title}
                     to={item.url}
-                    className={`flex items-center justify-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
+                    className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-md transition-colors ${
                       isActive
                         ? "bg-orange-900/30 text-orange-400 border border-orange-600/50"
                         : "text-slate-400 hover:bg-slate-700 hover:text-green-300"
                     } ${item.adminOnly ? 'relative' : ''}`}
                   >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm font-medium hidden xl:inline truncate">{item.title}</span>
+                    <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="text-xs font-medium hidden xl:inline truncate">{item.title}</span>
                     {item.adminOnly && (
-                      <Shield className="w-3 h-3 text-orange-400 absolute -top-1 -right-1" />
+                      <Shield className="w-2.5 h-2.5 text-orange-400 absolute -top-0.5 -right-0.5" />
                     )}
                   </Link>
                 );
               })}
             </div>
 
+            {/* Row 2 */}
             <div className="grid grid-cols-7 gap-1">
               {allNavigationItems.slice(7, 14).map((item) => {
-                const isActive = location.pathname === item.url ||
-                                (item.url === createPageUrl('Chat') && location.pathname === '/');
+                const isActive = location.pathname === item.url;
                 return (
                   <Link
                     key={item.title}
                     to={item.url}
-                    className={`flex items-center justify-center gap-2 px-2 py-1.5 rounded-lg transition-colors ${
+                    className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-md transition-colors ${
                       isActive
                         ? "bg-orange-900/30 text-orange-400 border border-orange-600/50"
                         : "text-slate-400 hover:bg-slate-700 hover:text-green-300"
                     } ${item.adminOnly ? 'relative' : ''}`}
                   >
-                    <item.icon className="w-4 h-4 flex-shrink-0" />
-                    <span className="text-sm font-medium hidden xl:inline truncate">{item.title}</span>
+                    <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="text-xs font-medium hidden xl:inline truncate">{item.title}</span>
                     {item.adminOnly && (
-                      <Shield className="w-3 h-3 text-orange-400 absolute -top-1 -right-1" />
+                      <Shield className="w-2.5 h-2.5 text-orange-400 absolute -top-0.5 -right-0.5" />
                     )}
                   </Link>
                 );
               })}
             </div>
+
+            {/* Row 3 */}
+            <div className="grid grid-cols-7 gap-1">
+              {allNavigationItems.slice(14, 21).map((item) => {
+                const isActive = location.pathname === item.url;
+                return (
+                  <Link
+                    key={item.title}
+                    to={item.url}
+                    className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-md transition-colors ${
+                      isActive
+                        ? "bg-orange-900/30 text-orange-400 border border-orange-600/50"
+                        : "text-slate-400 hover:bg-slate-700 hover:text-green-300"
+                    } ${item.adminOnly ? 'relative' : ''}`}
+                  >
+                    <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                    <span className="text-xs font-medium hidden xl:inline truncate">{item.title}</span>
+                    {item.adminOnly && (
+                      <Shield className="w-2.5 h-2.5 text-orange-400 absolute -top-0.5 -right-0.5" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Row 4+ - Dynamic for remaining items */}
+            {allNavigationItems.length > 21 && (
+              <>
+                {Array.from({ length: Math.ceil((allNavigationItems.length - 21) / 7) }).map((_, rowIndex) => {
+                  const start = 21 + rowIndex * 7;
+                  const end = start + 7;
+                  return (
+                    <div key={`row-${rowIndex + 4}`} className="grid grid-cols-7 gap-1">
+                      {allNavigationItems.slice(start, end).map((item) => {
+                        const isActive = location.pathname === item.url;
+                        return (
+                          <Link
+                            key={item.title}
+                            to={item.url}
+                            className={`flex items-center justify-center gap-1 px-1.5 py-1.5 rounded-md transition-colors ${
+                              isActive
+                                ? "bg-orange-900/30 text-orange-400 border border-orange-600/50"
+                                : "text-slate-400 hover:bg-slate-700 hover:text-green-300"
+                            } ${item.adminOnly ? 'relative' : ''}`}
+                          >
+                            <item.icon className="w-3.5 h-3.5 flex-shrink-0" />
+                            <span className="text-xs font-medium hidden xl:inline truncate">{item.title}</span>
+                            {item.adminOnly && (
+                              <Shield className="w-2.5 h-2.5 text-orange-400 absolute -top-0.5 -right-0.5" />
+                            )}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </nav>
         </div>
       </header>
