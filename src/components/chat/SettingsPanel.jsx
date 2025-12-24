@@ -51,6 +51,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
     const handleModeChange = (mode) => {
         const modeConfig = MODES[mode];
         onSettingsChange({
+            ...settings,
             mode,
             maxPersonas: modeConfig.maxPersonas,
             debateRounds: modeConfig.debateRounds,
@@ -293,7 +294,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                     </div>
                     <Slider
                         value={[settings.temperature]}
-                        onValueChange={([value]) => onSettingsChange({ temperature: value })}
+                        onValueChange={([value]) => onSettingsChange({ ...settings, temperature: value })}
                         max={1}
                         min={0}
                         step={0.1}
@@ -309,7 +310,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                     </div>
                     <Select 
                         value={settings.hemisphereMode} 
-                        onValueChange={(value) => onSettingsChange({ hemisphereMode: value })}
+                        onValueChange={(value) => onSettingsChange({ ...settings, hemisphereMode: value })}
                     >
                         <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300 h-9">
                             <SelectValue />
@@ -341,7 +342,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                     </div>
                     <Slider
                         value={[settings.d2Modulation]}
-                        onValueChange={([value]) => onSettingsChange({ d2Modulation: value })}
+                        onValueChange={([value]) => onSettingsChange({ ...settings, d2Modulation: value })}
                         max={1}
                         min={0}
                         step={0.05}
@@ -357,7 +358,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                     </div>
                     <Select 
                         value={settings.ethicalConstraints} 
-                        onValueChange={(value) => onSettingsChange({ ethicalConstraints: value })}
+                        onValueChange={(value) => onSettingsChange({ ...settings, ethicalConstraints: value })}
                     >
                         <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300 h-9">
                             <SelectValue />
@@ -386,7 +387,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                     </div>
                     <Slider
                         value={[settings.consensusThreshold]}
-                        onValueChange={([value]) => onSettingsChange({ consensusThreshold: value })}
+                        onValueChange={([value]) => onSettingsChange({ ...settings, consensusThreshold: value })}
                         max={1}
                         min={0.5}
                         step={0.05}

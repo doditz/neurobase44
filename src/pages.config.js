@@ -1,79 +1,81 @@
-import Personas from './pages/Personas';
-import Chat from './pages/Chat';
-import index from './pages/index';
-import GitHub from './pages/GitHub';
-import Suno from './pages/Suno';
-import SunoPersonas from './pages/SunoPersonas';
-import Benchmark from './pages/Benchmark';
-import BenchmarkDatasetBuilder from './pages/BenchmarkDatasetBuilder';
-import Profile from './pages/Profile';
-import ResourceMonitoring from './pages/ResourceMonitoring';
-import BenchmarkRunner from './pages/BenchmarkRunner';
-import BenchmarkTestRunner from './pages/BenchmarkTestRunner';
-import SelfOptimizationDashboard from './pages/SelfOptimizationDashboard';
 import AutoOptimization from './pages/AutoOptimization';
 import AutoOptimizationTest from './pages/AutoOptimizationTest';
-import ValidationDashboard from './pages/ValidationDashboard';
-import PerplexityHistory from './pages/PerplexityHistory';
-import SystemDiagnostic from './pages/SystemDiagnostic';
-import DynamicGradingTest from './pages/DynamicGradingTest';
-import SystemHealth from './pages/SystemHealth';
-import SystemDocumentation from './pages/SystemDocumentation';
-import SystemMetrics from './pages/SystemMetrics';
-import RootCauseAnalysis from './pages/RootCauseAnalysis';
+import Benchmark from './pages/Benchmark';
 import BenchmarkAnalytics from './pages/BenchmarkAnalytics';
+import BenchmarkDatasetBuilder from './pages/BenchmarkDatasetBuilder';
+import BenchmarkRunner from './pages/BenchmarkRunner';
+import BenchmarkTestRunner from './pages/BenchmarkTestRunner';
+import Chat from './pages/Chat';
+import CollaborativeWorkspace from './pages/CollaborativeWorkspace';
 import DevTest from './pages/DevTest';
 import DevTestAnalytics from './pages/DevTestAnalytics';
-import CollaborativeWorkspace from './pages/CollaborativeWorkspace';
-import NeuronasGauntlet from './pages/NeuronasGauntlet';
+import DynamicGradingTest from './pages/DynamicGradingTest';
+import GitHub from './pages/GitHub';
+import Home from './pages/Home';
+import HuggingFaceSettings from './pages/HuggingFaceSettings';
 import MemoryExplorer from './pages/MemoryExplorer';
 import MemoryVisualization from './pages/MemoryVisualization';
-import SystemPipelineTest from './pages/SystemPipelineTest';
-import SMASUpgradeTest from './pages/SMASUpgradeTest';
-import VectorRoutingTest from './pages/VectorRoutingTest';
+import NeuronasGauntlet from './pages/NeuronasGauntlet';
+import PerplexityHistory from './pages/PerplexityHistory';
+import Personas from './pages/Personas';
 import Phase3JerkFilterTest from './pages/Phase3JerkFilterTest';
 import Phase4EnhancedSMASTest from './pages/Phase4EnhancedSMASTest';
-import HuggingFaceSettings from './pages/HuggingFaceSettings';
+import Profile from './pages/Profile';
+import ResourceMonitoring from './pages/ResourceMonitoring';
+import RootCauseAnalysis from './pages/RootCauseAnalysis';
+import SMASUpgradeTest from './pages/SMASUpgradeTest';
+import SelfOptimizationDashboard from './pages/SelfOptimizationDashboard';
+import Suno from './pages/Suno';
+import SunoPersonas from './pages/SunoPersonas';
+import SystemDiagnostic from './pages/SystemDiagnostic';
+import SystemDocumentation from './pages/SystemDocumentation';
+import SystemHealth from './pages/SystemHealth';
+import SystemMetrics from './pages/SystemMetrics';
+import SystemPipelineTest from './pages/SystemPipelineTest';
+import ValidationDashboard from './pages/ValidationDashboard';
+import VectorRoutingTest from './pages/VectorRoutingTest';
+import index from './pages/index';
 import __Layout from './Layout.jsx';
 
 
 export const PAGES = {
-    "Personas": Personas,
-    "Chat": Chat,
-    "index": index,
-    "GitHub": GitHub,
-    "Suno": Suno,
-    "SunoPersonas": SunoPersonas,
-    "Benchmark": Benchmark,
-    "BenchmarkDatasetBuilder": BenchmarkDatasetBuilder,
-    "Profile": Profile,
-    "ResourceMonitoring": ResourceMonitoring,
-    "BenchmarkRunner": BenchmarkRunner,
-    "BenchmarkTestRunner": BenchmarkTestRunner,
-    "SelfOptimizationDashboard": SelfOptimizationDashboard,
     "AutoOptimization": AutoOptimization,
     "AutoOptimizationTest": AutoOptimizationTest,
-    "ValidationDashboard": ValidationDashboard,
-    "PerplexityHistory": PerplexityHistory,
-    "SystemDiagnostic": SystemDiagnostic,
-    "DynamicGradingTest": DynamicGradingTest,
-    "SystemHealth": SystemHealth,
-    "SystemDocumentation": SystemDocumentation,
-    "SystemMetrics": SystemMetrics,
-    "RootCauseAnalysis": RootCauseAnalysis,
+    "Benchmark": Benchmark,
     "BenchmarkAnalytics": BenchmarkAnalytics,
+    "BenchmarkDatasetBuilder": BenchmarkDatasetBuilder,
+    "BenchmarkRunner": BenchmarkRunner,
+    "BenchmarkTestRunner": BenchmarkTestRunner,
+    "Chat": Chat,
+    "CollaborativeWorkspace": CollaborativeWorkspace,
     "DevTest": DevTest,
     "DevTestAnalytics": DevTestAnalytics,
-    "CollaborativeWorkspace": CollaborativeWorkspace,
-    "NeuronasGauntlet": NeuronasGauntlet,
+    "DynamicGradingTest": DynamicGradingTest,
+    "GitHub": GitHub,
+    "Home": Home,
+    "HuggingFaceSettings": HuggingFaceSettings,
     "MemoryExplorer": MemoryExplorer,
     "MemoryVisualization": MemoryVisualization,
-    "SystemPipelineTest": SystemPipelineTest,
-    "SMASUpgradeTest": SMASUpgradeTest,
-    "VectorRoutingTest": VectorRoutingTest,
+    "NeuronasGauntlet": NeuronasGauntlet,
+    "PerplexityHistory": PerplexityHistory,
+    "Personas": Personas,
     "Phase3JerkFilterTest": Phase3JerkFilterTest,
     "Phase4EnhancedSMASTest": Phase4EnhancedSMASTest,
-    "HuggingFaceSettings": HuggingFaceSettings,
+    "Profile": Profile,
+    "ResourceMonitoring": ResourceMonitoring,
+    "RootCauseAnalysis": RootCauseAnalysis,
+    "SMASUpgradeTest": SMASUpgradeTest,
+    "SelfOptimizationDashboard": SelfOptimizationDashboard,
+    "Suno": Suno,
+    "SunoPersonas": SunoPersonas,
+    "SystemDiagnostic": SystemDiagnostic,
+    "SystemDocumentation": SystemDocumentation,
+    "SystemHealth": SystemHealth,
+    "SystemMetrics": SystemMetrics,
+    "SystemPipelineTest": SystemPipelineTest,
+    "ValidationDashboard": ValidationDashboard,
+    "VectorRoutingTest": VectorRoutingTest,
+    "index": index,
 }
 
 export const pagesConfig = {

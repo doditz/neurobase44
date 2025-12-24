@@ -180,6 +180,8 @@ export default function Layout({ children, currentPageName }) {
   const [showDesktopSidebar, setShowDesktopSidebar] = useState(true);
   const [user, setUser] = useState(null);
 
+  const [localShowSettings, setLocalShowSettings] = useState(false);
+  
   const layoutProps = window.chatLayoutProps || {};
   const {
     conversations = [],
@@ -188,13 +190,17 @@ export default function Layout({ children, currentPageName }) {
     onNewConversation = null,
     settings = {},
     onSettingsChange = null,
-    showSettings = false,
-    setShowSettings = null,
+    showSettings: propsShowSettings = false,
+    setShowSettings: propsSetShowSettings = null,
     user: propsUser = null,
     ChatSidebarComponent = null,
     SettingsPanelComponent = null,
     isLoading = false
   } = layoutProps;
+
+  // Use local state if no props provided
+  const showSettings = propsSetShowSettings ? propsShowSettings : localShowSettings;
+  const setShowSettings = propsSetShowSettings || setLocalShowSettings;
 
   useEffect(() => {
     if (propsUser) {
