@@ -414,15 +414,12 @@ export default function DevTestPage() {
                                         <CardTitle className="text-red-400">Erreur de Test</CardTitle>
                                      </CardHeader>
                                      <CardContent>
-                                        <p className="text-slate-300">{lastResult.error}</p>
+                                        <p className="text-slate-300 whitespace-pre-wrap">{lastResult.error}</p>
                                      </CardContent>
                                 </Card>
                             ) : lastResult ? (
                                 <BenchmarkComparison benchmark={lastResult} />
                             ) : null}
-                            {lastRunLogs.length > 0 && (
-                                <UnifiedLogViewer logs={lastRunLogs} />
-                            )}
                         </TabsContent>
                     )}
                 </Tabs>

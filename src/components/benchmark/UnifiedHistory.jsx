@@ -292,15 +292,6 @@ export default function UnifiedHistory() {
                 </div>
               </CardContent>
             </Card>
-
-            <Card className="bg-slate-800 border-slate-700">
-              <CardHeader>
-                <CardTitle className="text-green-400">Logs Système</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <UnifiedLogViewer logs={selected.full_debug_log || []} title="Logs du test dev" defaultExpanded={false} />
-              </CardContent>
-            </Card>
           </>
         )}
         {!selected && (

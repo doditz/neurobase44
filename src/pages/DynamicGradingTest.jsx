@@ -13,6 +13,7 @@ import {
     FileText, MessageSquare, Wrench
 } from 'lucide-react';
 import { toast } from 'sonner';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function DynamicGradingTestPage() {
     const [questions, setQuestions] = useState([]);
@@ -593,23 +594,13 @@ export default function DynamicGradingTestPage() {
                                 </CardContent>
                             </Card>
 
-                            {/* Logs */}
-                            {result.full_debug_log && result.full_debug_log.length > 0 && (
-                                <Card className="bg-slate-800 border-slate-700">
-                                    <CardHeader>
-                                        <CardTitle className="text-green-400 text-sm">Debug Logs</CardTitle>
-                                    </CardHeader>
-                                    <CardContent>
-                                        <div className="bg-slate-900 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-xs">
-                                            {result.full_debug_log.map((log, idx) => (
-                                                <div key={idx} className="text-slate-400 py-0.5">
-                                                    {log}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            )}
+                            {/* Logs - ALWAYS VISIBLE */}
+                            <UnifiedLogViewer
+                                logs={result.full_debug_log || []}
+                                title={`Pipeline Complet (${(result.full_debug_log || []).length} logs)`}
+                                showStats={true}
+                                defaultExpanded={true}
+                            />
                         </TabsContent>
                     )}
                 </Tabs>

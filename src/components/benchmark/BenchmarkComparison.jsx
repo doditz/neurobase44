@@ -499,13 +499,13 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                 )}
             </Card>
 
-            {/* Unified Log Viewer */}
+            {/* Debug Logs - ALWAYS show if present */}
             {benchmark.full_debug_log && benchmark.full_debug_log.length > 0 && (
                 <UnifiedLogViewer
                     logs={benchmark.full_debug_log}
-                    title="Pipeline Complet d'Exécution"
+                    title={`Logs Pipeline (${benchmark.full_debug_log.length} entrées)`}
                     showStats={true}
-                    defaultExpanded={false}
+                    defaultExpanded={true}
                 />
             )}
 
