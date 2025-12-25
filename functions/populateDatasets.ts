@@ -864,13 +864,13 @@ Deno.serve(async (req) => {
 
         // Populate BenchmarkQuestions (includes Nuclear Gauntlet)
         if (action === 'populate_all' || action === 'populate_benchmark') {
-            if (existingBenchmark.length === 0 || force_refresh) {
-                if (force_refresh && existingBenchmark.length > 0) {
-                    log.push(`[WARN] Force refresh - clearing existing BenchmarkQuestions...`);
-                    const allExisting = await base44.entities.BenchmarkQuestion.list();
-                    for (const q of allExisting) {
+            if (benchmarkCount === 0 || force_refresh) {
+                if (force_refresh && benchmarkCount > 0) {
+                    log.push(`[WARN] Force refresh - clearing ${benchmarkCount} existing BenchmarkQuestions...`);
+                    for (const q of existingBenchmark) {
                         await base44.entities.BenchmarkQuestion.delete(q.id);
                     }
+                    log.push(`[INFO] Deleted ${benchmarkCount} BenchmarkQuestions`);
                 }
 
                 // Combine standard benchmarks + Nuclear Gauntlet
