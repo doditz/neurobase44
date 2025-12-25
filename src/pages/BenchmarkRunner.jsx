@@ -93,9 +93,6 @@ export default function BenchmarkRunner() {
         }
     };
 
-
-    };
-
     const runBenchmarkSuite = async () => {
         setIsRunning(true);
         setIsPaused(false);
