@@ -37,6 +37,7 @@ import SystemPipelineTest from './pages/SystemPipelineTest';
 import ValidationDashboard from './pages/ValidationDashboard';
 import VectorRoutingTest from './pages/VectorRoutingTest';
 import index from './pages/index';
+import DatasetManager from './pages/DatasetManager';
 import __Layout from './Layout.jsx';
 
 
@@ -80,6 +81,7 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "VectorRoutingTest": VectorRoutingTest,
     "index": index,
+    "DatasetManager": DatasetManager,
 }
 
 export const pagesConfig = {

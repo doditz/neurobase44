@@ -87,6 +87,7 @@ const adminMenuSections = [
     icon: Database,
     adminOnly: true,
     items: [
+      { title: "Dataset Manager", url: createPageUrl("DatasetManager"), icon: Database, adminOnly: true },
       { title: "Dev Dataset", url: createPageUrl("DevTestDatasetBuilder"), icon: Database, adminOnly: true },
       { title: "Benchmark Dataset", url: createPageUrl("BenchmarkDatasetBuilder"), icon: Database, adminOnly: true }
     ]
