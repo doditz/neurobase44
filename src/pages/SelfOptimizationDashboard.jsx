@@ -367,9 +367,13 @@ export default function SelfOptimizationDashboard() {
                                     <div>
                                         <label className="text-sm font-medium text-green-300 mb-2 flex items-center gap-2">
                                             Sélectionner une Question
-                                            {availableQuestions.length > 0 && (
-                                                <Badge variant="outline" className="text-xs">
+                                            {availableQuestions.length > 0 ? (
+                                                <Badge variant="outline" className="text-xs text-green-400 border-green-600">
                                                     {availableQuestions.length} disponibles
+                                                </Badge>
+                                            ) : (
+                                                <Badge variant="outline" className="text-xs text-orange-400 border-orange-600">
+                                                    0 questions - Peupler le dataset
                                                 </Badge>
                                             )}
                                             <Button
@@ -382,26 +386,41 @@ export default function SelfOptimizationDashboard() {
                                                 <RefreshCw className={`w-3 h-3 ${loadingQuestions ? 'animate-spin' : ''}`} />
                                             </Button>
                                         </label>
-                                        <Select
-                                            value={selectedQuestionId}
-                                            onValueChange={(value) => {
-                                                setSelectedQuestionId(value);
-                                                const q = availableQuestions.find(q => q.id === value);
-                                                if (q) setSelectedTestQuestion(q.question_text);
-                                            }}
-                                            disabled={isOptimizing || loadingQuestions}
-                                        >
-                                            <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300">
-                                                <SelectValue placeholder={loadingQuestions ? "Chargement..." : "Choisir une question"} />
-                                            </SelectTrigger>
-                                            <SelectContent className="bg-slate-800 border-slate-700">
-                                                {availableQuestions.map((q) => (
-                                                    <SelectItem key={q.id} value={q.id} className="text-green-300">
-                                                        {q.question_id || q.scenario_name} - {q.question_text?.substring(0, 60)}...
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectContent>
-                                        </Select>
+                                        
+                                        {availableQuestions.length === 0 && !loadingQuestions ? (
+                                            <div className="bg-orange-900/20 border border-orange-600/50 rounded-lg p-4 text-center">
+                                                <p className="text-orange-300 text-sm mb-2">
+                                                    Aucune question {datasetType === 'benchmark' ? 'Benchmark' : 'DevTest'} trouvée
+                                                </p>
+                                                <Link to={createPageUrl('DatasetManager')}>
+                                                    <Button size="sm" className="bg-orange-600 hover:bg-orange-700">
+                                                        <Database className="w-4 h-4 mr-2" />
+                                                        Aller au Dataset Manager
+                                                    </Button>
+                                                </Link>
+                                            </div>
+                                        ) : (
+                                            <Select
+                                                value={selectedQuestionId}
+                                                onValueChange={(value) => {
+                                                    setSelectedQuestionId(value);
+                                                    const q = availableQuestions.find(q => q.id === value);
+                                                    if (q) setSelectedTestQuestion(q.question_text);
+                                                }}
+                                                disabled={isOptimizing || loadingQuestions || availableQuestions.length === 0}
+                                            >
+                                                <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300">
+                                                    <SelectValue placeholder={loadingQuestions ? "Chargement..." : availableQuestions.length === 0 ? "Aucune question disponible" : "Choisir une question"} />
+                                                </SelectTrigger>
+                                                <SelectContent className="bg-slate-800 border-slate-700 max-h-80">
+                                                    {availableQuestions.map((q) => (
+                                                        <SelectItem key={q.id} value={q.id} className="text-green-300">
+                                                            {q.question_id || q.scenario_name || 'Q'} - {q.question_text?.substring(0, 50)}...
+                                                        </SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        )}
                                     </div>
                                 )}
 
