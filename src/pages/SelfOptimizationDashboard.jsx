@@ -14,16 +14,13 @@ import {
 } from 'lucide-react';
 import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { TunableParameter } from '@/entities/TunableParameter';
-import { OptimizationStrategy } from '@/entities/OptimizationStrategy';
-import { SPGConfiguration } from '@/entities/SPGConfiguration';
-import { BenchmarkResult } from '@/entities/BenchmarkResult';
-import { BenchmarkQuestion } from '@/entities/BenchmarkQuestion';
-import { DevTestQuestion } from '@/entities/DevTestQuestion';
+import { base44 } from '@/api/base44Client';
 import { autoTuningLoop } from '@/functions/autoTuningLoop';
 import { parameterSensitivityAnalysis } from '@/functions/parameterSensitivityAnalysis';
 import { systemStateManager } from '@/functions/systemStateManager';
 import { toast } from 'sonner';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function SelfOptimizationDashboard() {
     const [tunableParams, setTunableParams] = useState([]);

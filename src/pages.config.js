@@ -7,6 +7,7 @@ import BenchmarkRunner from './pages/BenchmarkRunner';
 import BenchmarkTestRunner from './pages/BenchmarkTestRunner';
 import Chat from './pages/Chat';
 import CollaborativeWorkspace from './pages/CollaborativeWorkspace';
+import DatasetManager from './pages/DatasetManager';
 import DevTest from './pages/DevTest';
 import DevTestAnalytics from './pages/DevTestAnalytics';
 import DevTestDatasetBuilder from './pages/DevTestDatasetBuilder';
@@ -37,7 +38,6 @@ import SystemPipelineTest from './pages/SystemPipelineTest';
 import ValidationDashboard from './pages/ValidationDashboard';
 import VectorRoutingTest from './pages/VectorRoutingTest';
 import index from './pages/index';
-import DatasetManager from './pages/DatasetManager';
 import __Layout from './Layout.jsx';
 
 
@@ -51,6 +51,7 @@ export const PAGES = {
     "BenchmarkTestRunner": BenchmarkTestRunner,
     "Chat": Chat,
     "CollaborativeWorkspace": CollaborativeWorkspace,
+    "DatasetManager": DatasetManager,
     "DevTest": DevTest,
     "DevTestAnalytics": DevTestAnalytics,
     "DevTestDatasetBuilder": DevTestDatasetBuilder,
@@ -81,7 +82,6 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "VectorRoutingTest": VectorRoutingTest,
     "index": index,
-    "DatasetManager": DatasetManager,
 }
 
 export const pagesConfig = {
