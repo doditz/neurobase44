@@ -910,13 +910,13 @@ Deno.serve(async (req) => {
 
         // Populate DevTestQuestions
         if (action === 'populate_all' || action === 'populate_devtest') {
-            if (existingDevTest.length === 0 || force_refresh) {
-                if (force_refresh && existingDevTest.length > 0) {
-                    log.push(`[WARN] Force refresh - clearing existing DevTestQuestions...`);
-                    const allExisting = await base44.entities.DevTestQuestion.list();
-                    for (const q of allExisting) {
+            if (devtestCount === 0 || force_refresh) {
+                if (force_refresh && devtestCount > 0) {
+                    log.push(`[WARN] Force refresh - clearing ${devtestCount} existing DevTestQuestions...`);
+                    for (const q of existingDevTest) {
                         await base44.entities.DevTestQuestion.delete(q.id);
                     }
+                    log.push(`[INFO] Deleted ${devtestCount} DevTestQuestions`);
                 }
 
                 log.push(`[INFO] Populating ${DEVTEST_QUESTIONS.length} DevTestQuestions...`);
