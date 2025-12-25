@@ -1,9 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { BenchmarkQuestion } from '@/entities/BenchmarkQuestion';
-import { BenchmarkResult } from '@/entities/BenchmarkResult';
-import { User } from '@/entities/User';
-import { InvokeLLM } from '@/integrations/Core';
+import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -18,8 +14,12 @@ import {
     Clock,
     Brain,
     TrendingUp,
-    Download
+    Download,
+    Shield,
+    Loader2
 } from 'lucide-react';
+import { toast } from 'sonner';
+import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
 
 export default function BenchmarkRunner() {
     const [questions, setQuestions] = useState([]);
@@ -38,26 +38,27 @@ export default function BenchmarkRunner() {
     const [user, setUser] = useState(null);
 
     useEffect(() => {
-        loadUser();
-        loadQuestions();
+        loadData();
     }, []);
 
-    const loadUser = async () => {
+    const loadData = async () => {
         try {
-            const currentUser = await User.me();
+            const currentUser = await base44.auth.me();
             setUser(currentUser);
-        } catch (error) {
-            console.error('Failed to load user:', error);
-        }
-    };
 
-    const loadQuestions = async () => {
-        try {
-            const allQuestions = await BenchmarkQuestion.list();
+            const [allQuestions, allResults] = await Promise.all([
+                base44.entities.BenchmarkQuestion.list('-created_date', 500),
+                base44.entities.BenchmarkResult.list('-created_date', 100)
+            ]);
+
             setQuestions(allQuestions);
+            setResults(allResults);
             setOverallStats(prev => ({ ...prev, total: allQuestions.length }));
+
+            console.log(`[BenchmarkRunner] Loaded ${allQuestions.length} questions, ${allResults.length} results`);
         } catch (error) {
-            console.error('Failed to load questions:', error);
+            console.error('[BenchmarkRunner] Load error:', error);
+            toast.error('Échec du chargement des données');
         }
     };
 
@@ -68,180 +69,36 @@ export default function BenchmarkRunner() {
     const runSingleBenchmark = async (question) => {
         setCurrentTest(`Testing: ${question.question_id}`);
 
-        const startTime = Date.now();
+        try {
+            const { data } = await base44.functions.invoke('benchmarkOrchestrator', {
+                question_text: question.question_text,
+                question_id: question.question_id,
+                run_mode: 'ab_test'
+            });
 
-        // MODE A: Direct LLM (no Neuronas validation)
-        const startA = Date.now();
-        const responseA = await InvokeLLM({
-            prompt: question.question_text,
-            add_context_from_internet: false
-        });
-        const timeA = Date.now() - startA;
-        const tokenCountA = estimateTokens(typeof responseA === 'string' ? responseA : JSON.stringify(responseA));
-
-        // MODE B: Neuronas with dynamic parameter adjustment
-        const complexityPrompt = `QRONAS_DISPATCHER_REQUEST:
-{
-  "operation": "calculate_tri_hemispheric_weights",
-  "input": {
-    "query_text": "${question.question_text.replace(/"/g, '\\"')}",
-    "current_d2_modulation": 0.65,
-    "context": {
-      "question_type": "${question.question_type}",
-      "complexity_level": "${question.niveau_complexite}",
-      "dominant_hemisphere": "${question.hemisphere_dominant}"
-    }
-  }
-}`;
-
-        const triHemResult = await InvokeLLM({
-            prompt: complexityPrompt,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    operation: { type: "string" },
-                    result: {
-                        type: "object",
-                        properties: {
-                            alpha: { type: "number" },
-                            beta: { type: "number" },
-                            gamma: { type: "number" },
-                            complexity_score: { type: "number" },
-                            recommended_persona_count: { type: "integer" },
-                            dominant_hemisphere: { type: "string" }
-                        }
-                    }
-                }
+            if (!data || !data.success) {
+                throw new Error(data?.error || 'Test failed');
             }
-        });
 
-        const { alpha, beta, gamma, complexity_score, recommended_persona_count, dominant_hemisphere } = triHemResult.result;
+            return {
+                scenario_name: `${question.question_id}: ${question.source_benchmark}`,
+                passed: data.winner === 'mode_b',
+                performance_improvement: data.improvement || 0,
+                global_score_performance: data.spg || 0,
+                benchmark_id: data.benchmark_id
+            };
+        } catch (error) {
+            console.error(`[BenchmarkRunner] Error for ${question.question_id}:`, error);
+            throw error;
+        }
+    };
 
-        const d2Activation = alpha > 0.5 ? 0.8 : (beta > 0.5 ? 0.3 : 0.5);
-        const temperature = beta > 0.5 ? 0.85 : (alpha > 0.5 ? 0.4 : 0.7);
-        const debateRounds = Math.ceil(complexity_score * 5);
 
-        const neuronasPrompt = `${question.question_text}
-
-[SYSTEM SETTINGS: Use ${recommended_persona_count} personas, Temperature: ${temperature}, Mode: ${dominant_hemisphere}, Ethical Level: high, Debate Rounds: ${debateRounds}, D2 Activation: ${d2Activation}, Tri-Hemispheric Weights: α=${alpha.toFixed(2)} β=${beta.toFixed(2)} γ=${gamma.toFixed(2)}]
-
-Ground Truth Context: ${question.ground_truth || 'No ground truth - evaluate on reasoning quality'}
-Expected Key Points: ${question.expected_key_points?.join(', ') || 'See priority ARS criteria'}`;
-
-        const startB = Date.now();
-        const responseB = await InvokeLLM({
-            prompt: neuronasPrompt,
-            add_context_from_internet: false
-        });
-        const timeB = Date.now() - startB;
-        const tokenCountB = estimateTokens(typeof responseB === 'string' ? responseB : JSON.stringify(responseB));
-
-        // Evaluation
-        const evaluationPrompt = `Evaluate these two responses to the benchmark question:
-
-QUESTION: ${question.question_text}
-QUESTION TYPE: ${question.question_type}
-COMPLEXITY: ${question.niveau_complexite}
-GROUND TRUTH: ${question.ground_truth}
-EXPECTED KEY POINTS: ${question.expected_key_points?.join(', ')}
-
-RESPONSE A (Direct LLM):
-${typeof responseA === 'string' ? responseA : JSON.stringify(responseA)}
-
-RESPONSE B (Neuronas with ${recommended_persona_count} personas, α=${alpha.toFixed(2)} β=${beta.toFixed(2)} γ=${gamma.toFixed(2)}):
-${typeof responseB === 'string' ? responseB : JSON.stringify(responseB)}
-
-Evaluate based on priority ARS criteria:
-${JSON.stringify(question.priority_ars_criteria, null, 2)}
-
-Return scores (0.0-1.0) for each criterion, plus winner and detailed reasoning.`;
-
-        const scores = await InvokeLLM({
-            prompt: evaluationPrompt,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    mode_a_ars_score: { type: "number" },
-                    mode_b_ars_score: { type: "number" },
-                    semantic_fidelity_a: { type: "number" },
-                    semantic_fidelity_b: { type: "number" },
-                    reasoning_score_a: { type: "number" },
-                    reasoning_score_b: { type: "number" },
-                    creativity_score_a: { type: "number" },
-                    creativity_score_b: { type: "number" },
-                    ethics_score_a: { type: "number" },
-                    ethics_score_b: { type: "number" },
-                    depth_score_a: { type: "number" },
-                    depth_score_b: { type: "number" },
-                    cultural_authenticity_a: { type: "number" },
-                    cultural_authenticity_b: { type: "number" },
-                    adaptability_score_b: { type: "number" },
-                    winner: { type: "string" },
-                    reasoning: { type: "string" },
-                    passed_minimum_criteria: { type: "boolean" }
-                }
-            }
-        });
-
-        const avgScoreA = (
-            scores.mode_a_ars_score +
-            scores.semantic_fidelity_a +
-            scores.reasoning_score_a +
-            scores.creativity_score_a +
-            scores.ethics_score_a +
-            scores.depth_score_a +
-            scores.cultural_authenticity_a
-        ) / 7;
-
-        const avgScoreB = (
-            scores.mode_b_ars_score +
-            scores.semantic_fidelity_b +
-            scores.reasoning_score_b +
-            scores.creativity_score_b +
-            scores.ethics_score_b +
-            scores.depth_score_b +
-            scores.cultural_authenticity_b +
-            scores.adaptability_score_b
-        ) / 8;
-
-        const improvement = ((avgScoreB - avgScoreA) / avgScoreA) * 100;
-
-        const benchmarkData = {
-            scenario_name: `${question.question_id}: ${question.source_benchmark}`,
-            scenario_category: question.question_type,
-            test_prompt: question.question_text,
-            mode_a_response: typeof responseA === 'string' ? responseA : JSON.stringify(responseA),
-            mode_a_time_ms: timeA,
-            mode_a_token_count: tokenCountA,
-            mode_b_response: typeof responseB === 'string' ? responseB : JSON.stringify(responseB),
-            mode_b_time_ms: timeB,
-            mode_b_token_count: tokenCountB,
-            mode_b_personas_used: [`${recommended_persona_count} dynamic personas`],
-            mode_b_d2_activation: d2Activation,
-            mode_b_tri_hemispheric_weights: { alpha, beta, gamma },
-            mode_b_complexity_score: complexity_score,
-            mode_b_dominant_hemisphere: dominant_hemisphere,
-            mode_b_temperature: temperature,
-            mode_b_debate_rounds: debateRounds,
-            quality_scores: scores,
-            winner: scores.winner,
-            performance_improvement: improvement,
-            notes: `Automated benchmark test for ${question.question_id}\nComplexity: ${question.niveau_complexite}\nPassed Criteria: ${scores.passed_minimum_criteria}\n\n${scores.reasoning}`
-        };
-
-        const savedResult = await BenchmarkResult.create(benchmarkData);
-        
-        return {
-            ...savedResult,
-            passed: scores.passed_minimum_criteria,
-            totalTime: Date.now() - startTime
-        };
     };
 
     const runBenchmarkSuite = async () => {
         setIsRunning(true);
         setIsPaused(false);
-        setResults([]);
         setCurrentIndex(0);
         
         const testResults = [];
@@ -253,8 +110,12 @@ Return scores (0.0-1.0) for each criterion, plus winner and detailed reasoning.`
             if (isPaused) break;
             
             setCurrentIndex(i);
+            const question = questions[i];
+            
+            toast.info(`Test ${i + 1}/${questions.length}: ${question.question_id}`);
+
             try {
-                const result = await runSingleBenchmark(questions[i]);
+                const result = await runSingleBenchmark(question);
                 testResults.push(result);
                 
                 if (result.passed) passed++;
@@ -262,7 +123,6 @@ Return scores (0.0-1.0) for each criterion, plus winner and detailed reasoning.`
                 
                 totalImprovement += result.performance_improvement;
                 
-                setResults([...testResults]);
                 setOverallStats({
                     total: questions.length,
                     completed: i + 1,
@@ -274,10 +134,17 @@ Return scores (0.0-1.0) for each criterion, plus winner and detailed reasoning.`
                 console.error(`Failed benchmark for question ${i}:`, error);
                 failed++;
             }
+
+            if (i < questions.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
         }
 
         setIsRunning(false);
         setCurrentTest(null);
+        toast.success(`✅ Suite terminée: ${passed}/${questions.length} réussis`);
+
+        await loadData();
     };
 
     const pauseBenchmark = () => {
@@ -308,7 +175,34 @@ Return scores (0.0-1.0) for each criterion, plus winner and detailed reasoning.`
         link.href = url;
         link.download = `neuronas_benchmark_results_${new Date().toISOString()}.json`;
         link.click();
+        URL.revokeObjectURL(url);
     };
+
+    if (!user) {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-900">
+                <Loader2 className="w-8 h-8 animate-spin text-green-400" />
+            </div>
+        );
+    }
+
+    if (user.role !== 'admin') {
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-slate-900">
+                <Card className="bg-slate-800 border-orange-600 max-w-md">
+                    <CardHeader>
+                        <CardTitle className="text-orange-400 flex items-center gap-2">
+                            <Shield className="w-5 h-5" />
+                            Accès Administrateur Requis
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-slate-300">Cette page est réservée aux administrateurs.</p>
+                    </CardContent>
+                </Card>
+            </div>
+        );
+    }
 
     const progress = overallStats.total > 0 ? (overallStats.completed / overallStats.total) * 100 : 0;
 
@@ -434,52 +328,17 @@ Return scores (0.0-1.0) for each criterion, plus winner and detailed reasoning.`
                 {results.length > 0 && (
                     <Card className="bg-slate-800 border-slate-700">
                         <CardHeader>
-                            <CardTitle className="text-green-300">Test Results</CardTitle>
+                            <CardTitle className="text-green-300">Historique Complet</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <ScrollArea className="h-96">
+                            <ScrollArea className="h-[600px]">
                                 <div className="space-y-3">
-                                    {results.map((result, index) => (
-                                        <div
-                                            key={index}
-                                            className="p-4 bg-slate-900 rounded-lg border border-slate-700"
-                                        >
-                                            <div className="flex items-start justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    {result.passed ? (
-                                                        <CheckCircle2 className="w-5 h-5 text-green-500" />
-                                                    ) : (
-                                                        <XCircle className="w-5 h-5 text-red-500" />
-                                                    )}
-                                                    <span className="font-semibold text-green-300">
-                                                        {result.scenario_name}
-                                                    </span>
-                                                </div>
-                                                <Badge className={result.passed ? 'bg-green-600' : 'bg-red-600'}>
-                                                    {result.passed ? 'Passed' : 'Failed'}
-                                                </Badge>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-4 text-sm mt-3">
-                                                <div>
-                                                    <span className="text-slate-400">Improvement:</span>
-                                                    <span className={`ml-2 font-mono ${result.performance_improvement > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                        {result.performance_improvement > 0 ? '+' : ''}{result.performance_improvement.toFixed(1)}%
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-slate-400">Personas:</span>
-                                                    <span className="ml-2 font-mono text-purple-400">
-                                                        {result.mode_b_personas_used?.[0] || 'N/A'}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-slate-400">Time:</span>
-                                                    <span className="ml-2 font-mono text-blue-400">
-                                                        {(result.totalTime / 1000).toFixed(1)}s
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        </div>
+                                    {results.map((result, idx) => (
+                                        <OptimizationHistoryItem
+                                            key={result.id || idx}
+                                            benchmark={result}
+                                            index={idx}
+                                        />
                                     ))}
                                 </div>
                             </ScrollArea>

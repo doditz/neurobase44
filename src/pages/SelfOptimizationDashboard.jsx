@@ -79,7 +79,7 @@ export default function SelfOptimizationDashboard() {
                 TunableParameter.list(),
                 OptimizationStrategy.filter({ is_active: true }),
                 SPGConfiguration.filter({ is_active: true }),
-                BenchmarkResult.list('-created_date', 10)
+BenchmarkResult.list('-created_date', 100)
             ]);
 
             setTunableParams(params);
