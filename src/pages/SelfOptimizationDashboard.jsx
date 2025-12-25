@@ -95,16 +95,19 @@ export default function SelfOptimizationDashboard() {
         try {
             let questions = [];
             if (type === 'benchmark') {
-                questions = await BenchmarkQuestion.list('-created_date', 300);
+                questions = await base44.entities.BenchmarkQuestion.list('-created_date', 300);
             } else if (type === 'devtest') {
-                questions = await DevTestQuestion.list('-created_date', 300);
+                questions = await base44.entities.DevTestQuestion.list('-created_date', 300);
             }
+            console.log(`[SelfOptimization] Loaded ${questions.length} ${type} questions`);
             setAvailableQuestions(questions);
             if (questions.length > 0) {
                 setSelectedQuestionId(questions[0].id);
                 setSelectedTestQuestion(questions[0].question_text);
+                toast.success(`${questions.length} questions chargées`);
+            } else {
+                toast.info(`Aucune question ${type} trouvée. Allez dans Dataset Manager pour peupler.`);
             }
-            toast.success(`${questions.length} questions chargées`);
         } catch (error) {
             console.error('Failed to load questions:', error);
             toast.error('Échec du chargement des questions');
