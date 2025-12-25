@@ -859,7 +859,7 @@ Deno.serve(async (req) => {
         let benchmarkCreated = 0;
         let devtestCreated = 0;
 
-        // Populate BenchmarkQuestions
+        // Populate BenchmarkQuestions (includes Nuclear Gauntlet)
         if (action === 'populate_all' || action === 'populate_benchmark') {
             if (existingBenchmark.length === 0 || force_refresh) {
                 if (force_refresh && existingBenchmark.length > 0) {
@@ -870,9 +870,11 @@ Deno.serve(async (req) => {
                     }
                 }
 
-                log.push(`[INFO] Populating ${BENCHMARK_QUESTIONS.length} BenchmarkQuestions...`);
+                // Combine standard benchmarks + Nuclear Gauntlet
+                const allBenchmarkQuestions = [...BENCHMARK_QUESTIONS, ...NUCLEAR_GAUNTLET_QUESTIONS];
+                log.push(`[INFO] Populating ${allBenchmarkQuestions.length} BenchmarkQuestions (${BENCHMARK_QUESTIONS.length} standard + ${NUCLEAR_GAUNTLET_QUESTIONS.length} Nuclear Gauntlet)...`);
                 
-                for (const q of BENCHMARK_QUESTIONS) {
+                for (const q of allBenchmarkQuestions) {
                     try {
                         await base44.entities.BenchmarkQuestion.create(q);
                         benchmarkCreated++;
@@ -885,6 +887,22 @@ Deno.serve(async (req) => {
             } else {
                 log.push(`[SKIP] BenchmarkQuestions already populated. Use force_refresh=true to overwrite.`);
             }
+        }
+        
+        // Populate Nuclear Gauntlet only
+        if (action === 'populate_nuclear') {
+            log.push(`[INFO] Populating ${NUCLEAR_GAUNTLET_QUESTIONS.length} Nuclear Gauntlet questions...`);
+            
+            for (const q of NUCLEAR_GAUNTLET_QUESTIONS) {
+                try {
+                    await base44.entities.BenchmarkQuestion.create(q);
+                    benchmarkCreated++;
+                } catch (err) {
+                    log.push(`[ERROR] Failed to create ${q.question_id}: ${err.message}`);
+                }
+            }
+            
+            log.push(`[SUCCESS] Created ${benchmarkCreated} Nuclear Gauntlet questions`);
         }
 
         // Populate DevTestQuestions
