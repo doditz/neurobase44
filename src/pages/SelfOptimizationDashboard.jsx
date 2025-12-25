@@ -74,10 +74,10 @@ export default function SelfOptimizationDashboard() {
     const loadData = async () => {
         try {
             const [params, strats, configs, benchmarks] = await Promise.all([
-                TunableParameter.list(),
-                OptimizationStrategy.filter({ is_active: true }),
-                SPGConfiguration.filter({ is_active: true }),
-BenchmarkResult.list('-created_date', 100)
+                base44.entities.TunableParameter.list(),
+                base44.entities.OptimizationStrategy.filter({ is_active: true }),
+                base44.entities.SPGConfiguration.filter({ is_active: true }),
+                base44.entities.BenchmarkResult.list('-created_date', 100)
             ]);
 
             setTunableParams(params);
