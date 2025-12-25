@@ -9,6 +9,8 @@ import Chat from './pages/Chat';
 import CollaborativeWorkspace from './pages/CollaborativeWorkspace';
 import DevTest from './pages/DevTest';
 import DevTestAnalytics from './pages/DevTestAnalytics';
+import DevTestDatasetBuilder from './pages/DevTestDatasetBuilder';
+import DevTestRunner from './pages/DevTestRunner';
 import DynamicGradingTest from './pages/DynamicGradingTest';
 import GitHub from './pages/GitHub';
 import Home from './pages/Home';
@@ -35,8 +37,6 @@ import SystemPipelineTest from './pages/SystemPipelineTest';
 import ValidationDashboard from './pages/ValidationDashboard';
 import VectorRoutingTest from './pages/VectorRoutingTest';
 import index from './pages/index';
-import DevTestDatasetBuilder from './pages/DevTestDatasetBuilder';
-import DevTestRunner from './pages/DevTestRunner';
 import __Layout from './Layout.jsx';
 
 
@@ -52,6 +52,8 @@ export const PAGES = {
     "CollaborativeWorkspace": CollaborativeWorkspace,
     "DevTest": DevTest,
     "DevTestAnalytics": DevTestAnalytics,
+    "DevTestDatasetBuilder": DevTestDatasetBuilder,
+    "DevTestRunner": DevTestRunner,
     "DynamicGradingTest": DynamicGradingTest,
     "GitHub": GitHub,
     "Home": Home,
@@ -78,8 +80,6 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "VectorRoutingTest": VectorRoutingTest,
     "index": index,
-    "DevTestDatasetBuilder": DevTestDatasetBuilder,
-    "DevTestRunner": DevTestRunner,
 }
 
 export const pagesConfig = {

@@ -33,7 +33,7 @@ export default function SelfOptimizationDashboard() {
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [optimizationStatus, setOptimizationStatus] = useState(null);
     const [selectedTestQuestion, setSelectedTestQuestion] = useState('');
-    const [datasetType, setDatasetType] = useState('custom');
+    const [datasetType, setDatasetType] = useState('benchmark');
     const [availableQuestions, setAvailableQuestions] = useState([]);
     const [selectedQuestionId, setSelectedQuestionId] = useState('');
     const [loadingQuestions, setLoadingQuestions] = useState(false);
@@ -46,6 +46,7 @@ export default function SelfOptimizationDashboard() {
 
     useEffect(() => {
         loadData();
+        loadQuestions('benchmark'); // Charge les questions benchmark par défaut
         
         // Poll system status
         const interval = setInterval(checkSystemStatus, 3000);
