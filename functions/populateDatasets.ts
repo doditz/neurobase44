@@ -939,7 +939,8 @@ Deno.serve(async (req) => {
             success: true,
             benchmark_questions_created: benchmarkCreated,
             devtest_questions_created: devtestCreated,
-            benchmark_total: BENCHMARK_QUESTIONS.length,
+            benchmark_total: BENCHMARK_QUESTIONS.length + NUCLEAR_GAUNTLET_QUESTIONS.length,
+            nuclear_gauntlet_total: NUCLEAR_GAUNTLET_QUESTIONS.length,
             devtest_total: DEVTEST_QUESTIONS.length,
             log
         });
