@@ -849,12 +849,15 @@ Deno.serve(async (req) => {
         log.push(`[${new Date().toISOString()}] Starting dataset population...`);
         log.push(`[INFO] Action: ${action}, Force refresh: ${force_refresh}`);
 
-        // Check existing counts
-        const existingBenchmark = await base44.entities.BenchmarkQuestion.list('-created_date', 1);
-        const existingDevTest = await base44.entities.DevTestQuestion.list('-created_date', 1);
+        // Check existing counts - get actual count, not just first item
+        const existingBenchmark = await base44.entities.BenchmarkQuestion.list('-created_date', 500);
+        const existingDevTest = await base44.entities.DevTestQuestion.list('-created_date', 500);
 
-        log.push(`[INFO] Existing BenchmarkQuestions: ${existingBenchmark.length > 0 ? 'Yes' : 'No'}`);
-        log.push(`[INFO] Existing DevTestQuestions: ${existingDevTest.length > 0 ? 'Yes' : 'No'}`);
+        const benchmarkCount = existingBenchmark.length;
+        const devtestCount = existingDevTest.length;
+
+        log.push(`[INFO] Existing BenchmarkQuestions: ${benchmarkCount}`);
+        log.push(`[INFO] Existing DevTestQuestions: ${devtestCount}`);
 
         let benchmarkCreated = 0;
         let devtestCreated = 0;
