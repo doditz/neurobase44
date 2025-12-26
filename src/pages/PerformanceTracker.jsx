@@ -8,8 +8,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
     TrendingUp, BarChart3, Target, Brain, Layers, Clock, 
-    RefreshCw, Loader2, Filter, Calendar, Zap, Activity
+    RefreshCw, Loader2, Filter, Calendar, Zap, Activity, GitCompare
 } from 'lucide-react';
+import ModelComparisonView from '@/components/performance/ModelComparisonView';
 import { 
     LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid, 
     PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, 
