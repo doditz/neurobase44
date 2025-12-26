@@ -7,9 +7,10 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     Database, RefreshCw, Loader2, CheckCircle2, AlertCircle, 
-    Target, FlaskConical, Trash2, Download, Upload
+    Target, FlaskConical, Trash2, Download, Upload, Sparkles
 } from 'lucide-react';
 import { toast } from 'sonner';
+import BenchmarkQuestionCreator from '@/components/benchmark/BenchmarkQuestionCreator';
 
 export default function DatasetManager() {
     const [benchmarkQuestions, setBenchmarkQuestions] = useState([]);
