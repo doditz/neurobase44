@@ -363,10 +363,14 @@ export default function DatasetManager() {
                                     ))}
                                 </div>
                             </ScrollArea>
-                        )}
-                    </TabsContent>
-                </Tabs>
-            </div>
-        </div>
+                            )}
+                            </TabsContent>
+
+                            <TabsContent value="generator">
+                            <BenchmarkQuestionCreator onQuestionsGenerated={loadData} />
+                            </TabsContent>
+                            </Tabs>
+                            </div>
+                            </div>
     );
 }
