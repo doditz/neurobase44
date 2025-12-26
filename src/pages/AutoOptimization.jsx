@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
     Zap, 
     TrendingUp, 
@@ -13,9 +14,11 @@ import {
     CheckCircle2,
     AlertTriangle,
     Loader2,
-    BarChart3
+    BarChart3,
+    FlaskConical
 } from 'lucide-react';
 import { toast } from 'sonner';
+import StrategyDryRunAnalyzer from '@/components/optimization/StrategyDryRunAnalyzer';
 
 export default function AutoOptimizationPage() {
     const [user, setUser] = useState(null);
