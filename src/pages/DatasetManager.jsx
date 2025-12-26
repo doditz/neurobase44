@@ -304,7 +304,11 @@ export default function DatasetManager() {
                             <FlaskConical className="w-4 h-4 mr-2" />
                             DevTest ({devtestQuestions.length})
                         </TabsTrigger>
-                    </TabsList>
+                        <TabsTrigger value="generator" className="data-[state=active]:bg-pink-900/30 data-[state=active]:text-pink-400">
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Générateur AI
+                        </TabsTrigger>
+                        </TabsList>
 
                     <TabsContent value="benchmark">
                         {loading ? (
