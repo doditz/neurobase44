@@ -183,6 +183,20 @@ export default function AutoOptimizationPage() {
                     </Card>
                 )}
 
+                {/* Main Tabs */}
+                <Tabs defaultValue="overview" className="space-y-6">
+                    <TabsList className="bg-slate-800 border border-slate-700">
+                        <TabsTrigger value="overview" className="data-[state=active]:bg-green-900/30">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Vue d'ensemble
+                        </TabsTrigger>
+                        <TabsTrigger value="dryrun" className="data-[state=active]:bg-purple-900/30">
+                            <FlaskConical className="w-4 h-4 mr-2" />
+                            Analyse Dry-Run ({strategies.length})
+                        </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="overview">
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <Card className="bg-slate-800 border-slate-700">
@@ -470,6 +484,12 @@ export default function AutoOptimizationPage() {
                         </div>
                     </CardContent>
                 </Card>
+                    </TabsContent>
+
+                    <TabsContent value="dryrun">
+                        <StrategyDryRunAnalyzer />
+                    </TabsContent>
+                </Tabs>
             </div>
         </div>
     );
