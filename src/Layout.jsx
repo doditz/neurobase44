@@ -75,9 +75,10 @@ const menuSections = [
       { title: "Resources", url: createPageUrl("ResourceMonitoring"), icon: Activity },
       { title: "Gauntlet", url: createPageUrl("NeuronasGauntlet"), icon: Zap },
       { title: "Vector Test", url: createPageUrl("VectorRoutingTest"), icon: Layers },
-      { title: "Self-Opt", url: createPageUrl("SelfOptimizationDashboard"), icon: TrendingUp }
-    ]
-  }
+      { title: "Self-Opt", url: createPageUrl("SelfOptimizationDashboard"), icon: TrendingUp },
+      { title: "Perf Tracker", url: createPageUrl("PerformanceTracker"), icon: BarChart3 }
+      ]
+      }
 ];
 
 const adminMenuSections = [
