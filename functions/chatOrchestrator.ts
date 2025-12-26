@@ -189,7 +189,7 @@ Key guidelines:
         try {
             const dstibResponse = await base44.functions.invoke('dstibHebdenRouter', {
                 user_message,
-                context: full_context
+                context: user_message // Use user_message as initial context
             });
 
             if (dstibResponse.data && dstibResponse.data.success) {
