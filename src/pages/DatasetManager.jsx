@@ -29,8 +29,20 @@ export default function DatasetManager() {
                 base44.entities.BenchmarkQuestion.list('-created_date', 500),
                 base44.entities.DevTestQuestion.list('-created_date', 500)
             ]);
-            setBenchmarkQuestions(benchmark);
-            setDevtestQuestions(devtest);
+            
+            // Dédupliquer par question_id
+            const dedupeByQuestionId = (questions) => {
+                const seen = new Set();
+                return questions.filter(q => {
+                    const qid = q.question_id;
+                    if (seen.has(qid)) return false;
+                    seen.add(qid);
+                    return true;
+                });
+            };
+            
+            setBenchmarkQuestions(dedupeByQuestionId(benchmark));
+            setDevtestQuestions(dedupeByQuestionId(devtest));
         } catch (error) {
             console.error('Load error:', error);
             toast.error('Erreur de chargement');
