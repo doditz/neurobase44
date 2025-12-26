@@ -303,7 +303,11 @@ export default function PerformanceTracker() {
                             <Activity className="w-4 h-4 mr-2" />
                             Types
                         </TabsTrigger>
-                    </TabsList>
+                        <TabsTrigger value="compare" className="data-[state=active]:bg-pink-900/30">
+                            <GitCompare className="w-4 h-4 mr-2" />
+                            Comparer
+                        </TabsTrigger>
+                        </TabsList>
 
                     {/* Timeline Tab */}
                     <TabsContent value="timeline">
@@ -513,6 +517,11 @@ export default function PerformanceTracker() {
                                 </div>
                             </CardContent>
                         </Card>
+                    </TabsContent>
+
+                    {/* Compare Tab */}
+                    <TabsContent value="compare">
+                        <ModelComparisonView />
                     </TabsContent>
                 </Tabs>
             </div>
