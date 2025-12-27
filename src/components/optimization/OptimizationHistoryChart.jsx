@@ -1,13 +1,17 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { 
     LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
     Tooltip, ResponsiveContainer, Legend, ReferenceLine, ComposedChart, Bar
 } from 'recharts';
-import { TrendingUp, Target, Zap, Clock } from 'lucide-react';
+import { TrendingUp, Target, Zap, Clock, Star, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 const COLORS = {
     spg: '#10b981',
@@ -17,7 +21,40 @@ const COLORS = {
     latency: '#06b6d4'
 };
 
-export default function OptimizationHistoryChart({ results, showIterations = false }) {
+export default function OptimizationHistoryChart({ results, showIterations = false, showPinnedComparison = true }) {
+    const [pinnedResults, setPinnedResults] = useState([]);
+    const [showPinned, setShowPinned] = useState(false);
+    const [loadingPinned, setLoadingPinned] = useState(false);
+
+    useEffect(() => {
+        if (showPinnedComparison) {
+            loadPinnedResults();
+        }
+    }, [showPinnedComparison]);
+
+    const loadPinnedResults = async () => {
+        setLoadingPinned(true);
+        try {
+            const { data } = await base44.functions.invoke('unifiedLogManager', {
+                action: 'get_pinned'
+            });
+            if (data.success) {
+                setPinnedResults(data.pinned.map(p => ({
+                    name: p.pin_label || p.log_id,
+                    spg: p.metrics?.spg || 0,
+                    quality: p.metrics?.quality || 0,
+                    efficiency: (p.metrics?.efficiency || 0) * 100,
+                    tokens: p.metrics?.tokens || 0,
+                    isPinned: true
+                })));
+            }
+        } catch (e) {
+            console.error('Load pinned error:', e);
+        } finally {
+            setLoadingPinned(false);
+        }
+    };
+
     const chartData = useMemo(() => {
         if (!results?.length) return [];
 
@@ -30,9 +67,16 @@ export default function OptimizationHistoryChart({ results, showIterations = fal
             tokens: r.mode_b_token_count || r.best_metrics?.tokens || 0,
             latency: r.mode_b_time_ms || 0,
             winner: r.winner,
-            passed: r.passed
+            passed: r.passed,
+            isPinned: false
         }));
     }, [results, showIterations]);
+
+    const combinedData = useMemo(() => {
+        if (!showPinned || pinnedResults.length === 0) return chartData;
+        // Add pinned results as reference lines data
+        return chartData;
+    }, [chartData, pinnedResults, showPinned]);
 
     const stats = useMemo(() => {
         if (!chartData.length) return null;
@@ -61,8 +105,47 @@ export default function OptimizationHistoryChart({ results, showIterations = fal
         );
     }
 
+    // Calculate pinned averages for reference lines
+    const pinnedAvgSPG = pinnedResults.length > 0 
+        ? pinnedResults.reduce((s, p) => s + p.spg, 0) / pinnedResults.length 
+        : null;
+
     return (
         <div className="space-y-4">
+            {/* Pinned Toggle */}
+            {showPinnedComparison && pinnedResults.length > 0 && (
+                <Card className="bg-slate-800 border-yellow-600/50">
+                    <CardContent className="p-3">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <Star className="w-4 h-4 text-yellow-400" />
+                                <span className="text-sm text-slate-300">{pinnedResults.length} résultat(s) épinglé(s)</span>
+                                <div className="flex items-center gap-2">
+                                    <Checkbox
+                                        checked={showPinned}
+                                        onCheckedChange={setShowPinned}
+                                        className="border-yellow-500"
+                                    />
+                                    <span className="text-xs text-slate-400">Afficher lignes référence</span>
+                                </div>
+                            </div>
+                            <Button onClick={loadPinnedResults} variant="ghost" size="sm" className="text-yellow-400">
+                                <RefreshCw className={`w-3 h-3 ${loadingPinned ? 'animate-spin' : ''}`} />
+                            </Button>
+                        </div>
+                        {showPinned && (
+                            <div className="mt-2 flex gap-2 flex-wrap">
+                                {pinnedResults.map((p, i) => (
+                                    <Badge key={i} className="bg-yellow-900/30 text-yellow-400 text-xs">
+                                        {p.name}: SPG {p.spg.toFixed(3)}
+                                    </Badge>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            )}
+
             {/* Stats Summary */}
             {stats && (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -131,6 +214,9 @@ export default function OptimizationHistoryChart({ results, showIterations = fal
                             />
                             <Legend />
                             <ReferenceLine yAxisId="left" y={0.7} stroke="#f59e0b" strokeDasharray="5 5" label="Target" />
+                            {showPinned && pinnedAvgSPG && (
+                                <ReferenceLine yAxisId="left" y={pinnedAvgSPG} stroke="#eab308" strokeWidth={2} label={`Pinned: ${pinnedAvgSPG.toFixed(3)}`} />
+                            )}
                             <Area 
                                 yAxisId="left"
                                 type="monotone" 

@@ -16,6 +16,8 @@ import AlertConfigPanel from '@/components/alerts/AlertConfigPanel';
 import AlertNotificationBanner from '@/components/alerts/AlertNotificationBanner';
 import StrategyComparisonPanel from '@/components/analytics/StrategyComparisonPanel';
 import PerformanceReportGenerator from '@/components/analytics/PerformanceReportGenerator';
+import UnifiedLogTable from '@/components/logs/UnifiedLogTable';
+import VersionComparisonPanel from '@/components/logs/VersionComparisonPanel';
 import { toast } from 'sonner';
 import { 
     LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -468,6 +470,14 @@ export default function OptimizationMetricsDashboard() {
                             <BarChart3 className="w-4 h-4 mr-2" />
                             Rapports
                         </TabsTrigger>
+                        <TabsTrigger value="logs" className="data-[state=active]:bg-indigo-900/30 data-[state=active]:text-indigo-400">
+                            <Layers className="w-4 h-4 mr-2" />
+                            Logs Unifiés
+                        </TabsTrigger>
+                        <TabsTrigger value="versions" className="data-[state=active]:bg-yellow-900/30 data-[state=active]:text-yellow-400">
+                            <Target className="w-4 h-4 mr-2" />
+                            Versions
+                        </TabsTrigger>
                     </TabsList>
 
                     {/* Trends Tab */}
@@ -756,6 +766,19 @@ export default function OptimizationMetricsDashboard() {
                             strategies={strategies}
                             tunableParams={tunableParams}
                         />
+                    </TabsContent>
+
+                    {/* Unified Logs Tab */}
+                    <TabsContent value="logs">
+                        <UnifiedLogTable 
+                            showAggregates={true}
+                            limit={100}
+                        />
+                    </TabsContent>
+
+                    {/* Versions Tab */}
+                    <TabsContent value="versions">
+                        <VersionComparisonPanel />
                     </TabsContent>
                 </Tabs>
             </div>
