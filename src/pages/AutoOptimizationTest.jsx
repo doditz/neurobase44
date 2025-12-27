@@ -5,8 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Zap, TrendingUp, Clock, DollarSign, CheckCircle2, Loader2, BarChart3, Heart } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Play, Zap, TrendingUp, Clock, DollarSign, CheckCircle2, Loader2, BarChart3, Heart, History, Settings } from 'lucide-react';
 import { toast } from 'sonner';
+import OptimizationHistoryChart from '@/components/optimization/OptimizationHistoryChart';
+import ConfigurableTestPanel from '@/components/optimization/ConfigurableTestPanel';
 
 export default function AutoOptimizationTestPage() {
     const [user, setUser] = useState(null);
@@ -53,7 +56,7 @@ export default function AutoOptimizationTestPage() {
         }
     };
 
-    const handleQuickTest = async () => {
+    const handleConfigurableTest = async (config) => {
         if (!selectedQuestion) {
             toast.error('Sélectionne une question');
             return;
@@ -63,103 +66,82 @@ export default function AutoOptimizationTestPage() {
         setTestResult(null);
 
         try {
-            toast.info('🧪 Lancement test A/B/C...');
+            const runMode = config.run_mode || 'ab_test';
+            toast.info(`🧪 Lancement ${runMode === 'auto_tune' ? 'Auto-Optimization' : 'Test A/B'}...`);
             
-            const { data } = await base44.functions.invoke('benchmarkOrchestrator', {
+            const payload = {
                 question_text: selectedQuestion.question_text,
                 question_id: selectedQuestion.question_id,
-                run_mode: 'ab_test'
-            });
+                run_mode: runMode
+            };
+
+            if (runMode === 'auto_tune' || config.enable_auto_tune) {
+                payload.benchmark_settings = {
+                    max_iterations: config.max_iterations,
+                    convergence_threshold: config.convergence_threshold,
+                    exploration_rate: config.exploration_rate,
+                    quality_floor: config.quality_floor,
+                    efficiency_target: config.efficiency_target
+                };
+            }
+
+            // Add debate config
+            payload.debate_config = {
+                temperature: config.temperature,
+                max_personas: config.max_personas,
+                debate_rounds: config.debate_rounds
+            };
+
+            const { data } = await base44.functions.invoke('benchmarkOrchestrator', payload);
 
             if (data && data.success) {
-                const spgDisplay = data.spg?.toFixed(3) || 'N/A';
-                const winnerDisplay = data.winner === 'mode_b' ? 'Mode B gagne!' : data.winner === 'mode_a' ? 'Mode A' : 'Égalité';
-                toast.success(`✅ ${winnerDisplay} SPG: ${spgDisplay}`);
-                setTestResult(data);
+                const spgDisplay = data.spg?.toFixed(3) || data.best_spg?.toFixed(3) || 'N/A';
                 
-                setTimeout(async () => {
-                    await loadData();
-                }, 1500);
+                if (data.status === 'sweet_spot_reached') {
+                    toast.success(`🏆 Sweet Spot! SPG: ${spgDisplay}`, { duration: 6000 });
+                } else if (data.status === 'converged') {
+                    toast.success(`✅ Convergé! SPG: ${spgDisplay}`, { duration: 5000 });
+                } else {
+                    const winnerDisplay = data.winner === 'mode_b' ? 'Mode B' : data.winner === 'mode_a' ? 'Mode A' : 'Égalité';
+                    toast.success(`✅ ${winnerDisplay} - SPG: ${spgDisplay}`);
+                }
+                
+                setTestResult(data);
+                setTimeout(() => loadData(), 1500);
             } else {
-                throw new Error(data?.error || data?.message || 'Test failed - no data returned');
+                throw new Error(data?.error || 'Test failed');
             }
         } catch (error) {
             console.error('Test error:', error);
-            
-            const errorData = error.response?.data || {};
-            const errorMessage = errorData.error || errorData.message || errorData.err || error.message;
-            
-            // Show detailed logs if available
-            if (errorData.logs && Array.isArray(errorData.logs)) {
-                console.error('Backend logs:', errorData.logs);
-            }
-            
+            const errorMessage = error.response?.data?.error || error.message;
             toast.error(`❌ ${errorMessage}`, { duration: 6000 });
         } finally {
             setIsRunning(false);
         }
     };
 
+    const handleQuickTest = async () => {
+        handleConfigurableTest({ 
+            run_mode: 'ab_test', 
+            temperature: 0.7, 
+            max_personas: 5, 
+            debate_rounds: 3 
+        });
+    };
+
     const handleAutoOptimization = async () => {
-        if (!selectedQuestion) {
-            toast.error('Sélectionne une question');
-            return;
-        }
-
-        setIsRunning(true);
-        setTestResult(null);
-
-        try {
-            toast.info('🎯 Démarrage BALANCED Sweet Spot Optimization...', { duration: 3000 });
-            
-            const { data } = await base44.functions.invoke('benchmarkOrchestrator', {
-                question_text: selectedQuestion.question_text,
-                question_id: selectedQuestion.question_id,
-                run_mode: 'auto_tune',
-                benchmark_settings: {
-                    max_iterations: 10,
-                    convergence_threshold: 0.92,
-                    exploration_rate: 0.15,
-                    quality_floor: 0.85,
-                    efficiency_target: 0.50
-                }
-            });
-
-            if (data.status === 'sweet_spot_reached') {
-                toast.success(`🏆 Sweet Spot atteint! Q=${data.best_metrics.quality.toFixed(3)}, Eff=${data.best_metrics.efficiency.toFixed(2)}`, { duration: 6000 });
-            } else if (data.status === 'converged') {
-                toast.success(`✅ Convergence: SPG=${data.best_metrics.spg.toFixed(3)}`, { duration: 5000 });
-            } else {
-                toast.success(`✅ ${data.iterations} itérations complétées`, { duration: 4000 });
-            }
-
-            setTestResult(data);
-            
-            setTimeout(async () => {
-                await loadData();
-                toast.info('📊 Historique rafraîchi');
-            }, 2000);
-        } catch (error) {
-            console.error('Auto-optimization error:', error);
-            
-            const errorData = error.response?.data || {};
-            const errorMessage = errorData.message || errorData.err || error.message;
-            const errorSuggestion = errorData.suggestion || '';
-            
-            if (error.response?.status === 409) {
-                toast.error(`⚠️ Conflit: ${errorMessage}`, { duration: 6000 });
-                if (errorSuggestion) {
-                    toast.info(`💡 ${errorSuggestion}`, { duration: 6000 });
-                }
-            } else {
-                toast.error(`❌ Erreur: ${errorMessage}`, { duration: 5000 });
-                if (errorSuggestion) {
-                    toast.info(`💡 ${errorSuggestion}`, { duration: 5000 });
-                }
-            }
-        } finally {
-            setIsRunning(false);
-        }
+        handleConfigurableTest({
+            run_mode: 'auto_tune',
+            enable_auto_tune: true,
+            max_iterations: 10,
+            convergence_threshold: 0.92,
+            exploration_rate: 0.15,
+            quality_floor: 0.85,
+            efficiency_target: 0.50,
+            temperature: 0.7,
+            max_personas: 5,
+            debate_rounds: 3
+        });
     };
 
     const handleForceReset = async () => {
@@ -248,85 +230,151 @@ export default function AutoOptimizationTestPage() {
                     </Card>
                 )}
 
-                {/* Test Controls */}
-                <Card className="bg-slate-800 border-slate-700">
-                    <CardHeader>
-                        <CardTitle className="text-green-400 flex items-center gap-2">
-                            <Play className="w-5 h-5" />
-                            Lancer un Test
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div>
-                            <label className="text-sm text-slate-400 mb-2 block">Question de Benchmark</label>
-                            <Select
-                                value={selectedQuestion?.id}
-                                onValueChange={(id) => setSelectedQuestion(questions.find(q => q.id === id))}
-                                disabled={isRunning}
-                            >
-                                <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300">
-                                    <SelectValue placeholder="Sélectionne une question" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-slate-800 border-slate-600">
-                                    {questions.map(q => (
-                                        <SelectItem key={q.id} value={q.id} className="text-green-300">
-                                            {q.question_id} - {q.question_text.substring(0, 60)}...
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
+                {/* Tabs for Test Controls and History */}
+                <Tabs defaultValue="quick" className="space-y-4">
+                    <TabsList className="bg-slate-800 border border-slate-700">
+                        <TabsTrigger value="quick" className="data-[state=active]:bg-green-900/30 data-[state=active]:text-green-400">
+                            <Play className="w-4 h-4 mr-2" />
+                            Test Rapide
+                        </TabsTrigger>
+                        <TabsTrigger value="configurable" className="data-[state=active]:bg-purple-900/30 data-[state=active]:text-purple-400">
+                            <Settings className="w-4 h-4 mr-2" />
+                            Configurable
+                        </TabsTrigger>
+                        <TabsTrigger value="history" className="data-[state=active]:bg-blue-900/30 data-[state=active]:text-blue-400">
+                            <History className="w-4 h-4 mr-2" />
+                            Historique
+                        </TabsTrigger>
+                    </TabsList>
 
-                        {selectedQuestion && (
-                            <div className="bg-slate-700 p-4 rounded-lg">
-                                <div className="flex gap-2 mb-2">
-                                    <Badge className="bg-indigo-600">{selectedQuestion.question_type}</Badge>
-                                    <Badge className="bg-purple-600">{selectedQuestion.niveau_complexite}</Badge>
-                                    <Badge className="bg-blue-600">{selectedQuestion.hemisphere_dominant}</Badge>
+                    {/* Quick Test Tab */}
+                    <TabsContent value="quick">
+                        <Card className="bg-slate-800 border-slate-700">
+                            <CardHeader>
+                                <CardTitle className="text-green-400 flex items-center gap-2">
+                                    <Play className="w-5 h-5" />
+                                    Test Rapide
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div>
+                                    <label className="text-sm text-slate-400 mb-2 block">Question de Benchmark</label>
+                                    <Select
+                                        value={selectedQuestion?.id}
+                                        onValueChange={(id) => setSelectedQuestion(questions.find(q => q.id === id))}
+                                        disabled={isRunning}
+                                    >
+                                        <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300">
+                                            <SelectValue placeholder="Sélectionne une question" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-800 border-slate-600">
+                                            {questions.map(q => (
+                                                <SelectItem key={q.id} value={q.id} className="text-green-300">
+                                                    {q.question_id} - {q.question_text.substring(0, 60)}...
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
                                 </div>
-                                <p className="text-sm text-slate-300">{selectedQuestion.question_text}</p>
-                            </div>
-                        )}
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <Button
-                                onClick={handleQuickTest}
-                                disabled={isRunning || isSystemBusy || !selectedQuestion}
-                                className="bg-blue-600 hover:bg-blue-700 h-12"
-                            >
-                                {isRunning ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Test en cours...
-                                    </>
-                                ) : (
-                                    <>
-                                        <BarChart3 className="w-4 h-4 mr-2" />
-                                        Test A/B/C Rapide
-                                    </>
+                                {selectedQuestion && (
+                                    <div className="bg-slate-700 p-4 rounded-lg">
+                                        <div className="flex gap-2 mb-2">
+                                            <Badge className="bg-indigo-600">{selectedQuestion.question_type}</Badge>
+                                            <Badge className="bg-purple-600">{selectedQuestion.niveau_complexite}</Badge>
+                                            <Badge className="bg-blue-600">{selectedQuestion.hemisphere_dominant}</Badge>
+                                        </div>
+                                        <p className="text-sm text-slate-300">{selectedQuestion.question_text}</p>
+                                    </div>
                                 )}
-                            </Button>
 
-                            <Button
-                                onClick={handleAutoOptimization}
-                                disabled={isRunning || isSystemBusy || !selectedQuestion || !isAdmin}
-                                className="bg-orange-600 hover:bg-orange-700 h-12"
-                            >
-                                {isRunning ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                        Optimization...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Zap className="w-4 h-4 mr-2" />
-                                        Auto-Optimization (Admin)
-                                    </>
-                                )}
-                            </Button>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Button
+                                        onClick={handleQuickTest}
+                                        disabled={isRunning || isSystemBusy || !selectedQuestion}
+                                        className="bg-blue-600 hover:bg-blue-700 h-12"
+                                    >
+                                        {isRunning ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Test en cours...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <BarChart3 className="w-4 h-4 mr-2" />
+                                                Test A/B Rapide
+                                            </>
+                                        )}
+                                    </Button>
+
+                                    <Button
+                                        onClick={handleAutoOptimization}
+                                        disabled={isRunning || isSystemBusy || !selectedQuestion || !isAdmin}
+                                        className="bg-orange-600 hover:bg-orange-700 h-12"
+                                    >
+                                        {isRunning ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Optimization...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Zap className="w-4 h-4 mr-2" />
+                                                Auto-Optimization
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Configurable Test Tab */}
+                    <TabsContent value="configurable">
+                        <div className="space-y-4">
+                            {/* Question Selection */}
+                            <Card className="bg-slate-800 border-slate-700">
+                                <CardContent className="pt-4">
+                                    <label className="text-sm text-slate-400 mb-2 block">Question de Benchmark</label>
+                                    <Select
+                                        value={selectedQuestion?.id}
+                                        onValueChange={(id) => setSelectedQuestion(questions.find(q => q.id === id))}
+                                        disabled={isRunning}
+                                    >
+                                        <SelectTrigger className="bg-slate-700 border-slate-600 text-green-300">
+                                            <SelectValue placeholder="Sélectionne une question" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-slate-800 border-slate-600">
+                                            {questions.map(q => (
+                                                <SelectItem key={q.id} value={q.id} className="text-green-300">
+                                                    {q.question_id} - {q.question_text.substring(0, 60)}...
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                    {selectedQuestion && (
+                                        <div className="mt-3 flex gap-2">
+                                            <Badge className="bg-indigo-600">{selectedQuestion.question_type}</Badge>
+                                            <Badge className="bg-purple-600">{selectedQuestion.niveau_complexite}</Badge>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+                            
+                            {/* Configurable Panel */}
+                            <ConfigurableTestPanel
+                                onRunTest={handleConfigurableTest}
+                                isRunning={isRunning || isSystemBusy}
+                                selectedQuestion={selectedQuestion}
+                            />
                         </div>
-                    </CardContent>
-                </Card>
+                    </TabsContent>
+
+                    {/* History Tab */}
+                    <TabsContent value="history">
+                        <OptimizationHistoryChart results={recentResults} />
+                    </TabsContent>
+                </Tabs>
 
                 {/* Test Result */}
                 {testResult && (
