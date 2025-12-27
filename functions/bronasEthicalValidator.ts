@@ -180,25 +180,31 @@ async function checkHumanSafety(content, base44) {
 }
 
 async function checkBiasBalance(content, userMessage, base44) {
-    const biasPrompt = `Analyze this text for bias (gender, cultural, socio-economic). Return ONLY a JSON with bias_score (0.0-1.0) and detected_biases array.
-
-Text: ${content}
-
-Context: ${userMessage}`;
-
     try {
-        const { data: aiResponse } = await base44.functions.invoke('base44.integrations.Core.InvokeLLM', {
-            prompt: biasPrompt,
-            response_json_schema: {
-                type: "object",
-                properties: {
-                    bias_score: { type: "number" },
-                    detected_biases: { type: "array", items: { type: "string" } }
+        // Use simple keyword-based bias detection instead of nested LLM call
+        const biasKeywords = {
+            gender: ['men are', 'women are', 'males always', 'females always', 'his gender', 'her gender'],
+            cultural: ['those people', 'their kind', 'typical of', 'always do'],
+            socioeconomic: ['poor people', 'rich people', 'lower class', 'upper class']
+        };
+        
+        const contentLower = content.toLowerCase();
+        const detectedBiases = [];
+        let biasScore = 0;
+        
+        for (const [category, keywords] of Object.entries(biasKeywords)) {
+            for (const kw of keywords) {
+                if (contentLower.includes(kw)) {
+                    detectedBiases.push(category);
+                    biasScore += 0.05;
                 }
             }
-        });
+        }
         
-        return aiResponse || { bias_score: 0.0, detected_biases: [] };
+        return { 
+            bias_score: Math.min(1.0, biasScore), 
+            detected_biases: [...new Set(detectedBiases)] 
+        };
     } catch (error) {
         return { bias_score: 0.0, detected_biases: [] };
     }

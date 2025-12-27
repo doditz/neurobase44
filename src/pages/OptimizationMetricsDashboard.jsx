@@ -10,8 +10,11 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
     BarChart3, TrendingUp, TrendingDown, Zap, Clock, Coins, 
     Target, RefreshCw, Loader2, Filter, Calendar, Sparkles,
-    CheckCircle2, AlertCircle, Activity, Layers, Brain
+    CheckCircle2, AlertCircle, Activity, Layers, Brain, Bell
 } from 'lucide-react';
+import AlertConfigPanel from '@/components/alerts/AlertConfigPanel';
+import AlertNotificationBanner from '@/components/alerts/AlertNotificationBanner';
+import { toast } from 'sonner';
 import { 
     LineChart, Line, BarChart, Bar, AreaChart, Area,
     XAxis, YAxis, CartesianGrid, Tooltip, Legend, 
@@ -57,6 +60,9 @@ export default function OptimizationMetricsDashboard() {
     const [benchmarks, setBenchmarks] = useState([]);
     const [strategies, setStrategies] = useState([]);
     const [tunableParams, setTunableParams] = useState([]);
+    const [activeAlerts, setActiveAlerts] = useState([]);
+    const [alertThresholds, setAlertThresholds] = useState([]);
+    const [showAlertConfig, setShowAlertConfig] = useState(false);
     
     // Filters
     const [dateRange, setDateRange] = useState('7d');
@@ -68,6 +74,11 @@ export default function OptimizationMetricsDashboard() {
 
     useEffect(() => {
         loadAllData();
+        loadAlerts();
+        
+        // Poll for alerts every 30 seconds
+        const alertInterval = setInterval(loadAlerts, 30000);
+        return () => clearInterval(alertInterval);
     }, []);
 
     const loadAllData = async () => {
@@ -88,11 +99,56 @@ export default function OptimizationMetricsDashboard() {
             setBenchmarks(allBenchmarks);
             setStrategies(strategyData);
             setTunableParams(paramData);
+            
+            // Check alerts for latest benchmarks
+            if (allBenchmarks.length > 0) {
+                checkAlertsForBenchmarks(allBenchmarks.slice(0, 5));
+            }
         } catch (error) {
             console.error('Failed to load data:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const loadAlerts = async () => {
+        try {
+            const alerts = await base44.entities.AlertHistory.filter(
+                { acknowledged: false },
+                '-created_date',
+                10
+            );
+            setActiveAlerts(alerts);
+        } catch (error) {
+            console.error('Failed to load alerts:', error);
+        }
+    };
+
+    const checkAlertsForBenchmarks = async (recentBenchmarks) => {
+        try {
+            for (const benchmark of recentBenchmarks) {
+                const { data } = await base44.functions.invoke('alertingEngine', {
+                    action: 'check_benchmark',
+                    benchmark_result: benchmark
+                });
+                
+                if (data?.alerts_triggered > 0) {
+                    data.alerts.forEach(alert => {
+                        toast.warning(alert.message, {
+                            duration: 10000,
+                            icon: '🚨'
+                        });
+                    });
+                    loadAlerts();
+                }
+            }
+        } catch (error) {
+            console.error('Alert check failed:', error);
+        }
+    };
+
+    const handleAlertAcknowledge = (alertId) => {
+        setActiveAlerts(prev => prev.filter(a => a.id !== alertId));
     };
 
     // Filter benchmarks based on selected filters
@@ -238,6 +294,12 @@ export default function OptimizationMetricsDashboard() {
     return (
         <div className="min-h-screen bg-slate-900 p-4 md:p-6">
             <div className="max-w-7xl mx-auto space-y-6">
+                {/* Alert Banner */}
+                <AlertNotificationBanner 
+                    alerts={activeAlerts} 
+                    onAcknowledge={handleAlertAcknowledge}
+                />
+
                 {/* Header */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
@@ -249,11 +311,26 @@ export default function OptimizationMetricsDashboard() {
                             <p className="text-slate-400 text-sm">Agrégation centralisée des performances</p>
                         </div>
                     </div>
-                    <Button onClick={loadAllData} variant="outline" className="border-green-600 text-green-400">
-                        <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-                        Actualiser
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button 
+                            onClick={() => setShowAlertConfig(!showAlertConfig)} 
+                            variant="outline" 
+                            className={`border-orange-600 ${showAlertConfig ? 'bg-orange-900/30 text-orange-400' : 'text-orange-400'}`}
+                        >
+                            <Bell className="w-4 h-4 mr-2" />
+                            Alerts {activeAlerts.length > 0 && <Badge className="ml-2 bg-red-600">{activeAlerts.length}</Badge>}
+                        </Button>
+                        <Button onClick={loadAllData} variant="outline" className="border-green-600 text-green-400">
+                            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+                            Actualiser
+                        </Button>
+                    </div>
                 </div>
+
+                {/* Alert Config Panel (collapsible) */}
+                {showAlertConfig && (
+                    <AlertConfigPanel onAlertChange={setAlertThresholds} />
+                )}
 
                 {/* Filters Bar */}
                 <Card className="bg-slate-800 border-slate-700">
