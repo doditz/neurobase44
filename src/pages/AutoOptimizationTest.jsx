@@ -14,6 +14,7 @@ export default function AutoOptimizationTestPage() {
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [systemState, setSystemState] = useState(null);
     const [isRunning, setIsRunning] = useState(false);
+    const [isSystemBusy, setIsSystemBusy] = useState(false);
     const [testResult, setTestResult] = useState(null);
     const [recentResults, setRecentResults] = useState([]);
 
@@ -44,16 +45,11 @@ export default function AutoOptimizationTestPage() {
         try {
             const state = await base44.entities.SystemState.filter({ state_key: 'auto_optimization_mode_active' });
             setSystemState(state[0] || null);
-            setIsRunning(state[0]?.is_active || false);
+            setIsSystemBusy(state[0]?.is_active || false);
         } catch (error) {
-            if (error.message && error.message.includes('Network Error')) {
-                setSystemState(null);
-                setIsRunning(false);
-            } else {
-                console.error('State check error:', error);
-                setSystemState(null);
-                setIsRunning(false);
-            }
+            // Silently handle - don't block UI
+            setSystemState(null);
+            setIsSystemBusy(false);
         }
     };
 
@@ -230,7 +226,7 @@ export default function AutoOptimizationTestPage() {
                 </div>
 
                 {/* System State */}
-                {systemState?.is_active && (
+                {isSystemBusy && systemState && (
                     <Card className="bg-orange-900/20 border-orange-600">
                         <CardContent className="p-4">
                             <div className="flex items-center justify-between">
@@ -295,7 +291,7 @@ export default function AutoOptimizationTestPage() {
                         <div className="grid grid-cols-2 gap-4">
                             <Button
                                 onClick={handleQuickTest}
-                                disabled={isRunning || !selectedQuestion}
+                                disabled={isRunning || isSystemBusy || !selectedQuestion}
                                 className="bg-blue-600 hover:bg-blue-700 h-12"
                             >
                                 {isRunning ? (
@@ -313,7 +309,7 @@ export default function AutoOptimizationTestPage() {
 
                             <Button
                                 onClick={handleAutoOptimization}
-                                disabled={isRunning || !selectedQuestion || !isAdmin}
+                                disabled={isRunning || isSystemBusy || !selectedQuestion || !isAdmin}
                                 className="bg-orange-600 hover:bg-orange-700 h-12"
                             >
                                 {isRunning ? (
