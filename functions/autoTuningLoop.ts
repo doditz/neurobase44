@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.7.1';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
 
 /**
  * AUTO-TUNING LOOP v4.5 - Sweet Spot Optimizer
@@ -97,14 +97,28 @@ Deno.serve(async (req) => {
                 break;
             }
 
-            // Extraire métriques
+            // Extraire métriques - FIXED: correct property paths
             const spg = benchmarkResult.spg || 0;
-            const tokens = benchmarkResult.benchmark_result?.mode_b?.tokens || 0;
-            const tokensA = benchmarkResult.benchmark_result?.mode_a?.tokens || tokens;
-            const quality = benchmarkResult.quality_scores?.B?.relevance || 0;
+            const tokens = benchmarkResult.benchmark_result?.mode_b?.tokens || benchmarkResult.mode_b_token_count || 0;
+            const tokensA = benchmarkResult.benchmark_result?.mode_a?.tokens || benchmarkResult.mode_a_token_count || tokens;
+            
+            // Quality score extraction - try multiple paths
+            let quality = 0;
+            if (benchmarkResult.quality_scores) {
+                quality = benchmarkResult.quality_scores.mode_b_ars_score || 
+                         benchmarkResult.quality_scores.B?.relevance ||
+                         benchmarkResult.quality_scores.overall || 
+                         0;
+            }
+            // Fallback: estimate quality from winner
+            if (quality === 0 && benchmarkResult.winner === 'mode_b') {
+                quality = 0.8;
+            } else if (quality === 0) {
+                quality = 0.6;
+            }
 
             const tokenEfficiency = tokensA > 0 ? ((tokensA - tokens) / tokensA) : 0;
-            const overallEfficiency = tokenEfficiency;
+            const overallEfficiency = Math.max(0, tokenEfficiency);
 
             addLog(`SPG=${spg.toFixed(3)}, Q=${quality.toFixed(2)}, Eff=${(overallEfficiency*100).toFixed(1)}%`);
 

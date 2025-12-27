@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
@@ -76,22 +75,30 @@ export default function AutoOptimizationTestPage() {
                 run_mode: 'ab_test'
             });
 
-            if (data.success) {
-                toast.success(`✅ Test terminé! SPG: ${data.spg?.toFixed(3) || 'N/A'}`);
+            if (data && data.success) {
+                const spgDisplay = data.spg?.toFixed(3) || 'N/A';
+                const winnerDisplay = data.winner === 'mode_b' ? 'Mode B gagne!' : data.winner === 'mode_a' ? 'Mode A' : 'Égalité';
+                toast.success(`✅ ${winnerDisplay} SPG: ${spgDisplay}`);
                 setTestResult(data);
                 
                 setTimeout(async () => {
                     await loadData();
-                    toast.info('📊 Résultats rafraîchis');
-                }, 2000);
+                }, 1500);
             } else {
-                throw new Error(data.error || data.message || 'Test failed');
+                throw new Error(data?.error || data?.message || 'Test failed - no data returned');
             }
         } catch (error) {
             console.error('Test error:', error);
             
-            const errorMessage = error.response?.data?.message || error.response?.data?.err || error.message;
-            toast.error(`❌ Erreur: ${errorMessage}`);
+            const errorData = error.response?.data || {};
+            const errorMessage = errorData.error || errorData.message || errorData.err || error.message;
+            
+            // Show detailed logs if available
+            if (errorData.logs && Array.isArray(errorData.logs)) {
+                console.error('Backend logs:', errorData.logs);
+            }
+            
+            toast.error(`❌ ${errorMessage}`, { duration: 6000 });
         } finally {
             setIsRunning(false);
         }
