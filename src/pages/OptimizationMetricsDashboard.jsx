@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import AlertConfigPanel from '@/components/alerts/AlertConfigPanel';
 import AlertNotificationBanner from '@/components/alerts/AlertNotificationBanner';
+import StrategyComparisonPanel from '@/components/analytics/StrategyComparisonPanel';
+import PerformanceReportGenerator from '@/components/analytics/PerformanceReportGenerator';
 import { toast } from 'sonner';
 import { 
     LineChart, Line, BarChart, Bar, AreaChart, Area,
@@ -458,6 +460,14 @@ export default function OptimizationMetricsDashboard() {
                             <Activity className="w-4 h-4 mr-2" />
                             Distribution
                         </TabsTrigger>
+                        <TabsTrigger value="analysis" className="data-[state=active]:bg-pink-900/30 data-[state=active]:text-pink-400">
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Analyse
+                        </TabsTrigger>
+                        <TabsTrigger value="reports" className="data-[state=active]:bg-cyan-900/30 data-[state=active]:text-cyan-400">
+                            <BarChart3 className="w-4 h-4 mr-2" />
+                            Rapports
+                        </TabsTrigger>
                     </TabsList>
 
                     {/* Trends Tab */}
@@ -729,6 +739,23 @@ export default function OptimizationMetricsDashboard() {
                                 </CardContent>
                             </Card>
                         </div>
+                    </TabsContent>
+
+                    {/* Analysis Tab - Strategy Correlation */}
+                    <TabsContent value="analysis">
+                        <StrategyComparisonPanel 
+                            benchmarks={filteredBenchmarks} 
+                            strategies={strategies}
+                        />
+                    </TabsContent>
+
+                    {/* Reports Tab - Custom Report Generator */}
+                    <TabsContent value="reports">
+                        <PerformanceReportGenerator 
+                            benchmarks={benchmarks}
+                            strategies={strategies}
+                            tunableParams={tunableParams}
+                        />
                     </TabsContent>
                 </Tabs>
             </div>
