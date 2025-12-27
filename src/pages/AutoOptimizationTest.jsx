@@ -6,10 +6,11 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Zap, TrendingUp, Clock, DollarSign, CheckCircle2, Loader2, BarChart3, Heart, History, Settings } from 'lucide-react';
+import { Play, Zap, TrendingUp, Clock, DollarSign, CheckCircle2, Loader2, BarChart3, Heart, History, Settings, Activity } from 'lucide-react';
 import { toast } from 'sonner';
 import OptimizationHistoryChart from '@/components/optimization/OptimizationHistoryChart';
 import ConfigurableTestPanel from '@/components/optimization/ConfigurableTestPanel';
+import RealtimeTuningPanel from '@/components/optimization/RealtimeTuningPanel';
 
 export default function AutoOptimizationTestPage() {
     const [user, setUser] = useState(null);
@@ -245,6 +246,10 @@ export default function AutoOptimizationTestPage() {
                             <History className="w-4 h-4 mr-2" />
                             Historique
                         </TabsTrigger>
+                        <TabsTrigger value="realtime" className="data-[state=active]:bg-pink-900/30 data-[state=active]:text-pink-400">
+                            <Activity className="w-4 h-4 mr-2" />
+                            Tuning Live
+                        </TabsTrigger>
                     </TabsList>
 
                     {/* Quick Test Tab */}
@@ -373,6 +378,11 @@ export default function AutoOptimizationTestPage() {
                     {/* History Tab */}
                     <TabsContent value="history">
                         <OptimizationHistoryChart results={recentResults} />
+                    </TabsContent>
+
+                    {/* Realtime Tuning Tab */}
+                    <TabsContent value="realtime">
+                        <RealtimeTuningPanel onAdjustmentApplied={loadData} />
                     </TabsContent>
                 </Tabs>
 
