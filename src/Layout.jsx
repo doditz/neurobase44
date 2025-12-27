@@ -76,7 +76,8 @@ const menuSections = [
       { title: "Gauntlet", url: createPageUrl("NeuronasGauntlet"), icon: Zap },
       { title: "Vector Test", url: createPageUrl("VectorRoutingTest"), icon: Layers },
       { title: "Self-Opt", url: createPageUrl("SelfOptimizationDashboard"), icon: TrendingUp },
-      { title: "Perf Tracker", url: createPageUrl("PerformanceTracker"), icon: BarChart3 }
+      { title: "Perf Tracker", url: createPageUrl("PerformanceTracker"), icon: BarChart3 },
+      { title: "Metrics Hub", url: createPageUrl("OptimizationMetricsDashboard"), icon: Target }
       ]
       }
 ];

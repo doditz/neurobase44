@@ -39,6 +39,7 @@ import SystemPipelineTest from './pages/SystemPipelineTest';
 import ValidationDashboard from './pages/ValidationDashboard';
 import VectorRoutingTest from './pages/VectorRoutingTest';
 import index from './pages/index';
+import OptimizationMetricsDashboard from './pages/OptimizationMetricsDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -84,6 +85,7 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "VectorRoutingTest": VectorRoutingTest,
     "index": index,
+    "OptimizationMetricsDashboard": OptimizationMetricsDashboard,
 }
 
 export const pagesConfig = {
