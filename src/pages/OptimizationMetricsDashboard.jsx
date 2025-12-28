@@ -16,8 +16,7 @@ import AlertConfigPanel from '@/components/alerts/AlertConfigPanel';
 import AlertNotificationBanner from '@/components/alerts/AlertNotificationBanner';
 import StrategyComparisonPanel from '@/components/analytics/StrategyComparisonPanel';
 import PerformanceReportGenerator from '@/components/analytics/PerformanceReportGenerator';
-import UnifiedLogTable from '@/components/logs/UnifiedLogTable.js';
-import VersionComparisonPanel from '@/components/logs/VersionComparisonPanel.js';
+
 import { toast } from 'sonner';
 import { 
     LineChart, Line, BarChart, Bar, AreaChart, Area,
