@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { base44 } from '@/api/base44Client';
 import { PerplexitySearch } from '@/entities/PerplexitySearch';
 import { User } from '@/entities/User';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
-    Search, ExternalLink, Clock, Zap, Copy, RefreshCw, TrendingUp 
+    Search, ExternalLink, Clock, Zap, Copy, RefreshCw, TrendingUp, 
+    Send, Loader2, Sparkles
 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 
 export default function PerplexityHistory() {
     const [searches, setSearches] = useState([]);

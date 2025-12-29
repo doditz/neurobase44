@@ -19,6 +19,7 @@ import HuggingFaceSettings from './pages/HuggingFaceSettings';
 import MemoryExplorer from './pages/MemoryExplorer';
 import MemoryVisualization from './pages/MemoryVisualization';
 import NeuronasGauntlet from './pages/NeuronasGauntlet';
+import OptimizationMetricsDashboard from './pages/OptimizationMetricsDashboard';
 import PerformanceTracker from './pages/PerformanceTracker';
 import PerplexityHistory from './pages/PerplexityHistory';
 import Personas from './pages/Personas';
@@ -39,7 +40,6 @@ import SystemPipelineTest from './pages/SystemPipelineTest';
 import ValidationDashboard from './pages/ValidationDashboard';
 import VectorRoutingTest from './pages/VectorRoutingTest';
 import index from './pages/index';
-import OptimizationMetricsDashboard from './pages/OptimizationMetricsDashboard';
 import __Layout from './Layout.jsx';
 
 
@@ -65,6 +65,7 @@ export const PAGES = {
     "MemoryExplorer": MemoryExplorer,
     "MemoryVisualization": MemoryVisualization,
     "NeuronasGauntlet": NeuronasGauntlet,
+    "OptimizationMetricsDashboard": OptimizationMetricsDashboard,
     "PerformanceTracker": PerformanceTracker,
     "PerplexityHistory": PerplexityHistory,
     "Personas": Personas,
@@ -85,7 +86,6 @@ export const PAGES = {
     "ValidationDashboard": ValidationDashboard,
     "VectorRoutingTest": VectorRoutingTest,
     "index": index,
-    "OptimizationMetricsDashboard": OptimizationMetricsDashboard,
 }
 
 export const pagesConfig = {
