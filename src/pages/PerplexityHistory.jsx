@@ -24,6 +24,13 @@ export default function PerplexityHistory() {
     const [isLoading, setIsLoading] = useState(true);
     const [user, setUser] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
+    
+    // Chat state
+    const [chatInput, setChatInput] = useState('');
+    const [isSearching, setIsSearching] = useState(false);
+    const [streamingResponse, setStreamingResponse] = useState('');
+    const [currentCitations, setCurrentCitations] = useState([]);
+    const chatEndRef = useRef(null);
 
     useEffect(() => {
         loadData();
