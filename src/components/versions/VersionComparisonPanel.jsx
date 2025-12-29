@@ -225,6 +225,100 @@ export default function VersionComparisonPanel() {
             }
         }
 
+        // Section 5: Impact Configuration Analysis
+        if (comparisonData.configImpactAnalysis && comparisonData.configImpactAnalysis.length > 0) {
+            doc.addPage();
+            y = 20;
+            
+            doc.setFontSize(16);
+            doc.setTextColor(16, 185, 129);
+            doc.text('5. Analyse d\'Impact des Configurations', 20, y);
+            y += 12;
+            
+            doc.setFontSize(10);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Corrélation entre les changements de configuration et les variations de métriques', 20, y);
+            y += 12;
+
+            // High impact changes
+            const highImpact = comparisonData.configImpactAnalysis.filter(i => i.severity === 'high');
+            const mediumImpact = comparisonData.configImpactAnalysis.filter(i => i.severity === 'medium');
+            
+            if (highImpact.length > 0) {
+                doc.setFontSize(12);
+                doc.setTextColor(239, 68, 68);
+                doc.text('⚠ Changements à Impact Élevé', 20, y);
+                y += 8;
+                
+                doc.setFontSize(9);
+                highImpact.forEach(impact => {
+                    if (y > 270) { doc.addPage(); y = 20; }
+                    
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`${impact.parameter}`, 25, y);
+                    
+                    // Valeur avant/après
+                    const valA = typeof impact.valueA === 'object' ? JSON.stringify(impact.valueA) : String(impact.valueA ?? 'N/A');
+                    const valB = typeof impact.valueB === 'object' ? JSON.stringify(impact.valueB) : String(impact.valueB ?? 'N/A');
+                    doc.setTextColor(100, 100, 100);
+                    doc.text(`${valA.substring(0, 15)} → ${valB.substring(0, 15)}`, 80, y);
+                    
+                    // Score d'impact
+                    doc.setTextColor(239, 68, 68);
+                    doc.text(`Impact: ${impact.impactScore.toFixed(1)}%`, 150, y);
+                    y += 6;
+                    
+                    // Métriques affectées
+                    impact.affectedMetrics.forEach(metric => {
+                        doc.setTextColor(metric.isImprovement ? 34 : 239, metric.isImprovement ? 197 : 68, metric.isImprovement ? 94 : 68);
+                        doc.text(`  → ${metric.metricLabel}: ${metric.metricDeltaPercent > 0 ? '+' : ''}${metric.metricDeltaPercent.toFixed(1)}%`, 30, y);
+                        y += 5;
+                    });
+                    y += 3;
+                });
+            }
+
+            if (mediumImpact.length > 0) {
+                y += 5;
+                doc.setFontSize(12);
+                doc.setTextColor(234, 179, 8);
+                doc.text('⚡ Changements à Impact Modéré', 20, y);
+                y += 8;
+                
+                doc.setFontSize(9);
+                mediumImpact.slice(0, 5).forEach(impact => {
+                    if (y > 270) { doc.addPage(); y = 20; }
+                    
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(`${impact.parameter}`, 25, y);
+                    
+                    doc.setTextColor(234, 179, 8);
+                    doc.text(`Impact: ${impact.impactScore.toFixed(1)}%`, 150, y);
+                    y += 6;
+                    
+                    impact.affectedMetrics.slice(0, 2).forEach(metric => {
+                        doc.setTextColor(metric.isImprovement ? 34 : 239, metric.isImprovement ? 197 : 68, metric.isImprovement ? 94 : 68);
+                        doc.text(`  → ${metric.metricLabel}: ${metric.metricDeltaPercent > 0 ? '+' : ''}${metric.metricDeltaPercent.toFixed(1)}%`, 30, y);
+                        y += 5;
+                    });
+                    y += 2;
+                });
+            }
+
+            // Summary box
+            y += 10;
+            doc.setFillColor(30, 41, 59);
+            doc.roundedRect(20, y, 170, 25, 3, 3, 'F');
+            y += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(16, 185, 129);
+            doc.text('Résumé d\'Impact', 25, y);
+            y += 7;
+            doc.setFontSize(9);
+            doc.setTextColor(200, 200, 200);
+            doc.text(`${highImpact.length} changements critiques | ${mediumImpact.length} modérés | ${comparisonData.configImpactAnalysis.length - highImpact.length - mediumImpact.length} faibles`, 25, y);
+        }
+
         // Footer
         doc.setFontSize(8);
         doc.setTextColor(150, 150, 150);
