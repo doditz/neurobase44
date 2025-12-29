@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { User } from '@/entities/User';
 import { Debate } from '@/entities/Debate';
