@@ -151,17 +151,90 @@ export default function PerplexityHistory() {
                         </Button>
                     </div>
 
-                    {/* Search Bar */}
+                    {/* Filter Bar */}
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                         <Input
-                            placeholder="Rechercher dans l'historique..."
+                            placeholder="Filtrer l'historique..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             className="pl-10 bg-slate-800 border-slate-700 text-green-300 placeholder:text-slate-500"
                         />
                     </div>
                 </div>
+
+                {/* Chat Search Box */}
+                <Card className="bg-gradient-to-r from-slate-800 to-slate-800/80 border-green-600/50 mb-8">
+                    <CardHeader className="pb-3">
+                        <CardTitle className="text-green-300 flex items-center gap-2">
+                            <Sparkles className="w-5 h-5 text-orange-400" />
+                            Nouvelle Recherche Perplexity
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex gap-3">
+                            <Textarea
+                                placeholder="Posez votre question... (Ex: Quelles sont les dernières avancées en IA générative?)"
+                                value={chatInput}
+                                onChange={(e) => setChatInput(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                className="flex-1 bg-slate-700 border-slate-600 text-green-300 placeholder:text-slate-500 min-h-[60px] resize-none"
+                                disabled={isSearching}
+                            />
+                            <Button
+                                onClick={handleSearch}
+                                disabled={!chatInput.trim() || isSearching}
+                                className="bg-green-600 hover:bg-green-700 h-auto px-6"
+                            >
+                                {isSearching ? (
+                                    <Loader2 className="w-5 h-5 animate-spin" />
+                                ) : (
+                                    <Send className="w-5 h-5" />
+                                )}
+                            </Button>
+                        </div>
+
+                        {/* Streaming Response */}
+                        {(isSearching || streamingResponse) && (
+                            <div className="bg-slate-900 rounded-lg p-4 border border-slate-700">
+                                {isSearching && !streamingResponse && (
+                                    <div className="flex items-center gap-3 text-green-400">
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        <span>Recherche en cours avec sources web...</span>
+                                    </div>
+                                )}
+                                
+                                {streamingResponse && (
+                                    <div className="space-y-4">
+                                        <div className="prose prose-invert prose-sm max-w-none">
+                                            <ReactMarkdown>{streamingResponse}</ReactMarkdown>
+                                        </div>
+                                        
+                                        {currentCitations.length > 0 && (
+                                            <div className="pt-3 border-t border-slate-700">
+                                                <p className="text-xs text-slate-400 mb-2">Sources ({currentCitations.length}):</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {currentCitations.map((url, idx) => (
+                                                        <a
+                                                            key={idx}
+                                                            href={url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="inline-flex items-center gap-1 text-xs bg-slate-800 text-blue-400 hover:text-blue-300 px-2 py-1 rounded"
+                                                        >
+                                                            [{idx + 1}]
+                                                            <ExternalLink className="w-3 h-3" />
+                                                        </a>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
 
                 {/* Stats Cards */}
                 <div className="grid md:grid-cols-3 gap-6 mb-8">
