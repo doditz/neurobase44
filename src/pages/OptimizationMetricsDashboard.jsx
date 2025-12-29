@@ -772,22 +772,15 @@ export default function OptimizationMetricsDashboard() {
 
                     {/* Unified Logs Tab */}
                     <TabsContent value="logs">
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardContent className="p-6 text-center">
-                                <Layers className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                                <p className="text-slate-400">Logs unifiés - Chargement des données...</p>
-                            </CardContent>
-                        </Card>
+                        <div className="space-y-6">
+                            <UnifiedLogTable />
+                            <LogBasedAlertSystem />
+                        </div>
                     </TabsContent>
 
                     {/* Versions Tab */}
                     <TabsContent value="versions">
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardContent className="p-6 text-center">
-                                <Target className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-                                <p className="text-slate-400">Comparaison des versions - En construction</p>
-                            </CardContent>
-                        </Card>
+                        <VersionComparisonPanel />
                     </TabsContent>
                 </Tabs>
             </div>
