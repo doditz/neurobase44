@@ -4,6 +4,8 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CheckCircle2, XCircle, Clock, Zap, TrendingUp, Target, Award } from 'lucide-react';
 
+const safeNum = (val) => (val === null || val === undefined || isNaN(val)) ? 0 : Number(val);
+
 export default function BatchProgressTracker({ progressData, elapsedTime }) {
     if (!progressData) return null;
 
@@ -103,11 +105,11 @@ export default function BatchProgressTracker({ progressData, elapsedTime }) {
                                     SPG Moy.
                                 </div>
                                 <div className="text-lg font-bold text-green-400">
-                                    {(running_avg_spg || 0).toFixed(3)}
+                                    {safeNum(running_avg_spg).toFixed(3)}
                                 </div>
                                 {real_time_stats.median_spg !== undefined && (
                                     <div className="text-xs text-green-300/70 mt-1">
-                                        Médiane: {(real_time_stats.median_spg || 0).toFixed(3)}
+                                        Médiane: {safeNum(real_time_stats.median_spg).toFixed(3)}
                                     </div>
                                 )}
                             </div>
@@ -117,10 +119,10 @@ export default function BatchProgressTracker({ progressData, elapsedTime }) {
                                     Pass Rate
                                 </div>
                                 <div className="text-lg font-bold text-blue-400">
-                                    {((current_pass_rate || 0) * 100).toFixed(0)}%
+                                    {(safeNum(current_pass_rate) * 100).toFixed(0)}%
                                 </div>
                                 <div className="text-xs text-blue-300/70 mt-1">
-                                    {successful_questions}/{completed_questions} réussis
+                                    {safeNum(successful_questions)}/{safeNum(completed_questions)} réussis
                                 </div>
                             </div>
                             <div className="p-3 bg-purple-900/20 rounded-lg border border-purple-600/30">
@@ -129,7 +131,7 @@ export default function BatchProgressTracker({ progressData, elapsedTime }) {
                                     CPU Save
                                 </div>
                                 <div className="text-lg font-bold text-purple-400">
-                                    {(running_avg_cpu_savings || 0).toFixed(1)}%
+                                    {safeNum(running_avg_cpu_savings).toFixed(1)}%
                                 </div>
                             </div>
                             <div className="p-3 bg-orange-900/20 rounded-lg border border-orange-600/30">
@@ -138,7 +140,7 @@ export default function BatchProgressTracker({ progressData, elapsedTime }) {
                                     Token Save
                                 </div>
                                 <div className="text-lg font-bold text-orange-400">
-                                    {(running_avg_token_savings || 0).toFixed(1)}%
+                                    {safeNum(running_avg_token_savings).toFixed(1)}%
                                 </div>
                             </div>
                         </div>
@@ -150,19 +152,19 @@ export default function BatchProgressTracker({ progressData, elapsedTime }) {
                                 <div>
                                     <div className="text-slate-400">Somme SPG</div>
                                     <div className="text-green-400 font-bold text-sm">
-                                        {(running_avg_spg * completed_questions || 0).toFixed(2)}
+                                        {safeNum(safeNum(running_avg_spg) * safeNum(completed_questions)).toFixed(2)}
                                     </div>
                                 </div>
                                 <div>
                                     <div className="text-slate-400">Questions traitées</div>
                                     <div className="text-blue-400 font-bold text-sm">
-                                        {completed_questions}/{total_questions}
+                                        {safeNum(completed_questions)}/{safeNum(total_questions)}
                                     </div>
                                 </div>
                                 <div>
                                     <div className="text-slate-400">Projection finale</div>
                                     <div className="text-purple-400 font-bold text-sm">
-                                        SPG ~{(running_avg_spg || 0).toFixed(3)}
+                                        SPG ~{safeNum(running_avg_spg).toFixed(3)}
                                     </div>
                                 </div>
                             </div>

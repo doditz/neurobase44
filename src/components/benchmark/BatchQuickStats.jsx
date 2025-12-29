@@ -18,38 +18,40 @@ export default function BatchQuickStats({ summaryData }) {
     const total = total_passed + total_failed;
     const passRatePercent = total > 0 ? (pass_rate * 100) : 0;
 
+    const safeNum = (val) => (val === null || val === undefined || isNaN(val)) ? 0 : Number(val);
+
     const stats = [
         {
             label: 'SPG Moyen',
-            value: (average_spg || 0).toFixed(3),
+            value: safeNum(average_spg).toFixed(3),
             icon: TrendingUp,
             color: 'text-green-400',
             bgColor: 'bg-green-900/20'
         },
         {
             label: 'Taux de Réussite',
-            value: `${passRatePercent.toFixed(1)}%`,
+            value: `${safeNum(passRatePercent).toFixed(1)}%`,
             icon: CheckCircle2,
             color: passRatePercent >= 80 ? 'text-green-400' : passRatePercent >= 60 ? 'text-yellow-400' : 'text-red-400',
             bgColor: passRatePercent >= 80 ? 'bg-green-900/20' : passRatePercent >= 60 ? 'bg-yellow-900/20' : 'bg-red-900/20'
         },
         {
             label: 'Économie CPU',
-            value: `${(average_cpu_savings || 0).toFixed(1)}%`,
+            value: `${safeNum(average_cpu_savings).toFixed(1)}%`,
             icon: Cpu,
             color: 'text-blue-400',
             bgColor: 'bg-blue-900/20'
         },
         {
             label: 'Économie RAM',
-            value: `${(average_ram_savings || 0).toFixed(1)}%`,
+            value: `${safeNum(average_ram_savings).toFixed(1)}%`,
             icon: HardDrive,
             color: 'text-purple-400',
             bgColor: 'bg-purple-900/20'
         },
         {
             label: 'Économie Tokens',
-            value: `${(average_token_savings || 0).toFixed(1)}%`,
+            value: `${safeNum(average_token_savings).toFixed(1)}%`,
             icon: Zap,
             color: 'text-orange-400',
             bgColor: 'bg-orange-900/20'
