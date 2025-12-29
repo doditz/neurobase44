@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { GitCompare, TrendingUp, TrendingDown, Minus, CheckCircle2, FileText, Clock, Zap, Target, RefreshCw, Loader2 } from 'lucide-react';
+import { GitCompare, TrendingUp, TrendingDown, Minus, CheckCircle2, FileText, Clock, Zap, Target, RefreshCw, Loader2, Download } from 'lucide-react';
 import { toast } from 'sonner';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
+import { jsPDF } from 'jspdf';
 
 export default function VersionComparisonPanel() {
     const [versions, setVersions] = useState([]);
@@ -69,6 +72,169 @@ export default function VersionComparisonPanel() {
         return { versionA: vA, versionB: vB, metrics, changelog: { uniqueToA, uniqueToB, common: commonChanges }, configDiffs, descriptionDiff: vA.description !== vB.description, descriptions: { a: vA.description, b: vB.description } };
     }, [versionA, versionB, versions]);
 
+    const generatePDFReport = () => {
+        if (!comparisonData) return;
+        
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        let y = 20;
+
+        // Title
+        doc.setFontSize(20);
+        doc.setTextColor(16, 185, 129);
+        doc.text('Rapport de Comparaison de Versions', pageWidth / 2, y, { align: 'center' });
+        y += 15;
+
+        // Metadata
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Généré le: ${format(new Date(), 'PPpp', { locale: fr })}`, 20, y);
+        y += 8;
+        doc.text(`Version A: ${comparisonData.versionA.version_tag} ${comparisonData.versionA.is_baseline ? '(baseline)' : ''}`, 20, y);
+        y += 6;
+        doc.text(`Version B: ${comparisonData.versionB.version_tag} ${comparisonData.versionB.is_active ? '(active)' : ''}`, 20, y);
+        y += 15;
+
+        // Metrics Section
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text('1. Métriques de Performance', 20, y);
+        y += 10;
+
+        doc.setFontSize(10);
+        comparisonData.metrics.forEach(metric => {
+            const delta = metric.valueB - metric.valueA;
+            const deltaPercent = metric.valueA !== 0 ? (delta / metric.valueA) * 100 : 0;
+            const isImprovement = metric.higherIsBetter ? delta > 0 : delta < 0;
+            
+            doc.setTextColor(0, 0, 0);
+            doc.text(`${metric.label}:`, 25, y);
+            doc.text(`A: ${metric.format(metric.valueA)}`, 80, y);
+            doc.text(`B: ${metric.format(metric.valueB)}`, 120, y);
+            doc.setTextColor(isImprovement ? 34 : 239, isImprovement ? 197 : 68, isImprovement ? 94 : 68);
+            doc.text(`${delta > 0 ? '+' : ''}${deltaPercent.toFixed(1)}%`, 160, y);
+            y += 7;
+        });
+        y += 10;
+
+        // Summary Stats
+        const improvedCount = comparisonData.metrics.filter(m => m.higherIsBetter ? m.valueB > m.valueA : m.valueB < m.valueA).length;
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Résumé: ${improvedCount}/${comparisonData.metrics.length} métriques améliorées`, 25, y);
+        y += 15;
+
+        // Description Changes
+        if (comparisonData.descriptionDiff) {
+            doc.setFontSize(14);
+            doc.text('2. Changement de Description', 20, y);
+            y += 10;
+            doc.setFontSize(9);
+            doc.setTextColor(100, 100, 100);
+            
+            const descA = comparisonData.descriptions.a || '(vide)';
+            const descB = comparisonData.descriptions.b || '(vide)';
+            
+            doc.text('Version A:', 25, y);
+            y += 5;
+            const splitA = doc.splitTextToSize(descA, 160);
+            doc.text(splitA, 30, y);
+            y += splitA.length * 5 + 5;
+            
+            doc.text('Version B:', 25, y);
+            y += 5;
+            const splitB = doc.splitTextToSize(descB, 160);
+            doc.text(splitB, 30, y);
+            y += splitB.length * 5 + 10;
+        }
+
+        // New page if needed
+        if (y > 250) {
+            doc.addPage();
+            y = 20;
+        }
+
+        // Changelog Section
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text('3. Changelog', 20, y);
+        y += 10;
+
+        doc.setFontSize(10);
+        doc.text(`Nouveaux dans B: ${comparisonData.changelog.uniqueToB.length}`, 25, y);
+        y += 6;
+        doc.setFontSize(9);
+        doc.setTextColor(34, 197, 94);
+        comparisonData.changelog.uniqueToB.slice(0, 5).forEach(change => {
+            const split = doc.splitTextToSize(`+ ${change}`, 160);
+            doc.text(split, 30, y);
+            y += split.length * 5;
+        });
+        if (comparisonData.changelog.uniqueToB.length > 5) {
+            doc.text(`... et ${comparisonData.changelog.uniqueToB.length - 5} autres`, 30, y);
+            y += 6;
+        }
+        y += 5;
+
+        doc.setTextColor(239, 68, 68);
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Retirés de A: ${comparisonData.changelog.uniqueToA.length}`, 25, y);
+        y += 6;
+        doc.setFontSize(9);
+        doc.setTextColor(239, 68, 68);
+        comparisonData.changelog.uniqueToA.slice(0, 3).forEach(change => {
+            const split = doc.splitTextToSize(`- ${change}`, 160);
+            doc.text(split, 30, y);
+            y += split.length * 5;
+        });
+        y += 10;
+
+        // Config Changes
+        if (comparisonData.configDiffs.length > 0) {
+            if (y > 250) {
+                doc.addPage();
+                y = 20;
+            }
+            
+            doc.setFontSize(14);
+            doc.setTextColor(0, 0, 0);
+            doc.text('4. Modifications de Configuration', 20, y);
+            y += 10;
+
+            doc.setFontSize(9);
+            comparisonData.configDiffs.slice(0, 10).forEach(diff => {
+                doc.setTextColor(0, 0, 0);
+                doc.text(`${diff.key}:`, 25, y);
+                
+                if (diff.status === 'added') {
+                    doc.setTextColor(34, 197, 94);
+                    doc.text('[AJOUTÉ]', 100, y);
+                } else if (diff.status === 'removed') {
+                    doc.setTextColor(239, 68, 68);
+                    doc.text('[SUPPRIMÉ]', 100, y);
+                } else {
+                    doc.setTextColor(234, 179, 8);
+                    doc.text('[MODIFIÉ]', 100, y);
+                }
+                y += 6;
+            });
+            
+            if (comparisonData.configDiffs.length > 10) {
+                doc.setTextColor(100, 100, 100);
+                doc.text(`... et ${comparisonData.configDiffs.length - 10} autres modifications`, 25, y);
+            }
+        }
+
+        // Footer
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('Rapport généré par Neuronas AI - Système d\'Optimisation', pageWidth / 2, 285, { align: 'center' });
+
+        // Save
+        doc.save(`version_comparison_${comparisonData.versionA.version_tag}_vs_${comparisonData.versionB.version_tag}.pdf`);
+        toast.success('Rapport PDF généré');
+    };
+
     const MetricDelta = ({ metric }) => {
         const delta = metric.valueB - metric.valueA;
         const deltaPercent = metric.valueA !== 0 ? (delta / metric.valueA) * 100 : 0;
@@ -99,7 +265,14 @@ export default function VersionComparisonPanel() {
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <CardTitle className="text-green-300 flex items-center gap-2"><GitCompare className="w-5 h-5" />Comparaison de Versions</CardTitle>
-                        <Button onClick={loadVersions} size="sm" variant="outline" className="border-green-600 text-green-400"><RefreshCw className="w-3 h-3 mr-1" /></Button>
+                        <div className="flex gap-2">
+                            {comparisonData && (
+                                <Button onClick={generatePDFReport} size="sm" variant="outline" className="border-blue-600 text-blue-400">
+                                    <Download className="w-3 h-3 mr-1" />PDF
+                                </Button>
+                            )}
+                            <Button onClick={loadVersions} size="sm" variant="outline" className="border-green-600 text-green-400"><RefreshCw className="w-3 h-3 mr-1" /></Button>
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent>
