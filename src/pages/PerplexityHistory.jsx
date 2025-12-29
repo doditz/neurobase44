@@ -71,6 +71,48 @@ export default function PerplexityHistory() {
         toast.success('Copié dans le presse-papier');
     };
 
+    const handleSearch = async () => {
+        if (!chatInput.trim() || isSearching) return;
+
+        const query = chatInput.trim();
+        setChatInput('');
+        setIsSearching(true);
+        setStreamingResponse('');
+        setCurrentCitations([]);
+
+        try {
+            const { data } = await base44.functions.invoke('perplexitySearch', {
+                query,
+                model: 'sonar'
+            });
+
+            if (data && data.success) {
+                setStreamingResponse(data.answer || '');
+                setCurrentCitations(data.citations || []);
+                
+                // Reload history to show new search
+                loadData();
+                
+                toast.success('Recherche terminée');
+            } else {
+                throw new Error(data?.error || 'Recherche échouée');
+            }
+        } catch (error) {
+            console.error('Search error:', error);
+            toast.error(`Erreur: ${error.message}`);
+            setStreamingResponse('');
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleKeyDown = (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSearch();
+        }
+    };
+
     const totalTokens = searches.reduce((sum, s) => sum + (s.tokens_used || 0), 0);
     const avgTokens = searches.length > 0 ? Math.round(totalTokens / searches.length) : 0;
 
