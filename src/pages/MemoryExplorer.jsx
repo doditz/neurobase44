@@ -231,9 +231,9 @@ export default function MemoryExplorerPage() {
                                                         <Badge variant="outline" className="font-mono">
                                                             D2: {(memory.d2_modulation || 0.5).toFixed(2)}
                                                         </Badge>
-                                                        {memory.omega_t !== undefined && (
+                                                        {memory.omega_t != null && (
                                                             <Badge variant="outline" className="font-mono">
-                                                                Ω: {memory.omega_t.toFixed(2)}
+                                                                Ω: {Number(memory.omega_t).toFixed(2)}
                                                             </Badge>
                                                         )}
                                                         {memory.compression_type && (
@@ -249,8 +249,8 @@ export default function MemoryExplorerPage() {
                                                     
                                                     <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                                                         <span>Accès: {memory.access_count || 0}</span>
-                                                        {memory.importance_score && (
-                                                            <span>Importance: {(memory.importance_score * 100).toFixed(0)}%</span>
+                                                        {memory.importance_score != null && (
+                                                            <span>Importance: {(Number(memory.importance_score) * 100).toFixed(0)}%</span>
                                                         )}
                                                         {memory.semantic_hash && (
                                                             <span className="font-mono">Hash: {memory.semantic_hash}</span>
