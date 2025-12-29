@@ -69,8 +69,88 @@ export default function VersionComparisonPanel() {
             }
         });
 
-        return { versionA: vA, versionB: vB, metrics, changelog: { uniqueToA, uniqueToB, common: commonChanges }, configDiffs, descriptionDiff: vA.description !== vB.description, descriptions: { a: vA.description, b: vB.description } };
+        // Analyse d'impact des configurations
+        const configImpactAnalysis = analyzeConfigImpact(configDiffs, metrics, configA, configB);
+
+        return { versionA: vA, versionB: vB, metrics, changelog: { uniqueToA, uniqueToB, common: commonChanges }, configDiffs, configImpactAnalysis, descriptionDiff: vA.description !== vB.description, descriptions: { a: vA.description, b: vB.description } };
     }, [versionA, versionB, versions]);
+
+    // Analyse de l'impact des changements de config sur les métriques
+    const analyzeConfigImpact = (configDiffs, metrics, configA, configB) => {
+        const impactAnalysis = [];
+        
+        const parameterImpactMap = {
+            'temperature': { affects: ['avg_spg', 'avg_quality'], direction: 'inverse' },
+            'maxpersonas': { affects: ['avg_latency', 'avg_quality'], direction: 'direct' },
+            'd2modulation': { affects: ['avg_spg', 'avg_quality'], direction: 'direct' },
+            'd2_stim': { affects: ['avg_spg', 'pass_rate'], direction: 'direct' },
+            'd2_pin': { affects: ['avg_quality'], direction: 'direct' },
+            'debaterounds': { affects: ['avg_latency', 'avg_quality'], direction: 'mixed' },
+            'consensusthreshold': { affects: ['pass_rate', 'avg_spg'], direction: 'direct' },
+            'ethicalconstraints': { affects: ['pass_rate'], direction: 'direct' },
+            'hemisphericbias': { affects: ['avg_quality', 'avg_spg'], direction: 'context' },
+            'complexity_threshold': { affects: ['avg_latency', 'pass_rate'], direction: 'inverse' },
+            'max_tokens': { affects: ['avg_latency'], direction: 'direct' },
+            'batch_size': { affects: ['avg_latency'], direction: 'inverse' }
+        };
+
+        configDiffs.forEach(diff => {
+            const paramKey = diff.key.toLowerCase().replace(/[_-]/g, '');
+            const matchedParam = Object.keys(parameterImpactMap).find(p => paramKey.includes(p));
+            const impactInfo = matchedParam ? parameterImpactMap[matchedParam] : { affects: ['avg_spg'], direction: 'unknown' };
+            
+            let valueDelta = null;
+            let valueDeltaPercent = null;
+            
+            if (typeof diff.valueA === 'number' && typeof diff.valueB === 'number') {
+                valueDelta = diff.valueB - diff.valueA;
+                valueDeltaPercent = diff.valueA !== 0 ? (valueDelta / diff.valueA) * 100 : null;
+            }
+
+            const affectedMetrics = impactInfo.affects.map(metricKey => {
+                const metric = metrics.find(m => m.key === metricKey);
+                if (!metric) return null;
+                
+                const metricDelta = metric.valueB - metric.valueA;
+                const metricDeltaPercent = metric.valueA !== 0 ? (metricDelta / metric.valueA) * 100 : 0;
+                
+                let correlationScore = 0.5;
+                if (valueDeltaPercent !== null && metricDeltaPercent !== 0) {
+                    if (impactInfo.direction === 'direct') {
+                        correlationScore = (valueDeltaPercent > 0 && metricDeltaPercent > 0) || (valueDeltaPercent < 0 && metricDeltaPercent < 0) ? 0.8 : 0.2;
+                    } else if (impactInfo.direction === 'inverse') {
+                        correlationScore = (valueDeltaPercent > 0 && metricDeltaPercent < 0) || (valueDeltaPercent < 0 && metricDeltaPercent > 0) ? 0.8 : 0.2;
+                    }
+                }
+
+                return {
+                    metricKey,
+                    metricLabel: metric.label,
+                    metricDelta,
+                    metricDeltaPercent,
+                    isImprovement: metric.higherIsBetter ? metricDelta > 0 : metricDelta < 0,
+                    correlationScore
+                };
+            }).filter(Boolean);
+
+            const impactScore = affectedMetrics.reduce((sum, m) => sum + Math.abs(m.metricDeltaPercent || 0) * m.correlationScore, 0) / Math.max(affectedMetrics.length, 1);
+
+            impactAnalysis.push({
+                parameter: diff.key,
+                valueA: diff.valueA,
+                valueB: diff.valueB,
+                valueDelta,
+                valueDeltaPercent,
+                status: diff.status,
+                impactDirection: impactInfo.direction,
+                affectedMetrics,
+                impactScore,
+                severity: impactScore > 20 ? 'high' : impactScore > 5 ? 'medium' : 'low'
+            });
+        });
+
+        return impactAnalysis.sort((a, b) => b.impactScore - a.impactScore);
+    };
 
     const generatePDFReport = () => {
         if (!comparisonData) return;
@@ -435,6 +515,63 @@ export default function VersionComparisonPanel() {
                                                 <div className="grid grid-cols-2 gap-2 text-xs">
                                                     {diff.status !== 'added' && <div className="text-orange-400">A: {JSON.stringify(diff.valueA)}</div>}
                                                     {diff.status !== 'removed' && <div className="text-green-400">B: {JSON.stringify(diff.valueB)}</div>}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Config Impact Analysis */}
+                    {comparisonData.configImpactAnalysis && comparisonData.configImpactAnalysis.length > 0 && (
+                        <Card className="bg-slate-800 border-orange-600/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-orange-400 text-sm flex items-center gap-2">
+                                    <Target className="w-4 h-4" />
+                                    Analyse d'Impact Configuration
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <ScrollArea className="h-64">
+                                    <div className="space-y-3">
+                                        {comparisonData.configImpactAnalysis.slice(0, 10).map((impact, i) => (
+                                            <div key={i} className={`rounded-lg p-3 border ${
+                                                impact.severity === 'high' ? 'bg-red-900/20 border-red-600/50' :
+                                                impact.severity === 'medium' ? 'bg-yellow-900/20 border-yellow-600/50' :
+                                                'bg-slate-700 border-slate-600'
+                                            }`}>
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-slate-200">{impact.parameter}</span>
+                                                    <Badge className={
+                                                        impact.severity === 'high' ? 'bg-red-600' :
+                                                        impact.severity === 'medium' ? 'bg-yellow-600' : 'bg-slate-600'
+                                                    }>
+                                                        Impact: {impact.impactScore.toFixed(1)}%
+                                                    </Badge>
+                                                </div>
+                                                
+                                                {impact.valueDeltaPercent !== null && (
+                                                    <div className="text-xs text-slate-400 mb-2">
+                                                        {typeof impact.valueA === 'number' ? impact.valueA.toFixed(2) : String(impact.valueA).substring(0, 15)} 
+                                                        <span className="mx-2">→</span>
+                                                        {typeof impact.valueB === 'number' ? impact.valueB.toFixed(2) : String(impact.valueB).substring(0, 15)}
+                                                        <span className={`ml-2 ${impact.valueDeltaPercent > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                                            ({impact.valueDeltaPercent > 0 ? '+' : ''}{impact.valueDeltaPercent.toFixed(1)}%)
+                                                        </span>
+                                                    </div>
+                                                )}
+                                                
+                                                <div className="flex flex-wrap gap-2">
+                                                    {impact.affectedMetrics.map((metric, j) => (
+                                                        <div key={j} className={`flex items-center gap-1 text-xs px-2 py-1 rounded ${
+                                                            metric.isImprovement ? 'bg-green-900/30 text-green-400' : 'bg-red-900/30 text-red-400'
+                                                        }`}>
+                                                            {metric.isImprovement ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                                                            {metric.metricLabel}: {metric.metricDeltaPercent > 0 ? '+' : ''}{metric.metricDeltaPercent.toFixed(1)}%
+                                                        </div>
+                                                    ))}
                                                 </div>
                                             </div>
                                         ))}
