@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { base44 } from '@/api/base44Client';
 import { User } from '@/entities/User';
 import { Debate } from '@/entities/Debate';
 import ChatInterface from '@/components/chat/ChatInterface';
 import ConversationList from '@/components/chat/ConversationList';
 import SettingsPanel from '@/components/chat/SettingsPanel';
 import WelcomeBackModal from '@/components/chat/WelcomeBackModal';
-import { agentSDK } from '@/agents';
 
 export default function ChatPage() {
     const [conversations, setConversations] = useState([]);
@@ -47,9 +47,9 @@ export default function ChatPage() {
         
         setIsLoading(true);
         try {
-            const newAgentConversation = await agentSDK.createConversation({ 
+            const newAgentConversation = await base44.agents.createConversation({ 
                 agent_name: "smas_debater",
-                metadata: { topic: finalTopic }
+                metadata: { name: finalTopic }
             });
             const conversation_id = newAgentConversation.id;
 
