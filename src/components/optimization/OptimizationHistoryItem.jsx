@@ -163,21 +163,27 @@ export default function OptimizationHistoryItem({ benchmark, index }) {
                                 Décomposition SPG
                             </h4>
                             <div className="bg-slate-900 rounded-lg p-3 border border-slate-700 space-y-2">
-                                {Object.entries(benchmark.spg_breakdown).map(([key, value]) => (
-                                    <div key={key}>
-                                        <div className="flex justify-between items-center mb-1">
-                                            <span className="text-xs text-slate-400 capitalize">
-                                                {key.replace(/_/g, ' ')}
-                                            </span>
-                                            <span className="text-xs font-mono text-green-400">
-                                                {typeof value === 'number' ? value.toFixed(3) : value}
-                                            </span>
+                                {Object.entries(benchmark.spg_breakdown).map(([key, value]) => {
+                                    const displayValue = typeof value === 'number' ? value.toFixed(3) : 
+                                                        typeof value === 'object' && value !== null ? JSON.stringify(value) : 
+                                                        String(value ?? 'N/A');
+                                    const numericValue = typeof value === 'number' ? value : null;
+                                    return (
+                                        <div key={key}>
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="text-xs text-slate-400 capitalize">
+                                                    {key.replace(/_/g, ' ')}
+                                                </span>
+                                                <span className="text-xs font-mono text-green-400">
+                                                    {displayValue}
+                                                </span>
+                                            </div>
+                                            {numericValue !== null && (
+                                                <Progress value={numericValue * 100} className="h-1.5 bg-slate-700" />
+                                            )}
                                         </div>
-                                        {typeof value === 'number' && (
-                                            <Progress value={value * 100} className="h-1.5 bg-slate-700" />
-                                        )}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
@@ -194,21 +200,27 @@ export default function OptimizationHistoryItem({ benchmark, index }) {
                                 <div className="bg-slate-900 rounded-lg p-3 border border-orange-600/30">
                                     <h5 className="text-xs font-semibold text-orange-400 mb-2">Mode A (Baseline)</h5>
                                     <div className="space-y-2">
-                                        {Object.entries(qualityA).map(([key, value]) => (
-                                            <div key={key}>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-[10px] text-slate-500 capitalize">
-                                                        {key.replace(/_/g, ' ')}
-                                                    </span>
-                                                    <span className="text-xs font-mono text-orange-400">
-                                                        {typeof value === 'number' ? value.toFixed(2) : value}
-                                                    </span>
+                                        {Object.entries(qualityA).map(([key, value]) => {
+                                            const displayValue = typeof value === 'number' ? value.toFixed(2) : 
+                                                                typeof value === 'object' && value !== null ? JSON.stringify(value) : 
+                                                                String(value ?? 'N/A');
+                                            const numericValue = typeof value === 'number' ? value : null;
+                                            return (
+                                                <div key={key}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[10px] text-slate-500 capitalize">
+                                                            {key.replace(/_/g, ' ')}
+                                                        </span>
+                                                        <span className="text-xs font-mono text-orange-400">
+                                                            {displayValue}
+                                                        </span>
+                                                    </div>
+                                                    {numericValue !== null && (
+                                                        <Progress value={numericValue * 100} className="h-1 bg-slate-700" />
+                                                    )}
                                                 </div>
-                                                {typeof value === 'number' && (
-                                                    <Progress value={value * 100} className="h-1 bg-slate-700" />
-                                                )}
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -216,21 +228,27 @@ export default function OptimizationHistoryItem({ benchmark, index }) {
                                 <div className="bg-slate-900 rounded-lg p-3 border border-green-600/30">
                                     <h5 className="text-xs font-semibold text-green-400 mb-2">Mode B (Neuronas)</h5>
                                     <div className="space-y-2">
-                                        {Object.entries(qualityB).map(([key, value]) => (
-                                            <div key={key}>
-                                                <div className="flex justify-between items-center mb-1">
-                                                    <span className="text-[10px] text-slate-500 capitalize">
-                                                        {key.replace(/_/g, ' ')}
-                                                    </span>
-                                                    <span className="text-xs font-mono text-green-400">
-                                                        {typeof value === 'number' ? value.toFixed(2) : value}
-                                                    </span>
+                                        {Object.entries(qualityB).map(([key, value]) => {
+                                            const displayValue = typeof value === 'number' ? value.toFixed(2) : 
+                                                                typeof value === 'object' && value !== null ? JSON.stringify(value) : 
+                                                                String(value ?? 'N/A');
+                                            const numericValue = typeof value === 'number' ? value : null;
+                                            return (
+                                                <div key={key}>
+                                                    <div className="flex justify-between items-center mb-1">
+                                                        <span className="text-[10px] text-slate-500 capitalize">
+                                                            {key.replace(/_/g, ' ')}
+                                                        </span>
+                                                        <span className="text-xs font-mono text-green-400">
+                                                            {displayValue}
+                                                        </span>
+                                                    </div>
+                                                    {numericValue !== null && (
+                                                        <Progress value={numericValue * 100} className="h-1 bg-slate-700" />
+                                                    )}
                                                 </div>
-                                                {typeof value === 'number' && (
-                                                    <Progress value={value * 100} className="h-1 bg-slate-700" />
-                                                )}
-                                            </div>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>
