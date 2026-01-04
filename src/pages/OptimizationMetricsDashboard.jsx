@@ -403,44 +403,44 @@ export default function OptimizationMetricsDashboard() {
                     <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
                         <KPICard 
                             title="SPG Moyen" 
-                            value={metrics.avgSPG.toFixed(3)} 
+                            value={(metrics.avgSPG ?? 0).toFixed(3)} 
                             icon={Target}
                             color="green"
-                            trend={metrics.avgSPG > 0.7 ? 'up' : 'down'}
+                            trend={(metrics.avgSPG ?? 0) > 0.7 ? 'up' : 'down'}
                         />
                         <KPICard 
                             title="Pass Rate" 
-                            value={`${metrics.passRate.toFixed(1)}%`} 
+                            value={`${(metrics.passRate ?? 0).toFixed(1)}%`} 
                             icon={CheckCircle2}
                             color="blue"
-                            trend={metrics.passRate > 50 ? 'up' : 'down'}
+                            trend={(metrics.passRate ?? 0) > 50 ? 'up' : 'down'}
                         />
                         <KPICard 
                             title="CPU Savings" 
-                            value={`${metrics.avgCpuSavings.toFixed(1)}%`} 
+                            value={`${(metrics.avgCpuSavings ?? 0).toFixed(1)}%`} 
                             icon={Zap}
                             color="purple"
-                            trend={metrics.avgCpuSavings > 0 ? 'up' : 'down'}
+                            trend={(metrics.avgCpuSavings ?? 0) > 0 ? 'up' : 'down'}
                         />
                         <KPICard 
                             title="Token Savings" 
-                            value={`${metrics.avgTokenSavings.toFixed(1)}%`} 
+                            value={`${(metrics.avgTokenSavings ?? 0).toFixed(1)}%`} 
                             icon={Coins}
                             color="orange"
-                            trend={metrics.avgTokenSavings > 0 ? 'up' : 'down'}
+                            trend={(metrics.avgTokenSavings ?? 0) > 0 ? 'up' : 'down'}
                         />
                         <KPICard 
                             title="Latence Moy." 
-                            value={`${(metrics.avgLatency / 1000).toFixed(1)}s`} 
+                            value={`${((metrics.avgLatency ?? 0) / 1000).toFixed(1)}s`} 
                             icon={Clock}
                             color="cyan"
                         />
                         <KPICard 
                             title="Quality ↑" 
-                            value={`${metrics.qualityImprovement.toFixed(1)}%`} 
+                            value={`${(isFinite(metrics.qualityImprovement) ? metrics.qualityImprovement : 0).toFixed(1)}%`} 
                             icon={Sparkles}
                             color="pink"
-                            trend={metrics.qualityImprovement > 0 ? 'up' : 'down'}
+                            trend={(isFinite(metrics.qualityImprovement) && metrics.qualityImprovement > 0) ? 'up' : 'down'}
                         />
                     </div>
                 )}
@@ -658,21 +658,21 @@ export default function OptimizationMetricsDashboard() {
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between">
                                             <span className="text-slate-400 text-sm">Mode A (Baseline)</span>
-                                            <span className="text-orange-400 font-bold">{metrics?.avgModeAScore.toFixed(3)}</span>
+                                            <span className="text-orange-400 font-bold">{(metrics?.avgModeAScore ?? 0).toFixed(3)}</span>
                                         </div>
-                                        <Progress value={metrics?.avgModeAScore * 100} className="h-3 bg-slate-700" />
-                                        
+                                        <Progress value={(metrics?.avgModeAScore ?? 0) * 100} className="h-3 bg-slate-700" />
+
                                         <div className="flex items-center justify-between">
                                             <span className="text-slate-400 text-sm">Mode B (Neuronas)</span>
-                                            <span className="text-green-400 font-bold">{metrics?.avgModeBScore.toFixed(3)}</span>
+                                            <span className="text-green-400 font-bold">{(metrics?.avgModeBScore ?? 0).toFixed(3)}</span>
                                         </div>
-                                        <Progress value={metrics?.avgModeBScore * 100} className="h-3 bg-slate-700" />
-                                        
+                                        <Progress value={(metrics?.avgModeBScore ?? 0) * 100} className="h-3 bg-slate-700" />
+
                                         <div className="bg-slate-700 rounded-lg p-3 mt-4">
                                             <div className="flex items-center justify-between">
                                                 <span className="text-slate-300">Amélioration Qualité</span>
-                                                <span className={`font-bold ${metrics?.qualityImprovement > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                                    {metrics?.qualityImprovement > 0 ? '+' : ''}{metrics?.qualityImprovement.toFixed(1)}%
+                                                <span className={`font-bold ${(isFinite(metrics?.qualityImprovement) && metrics?.qualityImprovement > 0) ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {(isFinite(metrics?.qualityImprovement) && metrics?.qualityImprovement > 0) ? '+' : ''}{(isFinite(metrics?.qualityImprovement) ? metrics?.qualityImprovement : 0).toFixed(1)}%
                                                 </span>
                                             </div>
                                         </div>
