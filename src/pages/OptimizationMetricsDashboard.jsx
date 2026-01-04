@@ -16,8 +16,8 @@ import AlertConfigPanel from '@/components/alerts/AlertConfigPanel';
 import AlertNotificationBanner from '@/components/alerts/AlertNotificationBanner';
 import StrategyComparisonPanel from '@/components/analytics/StrategyComparisonPanel';
 import PerformanceReportGenerator from '@/components/analytics/PerformanceReportGenerator';
-import UnifiedLogTable from '@/components/logs/UnifiedLogTable.js';
-import LogBasedAlertSystem from '@/components/logs/LogBasedAlertSystem.js';
+import UnifiedLogTable from '@/components/logs/UnifiedLogTable';
+import LogBasedAlertSystem from '@/components/logs/LogBasedAlertSystem';
 import VersionComparisonPanel from '@/components/versions/VersionComparisonPanel';
 
 import { toast } from 'sonner';
