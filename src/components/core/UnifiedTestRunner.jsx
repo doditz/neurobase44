@@ -123,6 +123,9 @@ export default function UnifiedTestRunner({
         }
     }, [entityName]);
 
+    // Streaming log state
+    const [streamingLogs, setStreamingLogs] = useState([]);
+
     const runTest = async (promptText, scenarioName = 'Custom') => {
         if (!promptText.trim()) {
             toast.error('Veuillez entrer un prompt');
@@ -136,7 +139,27 @@ export default function UnifiedTestRunner({
         setCurrentTest({ prompt: promptText, scenario: scenarioName });
         setLastResult(null);
         setLastRunLogs([]);
+        setStreamingLogs([]);
         setActiveTab('results');
+
+        // Simulate streaming progress updates
+        const progressSteps = [
+            { delay: 100, log: '🚀 Initializing test...' },
+            { delay: 800, log: '📝 Mode A (Baseline LLM) starting...' },
+            { delay: 2500, log: '⚡ Mode A processing prompt...' },
+            { delay: 5000, log: '✅ Mode A complete, starting Mode B (Neuronas)...' },
+            { delay: 6000, log: '🧠 Loading personas for debate...' },
+            { delay: 8000, log: '💬 Running multi-agent synthesis...' },
+            { delay: 12000, log: '🔍 Evaluating responses with LLM grader...' },
+            { delay: 15000, log: '📊 Calculating SPG metrics...' },
+        ];
+
+        // Start progress simulation
+        const progressTimers = progressSteps.map(({ delay, log }) => 
+            setTimeout(() => {
+                setStreamingLogs(prev => [...prev, `[${new Date().toISOString().slice(11,19)}] ${log}`]);
+            }, delay)
+        );
 
         try {
             toast.info('🚀 Lancement du test...');
@@ -147,6 +170,9 @@ export default function UnifiedTestRunner({
                 run_mode: 'ab_test'
             });
 
+            // Clear progress timers
+            progressTimers.forEach(t => clearTimeout(t));
+
             if (!data || !data.success) {
                 throw new Error(data?.error || 'Le test a échoué');
             }
@@ -155,6 +181,7 @@ export default function UnifiedTestRunner({
             
             setLastResult(data);
             setLastRunLogs(data.logs || data.full_debug_log || []);
+            setStreamingLogs([]);
             toast.success('✅ Test terminé!');
 
             // Save to UnifiedLog
