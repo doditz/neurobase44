@@ -152,7 +152,7 @@ Deno.serve(async (req) => {
                     });
 
                     try {
-                        const { data } = await base44.functions.invoke('chatOrchestrator', {
+                        const { data } = await base44.asServiceRole.functions.invoke('chatOrchestrator', {
                             user_message: question_text,
                             conversation_id: `bench_${sessionId}`,
                             settings: {
