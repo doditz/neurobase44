@@ -602,20 +602,105 @@ export default function UnifiedTestRunner({
                         {isRunning && !lastResult ? (
                             <Card className="bg-slate-800 border-slate-700">
                                 <CardContent className="p-6">
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <Loader2 className="w-8 h-8 animate-spin text-green-400" />
-                                        <div>
-                                            <p className="text-green-400 font-medium">Test en cours...</p>
-                                            <p className="text-slate-500 text-sm">{currentTest?.scenario}</p>
+                                    {/* Header with live indicator */}
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-4">
+                                            <Loader2 className="w-8 h-8 animate-spin text-green-400" />
+                                            <div>
+                                                <p className="text-green-400 font-medium">Test en cours...</p>
+                                                <p className="text-slate-500 text-sm">{currentTest?.scenario}</p>
+                                            </div>
                                         </div>
+                                        <Badge className="bg-red-600 animate-pulse flex items-center gap-1">
+                                            <Radio className="w-3 h-3" />
+                                            LIVE
+                                        </Badge>
                                     </div>
-                                    {singleTestProgress?.logs && singleTestProgress.logs.length > 0 && (
-                                        <div className="bg-slate-900 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-xs">
-                                            {singleTestProgress.logs.map((log, i) => (
-                                                <div key={i} className="text-green-300 py-0.5">
-                                                    {log}
+
+                                    {/* Phase Progress Indicators */}
+                                    <div className="grid grid-cols-5 gap-2 mb-4">
+                                        {['init', 'mode_a', 'mode_b', 'evaluation', 'saving'].map((phase) => {
+                                            const isActive = streamingPhase === phase;
+                                            const isComplete = ['init', 'mode_a', 'mode_b', 'evaluation', 'saving', 'complete']
+                                                .indexOf(streamingPhase) > ['init', 'mode_a', 'mode_b', 'evaluation', 'saving'].indexOf(phase);
+                                            const phaseLabels = {
+                                                init: 'Init',
+                                                mode_a: 'Mode A',
+                                                mode_b: 'Mode B',
+                                                evaluation: 'Eval',
+                                                saving: 'Save'
+                                            };
+                                            return (
+                                                <div 
+                                                    key={phase}
+                                                    className={`flex flex-col items-center p-2 rounded-lg border transition-all ${
+                                                        isActive 
+                                                            ? 'border-green-500 bg-green-900/20' 
+                                                            : isComplete 
+                                                                ? 'border-green-600/50 bg-green-900/10' 
+                                                                : 'border-slate-700 bg-slate-800/50'
+                                                    }`}
+                                                >
+                                                    {isComplete ? (
+                                                        <CheckCircle2 className="w-4 h-4 text-green-500" />
+                                                    ) : isActive ? (
+                                                        <Loader2 className="w-4 h-4 text-green-400 animate-spin" />
+                                                    ) : (
+                                                        <Clock className="w-4 h-4 text-slate-500" />
+                                                    )}
+                                                    <span className={`text-xs mt-1 ${isActive || isComplete ? 'text-green-400' : 'text-slate-500'}`}>
+                                                        {phaseLabels[phase]}
+                                                    </span>
                                                 </div>
-                                            ))}
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Real-time metrics */}
+                                    {Object.keys(streamingMetrics).length > 0 && (
+                                        <div className="grid grid-cols-3 gap-3 mb-4">
+                                            {streamingMetrics.mode_a_time_ms && (
+                                                <div className="bg-slate-900 rounded-lg p-2 text-center">
+                                                    <div className="text-xs text-slate-500">Mode A</div>
+                                                    <div className="text-green-400 font-mono">{streamingMetrics.mode_a_time_ms}ms</div>
+                                                </div>
+                                            )}
+                                            {streamingMetrics.mode_b_time_ms && (
+                                                <div className="bg-slate-900 rounded-lg p-2 text-center">
+                                                    <div className="text-xs text-slate-500">Mode B</div>
+                                                    <div className="text-green-400 font-mono">{streamingMetrics.mode_b_time_ms}ms</div>
+                                                </div>
+                                            )}
+                                            {streamingMetrics.personas && (
+                                                <div className="bg-slate-900 rounded-lg p-2 text-center">
+                                                    <div className="text-xs text-slate-500">Personas</div>
+                                                    <div className="text-green-400 font-mono">{streamingMetrics.personas}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Streaming log console */}
+                                    {streamingLogs.length > 0 && (
+                                        <div className="bg-slate-900 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-xs">
+                                            {streamingLogs.map((log, i) => {
+                                                const levelColors = {
+                                                    'INFO': 'text-blue-300',
+                                                    'DEBUG': 'text-slate-400',
+                                                    'SUCCESS': 'text-green-400',
+                                                    'WARNING': 'text-yellow-400',
+                                                    'ERROR': 'text-red-400',
+                                                    'SYSTEM': 'text-purple-400'
+                                                };
+                                                return (
+                                                    <div key={i} className={`py-0.5 ${levelColors[log.level] || 'text-green-300'}`}>
+                                                        <span className="text-slate-600 mr-2">
+                                                            [{new Date(log.timestamp).toLocaleTimeString()}]
+                                                        </span>
+                                                        {log.message}
+                                                    </div>
+                                                );
+                                            })}
                                             <div className="text-green-400 animate-pulse">▊</div>
                                         </div>
                                     )}
