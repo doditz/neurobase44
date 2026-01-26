@@ -442,9 +442,9 @@ export default function UnifiedTestRunner({
                                             <p className="text-slate-500 text-sm">{currentTest?.scenario}</p>
                                         </div>
                                     </div>
-                                    {streamingLogs.length > 0 && (
+                                    {singleTestProgress?.logs && singleTestProgress.logs.length > 0 && (
                                         <div className="bg-slate-900 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-xs">
-                                            {streamingLogs.map((log, i) => (
+                                            {singleTestProgress.logs.map((log, i) => (
                                                 <div key={i} className="text-green-300 py-0.5">
                                                     {log}
                                                 </div>
