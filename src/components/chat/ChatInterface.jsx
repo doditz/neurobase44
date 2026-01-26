@@ -187,7 +187,7 @@ export default function ChatInterface({
         setError(null);
         setProcessingTime(0);
 
-        const logger = new LogManager('ChatInterface_SendMessage');
+        const logger = createLogger('ChatInterface_SendMessage');
 
         const startTime = Date.now();
         processingTimerRef.current = setInterval(() => {
