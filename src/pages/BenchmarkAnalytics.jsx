@@ -33,7 +33,8 @@ import {
     AreaChart,
     ComposedChart
 } from 'recharts';
-import ExportAllButton from '@/components/benchmark/ExportAllButton'; // Updated import path
+import ExportAllButton from '@/components/benchmark/ExportAllButton';
+import UnifiedLogDisplay from '@/components/core/UnifiedLogDisplay';
 
 const GROUP_BY_OPTIONS = [
     { value: 'scenario_category', label: 'Catégorie de Scénario' },
@@ -900,7 +901,7 @@ export default function BenchmarkAnalyticsPage() {
                                 Cliquez sur le bouton Rafraîchir pour générer un rapport analytique complet
                             </p>
                             <Button
-                                onClick={loadResults} // Changed to loadResults
+                                onClick={loadResults}
                                 className="bg-green-600 hover:bg-green-700"
                             >
                                 <BarChart3 className="w-4 h-4 mr-2" />
@@ -909,6 +910,17 @@ export default function BenchmarkAnalyticsPage() {
                         </CardContent>
                     </Card>
                 )}
+
+                {/* Unified Logs Section */}
+                <UnifiedLogDisplay
+                    title="Logs Unifiés - Benchmark Analytics"
+                    sourceType="benchmark"
+                    limit={50}
+                    showFilters={true}
+                    showSearch={true}
+                    collapsible={true}
+                    maxHeight="400px"
+                />
             </div>
         </div>
     );
