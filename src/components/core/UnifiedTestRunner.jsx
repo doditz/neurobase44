@@ -125,8 +125,20 @@ export default function UnifiedTestRunner({
         }
     }, [entityName]);
 
-    // Real-time progress state for single tests
-    const [singleTestProgress, setSingleTestProgress] = useState(null);
+    // Real-time SSE streaming state
+    const [streamingLogs, setStreamingLogs] = useState([]);
+    const [streamingPhase, setStreamingPhase] = useState(null);
+    const [streamingMetrics, setStreamingMetrics] = useState({});
+    const eventSourceRef = useRef(null);
+
+    // Cleanup SSE on unmount
+    useEffect(() => {
+        return () => {
+            if (eventSourceRef.current) {
+                eventSourceRef.current.close();
+            }
+        };
+    }, []);
 
     const runTest = async (promptText, scenarioName = 'Custom') => {
         if (!promptText.trim()) {
@@ -141,11 +153,169 @@ export default function UnifiedTestRunner({
         setCurrentTest({ prompt: promptText, scenario: scenarioName });
         setLastResult(null);
         setLastRunLogs([]);
-        setSingleTestProgress({ stage: 'init', logs: ['🚀 Test started...'] });
+        setStreamingLogs([]);
+        setStreamingPhase('init');
+        setStreamingMetrics({});
         setActiveTab('results');
 
+        // Close any existing SSE connection
+        if (eventSourceRef.current) {
+            eventSourceRef.current.close();
+        }
+
         try {
-            toast.info('🚀 Lancement du test...');
+            toast.info('🚀 Lancement du test en streaming...');
+
+            // Get auth token for SSE request
+            const token = await base44.auth.getAccessToken();
+            
+            // Create SSE connection via fetch (since EventSource doesn't support POST)
+            const response = await fetch(`${window.location.origin}/api/streamTestLogs`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    question_text: promptText,
+                    question_id: `${scenarioName}_${Date.now()}`,
+                    run_mode: 'ab_test',
+                    orchestrator: orchestratorFunction
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`SSE connection failed: ${response.status}`);
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            const processSSE = async () => {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+
+                    let currentEvent = null;
+                    let currentData = '';
+
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            currentEvent = line.slice(7);
+                        } else if (line.startsWith('data: ')) {
+                            currentData = line.slice(6);
+                            
+                            if (currentEvent && currentData) {
+                                try {
+                                    const data = JSON.parse(currentData);
+                                    handleSSEEvent(currentEvent, data, testLogger, scenarioName);
+                                } catch (e) {
+                                    console.warn('Failed to parse SSE data:', currentData);
+                                }
+                                currentEvent = null;
+                                currentData = '';
+                            }
+                        }
+                    }
+                }
+            };
+
+            await processSSE();
+
+        } catch (error) {
+            // Fallback to regular invoke if SSE fails
+            console.warn('SSE failed, falling back to regular invoke:', error.message);
+            await runTestFallback(promptText, scenarioName, testLogger);
+        }
+    };
+
+    const handleSSEEvent = (event, data, testLogger, scenarioName) => {
+        switch (event) {
+            case 'connected':
+                setStreamingLogs(prev => [...prev, { 
+                    level: 'SYSTEM', 
+                    message: `Connected to stream: ${data.session_id}`,
+                    timestamp: Date.now()
+                }]);
+                break;
+
+            case 'log':
+                setStreamingLogs(prev => [...prev, {
+                    level: data.level || 'INFO',
+                    message: data.message,
+                    phase: data.phase,
+                    timestamp: data.timestamp || Date.now()
+                }]);
+                if (data.metrics) {
+                    setStreamingMetrics(prev => ({ ...prev, ...data.metrics }));
+                }
+                break;
+
+            case 'phase':
+                setStreamingPhase(data.phase);
+                if (data.time_ms) {
+                    setStreamingMetrics(prev => ({ 
+                        ...prev, 
+                        [`${data.phase}_time_ms`]: data.time_ms 
+                    }));
+                }
+                break;
+
+            case 'complete':
+                testLogger.endOperation(scenarioName, { success: true, spg: data.spg });
+                setLastResult({
+                    success: true,
+                    ...data
+                });
+                setLastRunLogs(streamingLogs.map(l => `[${l.level}] ${l.message}`));
+                setIsRunning(false);
+                setStreamingPhase('complete');
+                toast.success('✅ Test terminé!');
+
+                // Save to UnifiedLog
+                saveToUnifiedLog(testLogger, {
+                    source_type: testType,
+                    source_id: data.benchmark_id,
+                    execution_context: `${testType}_page_streaming`,
+                    metrics: {
+                        spg: data.spg,
+                        quality: data.quality_scores?.mode_b_ars_score,
+                        latency_ms: data.metrics?.mode_b_time_ms,
+                        tokens: data.metrics?.mode_b_tokens
+                    },
+                    result_summary: `${scenarioName}: ${data.winner === 'mode_b' ? 'NEURONAS wins' : data.winner === 'mode_a' ? 'Baseline wins' : 'Tie'}`,
+                    winner: data.winner,
+                    status: 'success'
+                });
+
+                setTimeout(() => loadHistory(), 2000);
+                break;
+
+            case 'error':
+                testLogger.error('Test failed', { error: data.message });
+                setStreamingLogs(prev => [...prev, {
+                    level: 'ERROR',
+                    message: `❌ Error: ${data.message}`,
+                    timestamp: Date.now()
+                }]);
+                if (data.fatal) {
+                    setLastResult({ error: data.message });
+                    setIsRunning(false);
+                    toast.error(`Erreur: ${data.message}`);
+                }
+                break;
+        }
+    };
+
+    // Fallback function when SSE is not available
+    const runTestFallback = async (promptText, scenarioName, testLogger) => {
+        try {
+            setStreamingLogs([{ level: 'INFO', message: '⚠️ Fallback mode - SSE unavailable', timestamp: Date.now() }]);
 
             const { data } = await base44.functions.invoke(orchestratorFunction, {
                 question_text: promptText,
@@ -161,7 +331,7 @@ export default function UnifiedTestRunner({
             
             setLastResult(data);
             setLastRunLogs(data.logs || data.full_debug_log || []);
-            setSingleTestProgress(null);
+            setStreamingPhase('complete');
             toast.success('✅ Test terminé!');
 
             // Save to UnifiedLog
