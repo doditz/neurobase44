@@ -31,19 +31,45 @@ Deno.serve(async (req) => {
 
         logs.push(`[MIGRATION] Starting ${entityType} migration at ${new Date().toISOString()} (batch: ${batchSize}, offset: ${offset})`);
 
-        // Helper function to create unified log entry
-        const createUnifiedEntry = async (data) => {
-            try {
-                await base44.asServiceRole.entities.UnifiedLog.create(data);
-                stats.migrated++;
-                return true;
-            } catch (err) {
-                if (err.message?.includes('duplicate') || err.message?.includes('already exists')) {
-                    stats.skipped++;
-                } else {
-                    stats.errors.push(`${data.source_type} ${data.source_id}: ${err.message}`);
+        // Helper to delay between operations
+        const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+        
+        // Batch array into chunks
+        const chunkArray = (arr, size) => {
+            const chunks = [];
+            for (let i = 0; i < arr.length; i += size) {
+                chunks.push(arr.slice(i, i + size));
+            }
+            return chunks;
+        };
+
+        // Bulk create with retry
+        const bulkCreateWithRetry = async (records) => {
+            if (records.length === 0) return;
+            
+            const chunks = chunkArray(records, 10); // 10 at a time
+            
+            for (const chunk of chunks) {
+                try {
+                    await base44.asServiceRole.entities.UnifiedLog.bulkCreate(chunk);
+                    stats.migrated += chunk.length;
+                } catch (err) {
+                    // If bulk fails, try one by one
+                    for (const record of chunk) {
+                        try {
+                            await base44.asServiceRole.entities.UnifiedLog.create(record);
+                            stats.migrated++;
+                        } catch (innerErr) {
+                            if (innerErr.message?.includes('duplicate') || innerErr.message?.includes('already exists')) {
+                                stats.skipped++;
+                            } else {
+                                stats.errors.push(`${record.source_type} ${record.source_id}: ${innerErr.message}`);
+                            }
+                        }
+                        await delay(100); // Small delay between individual creates
+                    }
                 }
-                return false;
+                await delay(500); // Delay between chunks
             }
         };
 
