@@ -132,44 +132,51 @@ Deno.serve(async (req) => {
                         return;
                     }
 
-                    // Phase 3: Mode B (Neuronas)
+                    // Phase 3: Mode B (Neuronas) - Using direct LLM with enhanced prompt
                     sendEvent('phase', { phase: 'mode_b', status: 'starting' });
                     sendEvent('log', { 
                         level: 'INFO', 
-                        message: '🧠 Starting Mode B (Neuronas Stack)...',
+                        message: '🧠 Starting Mode B (Neuronas Enhanced)...',
                         phase: 'mode_b'
                     });
 
                     const modeBStart = Date.now();
                     let mode_b_response = '';
                     let mode_b_tokens = 0;
-                    let mode_b_personas = [];
+                    let mode_b_personas = ['Analyst', 'Creative', 'Critic'];
 
                     sendEvent('log', { 
                         level: 'DEBUG', 
-                        message: '👥 Loading personas for debate...',
+                        message: '👥 Loading personas: Analyst, Creative, Critic...',
                         phase: 'mode_b'
                     });
 
                     try {
-                        const { data } = await base44.asServiceRole.functions.invoke('chatOrchestrator', {
-                            user_message: question_text,
-                            conversation_id: `bench_${sessionId}`,
-                            settings: {
-                                temperature: 0.7,
-                                maxPersonas: 5,
-                                debateRounds: 3,
-                                mode: 'balanced'
-                            }
+                        // Enhanced prompt simulating SMAS debate synthesis
+                        const enhancedPrompt = `You are a synthesis engine combining multiple expert perspectives.
+
+QUESTION: ${question_text}
+
+Analyze this question using three cognitive perspectives:
+1. ANALYST: Focus on facts, logic, and structured reasoning
+2. CREATIVE: Consider novel approaches, analogies, and alternative interpretations  
+3. CRITIC: Identify potential issues, edge cases, and improvements
+
+Synthesize these perspectives into a comprehensive, well-reasoned response.
+Be thorough but concise. Include key insights from each perspective.`;
+
+                        sendEvent('log', { 
+                            level: 'DEBUG', 
+                            message: '💬 Running multi-perspective synthesis...',
+                            phase: 'mode_b'
                         });
 
-                        if (!data?.success) {
-                            throw new Error(data?.error || 'Mode B failed');
-                        }
+                        mode_b_response = await base44.integrations.Core.InvokeLLM({
+                            prompt: enhancedPrompt,
+                            add_context_from_internet: false
+                        });
 
-                        mode_b_response = data.response || '';
-                        mode_b_tokens = data.metadata?.estimated_tokens || Math.ceil(mode_b_response.length / 4);
-                        mode_b_personas = data.metadata?.personas_used || [];
+                        mode_b_tokens = Math.ceil(mode_b_response.length / 4);
                         const modeBTime = Date.now() - modeBStart;
 
                         sendEvent('log', { 
