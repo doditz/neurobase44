@@ -338,7 +338,7 @@ export default function UnifiedTestRunner({
             await saveToUnifiedLog(testLogger, {
                 source_type: testType,
                 source_id: data.id,
-                execution_context: `${testType}_page`,
+                execution_context: `${testType}_page_fallback`,
                 metrics: {
                     spg: data.global_score_performance,
                     quality: data.quality_scores?.mode_b_ars_score,
@@ -350,21 +350,16 @@ export default function UnifiedTestRunner({
                 status: 'success'
             });
 
-            // Reload history after delay
-            setTimeout(async () => {
-                await loadHistory();
-                toast.info('📊 Historique mis à jour', { duration: 2000 });
-            }, 2000);
+            setTimeout(() => loadHistory(), 2000);
 
         } catch (error) {
             testLogger.error('Test failed', { error: error.message });
             toast.error(`Erreur: ${error.message}`);
             setLastResult({ error: error.message });
             
-            // Save error to UnifiedLog
             await saveToUnifiedLog(testLogger, {
                 source_type: testType,
-                execution_context: `${testType}_page`,
+                execution_context: `${testType}_page_fallback`,
                 status: 'failed',
                 error_message: error.message
             });
