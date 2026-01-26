@@ -221,8 +221,6 @@ export default function UnifiedTestRunner({
             
             // Fallback if response format is unexpected
             throw new Error('Unexpected response format from streaming endpoint');
-            
-
 
         } catch (error) {
             // Fallback to regular invoke if SSE fails
