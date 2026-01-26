@@ -236,7 +236,7 @@ export default function EnhancedBatchLogs({ results = [], onRefresh }) {
                                                         >
                                                             {isSuccess ? 'PASS' : 'FAIL'}
                                                         </Badge>
-                                                        {result.global_score_performance !== undefined && (
+                                                        {result.global_score_performance != null && (
                                                             <Badge variant="outline" className="text-green-400">
                                                                 SPG: {result.global_score_performance.toFixed(3)}
                                                             </Badge>
@@ -291,7 +291,7 @@ export default function EnhancedBatchLogs({ results = [], onRefresh }) {
                                                         </div>
                                                     )}
 
-                                                    {result.mode_b_complexity_score !== undefined && (
+                                                    {result.mode_b_complexity_score != null && (
                                                         <div className="text-xs">
                                                             <span className="text-slate-500">Complexité: </span>
                                                             <span className="text-slate-300">
@@ -300,7 +300,7 @@ export default function EnhancedBatchLogs({ results = [], onRefresh }) {
                                                         </div>
                                                     )}
 
-                                                    {result.cpu_savings_percentage !== undefined && (
+                                                    {result.cpu_savings_percentage != null && (
                                                         <div className="text-xs">
                                                             <span className="text-slate-500">CPU Save: </span>
                                                             <span className="text-green-400">
