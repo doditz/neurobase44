@@ -40,6 +40,7 @@ import ExportAllButton from '@/components/benchmark/ExportAllButton';
 import ComparisonView from '@/components/benchmark/ComparisonView';
 import DevTestAIAnalysis from '@/components/benchmark/DevTestAIAnalysis';
 import BatchComparison from '@/components/benchmark/BatchComparison';
+import UnifiedLogDisplay from '@/components/core/UnifiedLogDisplay';
 
 const GROUP_BY_OPTIONS = [
     { value: 'scenario_category', label: 'Catégorie de Scénario' },
@@ -298,6 +299,19 @@ export default function DevTestAnalyticsPage() {
                             </Button>
                         </CardContent>
                     </Card>
+                )}
+
+                {/* Unified Logs Section */}
+                {!showComparison && (
+                    <UnifiedLogDisplay
+                        title="Logs Unifiés - Dev Tests"
+                        sourceType="devtest"
+                        limit={50}
+                        showFilters={true}
+                        showSearch={true}
+                        collapsible={true}
+                        maxHeight="400px"
+                    />
                 )}
             </div>
         </div>

@@ -8,9 +8,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
     TrendingUp, BarChart3, Target, Brain, Layers, Clock, 
-    RefreshCw, Loader2, Filter, Calendar, Zap, Activity, GitCompare
+    RefreshCw, Loader2, Filter, Calendar, Zap, Activity, GitCompare, FileText
 } from 'lucide-react';
 import ModelComparisonView from '@/components/performance/ModelComparisonView';
+import UnifiedLogDisplay from '@/components/core/UnifiedLogDisplay';
 import { 
     LineChart, Line, BarChart, Bar, RadarChart, Radar, PolarGrid, 
     PolarAngleAxis, PolarRadiusAxis, XAxis, YAxis, CartesianGrid, 
@@ -307,6 +308,10 @@ export default function PerformanceTracker() {
                             <GitCompare className="w-4 h-4 mr-2" />
                             Comparer
                         </TabsTrigger>
+                        <TabsTrigger value="logs" className="data-[state=active]:bg-indigo-900/30">
+                            <FileText className="w-4 h-4 mr-2" />
+                            Logs Unifiés
+                        </TabsTrigger>
                         </TabsList>
 
                     {/* Timeline Tab */}
@@ -522,6 +527,18 @@ export default function PerformanceTracker() {
                     {/* Compare Tab */}
                     <TabsContent value="compare">
                         <ModelComparisonView />
+                    </TabsContent>
+
+                    {/* Unified Logs Tab */}
+                    <TabsContent value="logs">
+                        <UnifiedLogDisplay
+                            title="Logs Unifiés - Performance Tracker"
+                            limit={100}
+                            showFilters={true}
+                            showSearch={true}
+                            collapsible={false}
+                            maxHeight="600px"
+                        />
                     </TabsContent>
                 </Tabs>
             </div>

@@ -21,6 +21,7 @@ import { systemStateManager } from '@/functions/systemStateManager';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
+import UnifiedLogDisplay from '@/components/core/UnifiedLogDisplay';
 
 export default function SelfOptimizationDashboard() {
     const [tunableParams, setTunableParams] = useState([]);
@@ -312,6 +313,10 @@ export default function SelfOptimizationDashboard() {
                         <TabsTrigger value="history" className="data-[state=active]:bg-purple-900/30 data-[state=active]:text-purple-400">
                             <BarChart3 className="w-4 h-4 mr-2" />
                             Historique
+                        </TabsTrigger>
+                        <TabsTrigger value="logs" className="data-[state=active]:bg-indigo-900/30 data-[state=active]:text-indigo-400">
+                            <Activity className="w-4 h-4 mr-2" />
+                            Logs Unifiés
                         </TabsTrigger>
                     </TabsList>
 
@@ -732,6 +737,19 @@ export default function SelfOptimizationDashboard() {
                                 </div>
                             </ScrollArea>
                         </div>
+                    </TabsContent>
+
+                    {/* Unified Logs Tab */}
+                    <TabsContent value="logs">
+                        <UnifiedLogDisplay
+                            title="Logs Unifiés - Auto-Optimization"
+                            sourceType="auto_tune"
+                            limit={100}
+                            showFilters={true}
+                            showSearch={true}
+                            collapsible={false}
+                            maxHeight="600px"
+                        />
                     </TabsContent>
                 </Tabs>
             </div>

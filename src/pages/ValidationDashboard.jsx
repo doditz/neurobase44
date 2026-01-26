@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Loader2, BarChart3, Activity, TimerReset } from "lucide-react";
 import UnifiedHistory from "@/components/benchmark/UnifiedHistory";
 import ExportAllButton from '@/components/benchmark/ExportAllButton';
+import UnifiedLogDisplay from '@/components/core/UnifiedLogDisplay';
+import { toast } from 'sonner';
 
 export default function ValidationDashboardPage() {
   const [loading, setLoading] = React.useState(true);
@@ -193,6 +195,16 @@ export default function ValidationDashboardPage() {
             <UnifiedHistory />
           </CardContent>
         </Card>
+
+        {/* Unified Log Display from UnifiedLog entity */}
+        <UnifiedLogDisplay
+          title="Logs Consolidés - Toutes Sources"
+          limit={50}
+          showFilters={true}
+          showSearch={true}
+          collapsible={true}
+          maxHeight="400px"
+        />
       </div>
     </div>
   );
