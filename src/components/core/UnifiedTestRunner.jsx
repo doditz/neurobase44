@@ -166,16 +166,53 @@ export default function UnifiedTestRunner({
         try {
             toast.info('🚀 Lancement du test en streaming...');
 
-            // Use base44 functions invoke for streaming - this returns a Response object
-            const response = await base44.functions.invokeRaw('streamTestLogs', {
-                question_text: promptText,
-                question_id: `${scenarioName}_${Date.now()}`,
-                run_mode: 'ab_test',
-                orchestrator: orchestratorFunction
+            // Get the function URL from base44 and make a direct fetch for SSE
+            const functionUrl = `${window.BASE44_FUNCTIONS_URL || ''}/streamTestLogs`;
+            
+            // Get auth headers from base44 client
+            const authHeaders = {};
+            try {
+                // Access token is typically passed via the SDK's internal mechanism
+                const token = localStorage.getItem('base44_access_token');
+                if (token) {
+                    authHeaders['Authorization'] = `Bearer ${token}`;
+                }
+            } catch (e) {
+                console.warn('Could not get auth token:', e);
+            }
+
+            const response = await fetch(functionUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...authHeaders
+                },
+                body: JSON.stringify({
+                    question_text: promptText,
+                    question_id: `${scenarioName}_${Date.now()}`,
+                    run_mode: 'ab_test',
+                    orchestrator: orchestratorFunction
+                })
             });
 
             if (!response.ok) {
-                throw new Error(`SSE connection failed: ${response.status}`);
+                const errorText = await response.text();
+                throw new Error(`SSE connection failed: ${response.status} - ${errorText}`);
+            }
+
+            // Check if we got an SSE stream
+            const contentType = response.headers.get('content-type');
+            if (!contentType?.includes('text/event-stream')) {
+                // Not SSE, parse as JSON and treat as fallback response
+                const data = await response.json();
+                if (data.success) {
+                    setLastResult(data);
+                    setStreamingPhase('complete');
+                    toast.success('✅ Test terminé!');
+                } else {
+                    throw new Error(data.error || 'Test failed');
+                }
+                return;
             }
 
             const reader = response.body.getReader();
