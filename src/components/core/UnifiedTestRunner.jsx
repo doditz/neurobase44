@@ -167,32 +167,14 @@ export default function UnifiedTestRunner({
             toast.info('🚀 Lancement du test en streaming...');
 
             // Call the streaming function via base44 SDK
-            // The SDK will handle auth and return the response
-            const { data: streamData, response } = await base44.functions.invoke('streamTestLogs', {
+            const { data: streamData } = await base44.functions.invoke('streamTestLogs', {
                 question_text: promptText,
                 question_id: `${scenarioName}_${Date.now()}`,
                 run_mode: 'ab_test',
                 orchestrator: orchestratorFunction
             });
             
-            // If we got a regular JSON response (non-streaming fallback)
-            if (streamData && !response?.body) {
-                if (streamData.success !== false) {
-                    // Process as completed test
-                    testLogger.endOperation(scenarioName, { success: true });
-                    setLastResult(streamData);
-                    setStreamingPhase('complete');
-                    setIsRunning(false);
-                    toast.success('✅ Test terminé!');
-                    setTimeout(() => loadHistory(), 2000);
-                    return;
-                }
-                throw new Error(streamData.error || 'Test failed');
-            }
-
-            // For SSE streaming, we need to use a direct approach
-            // Since base44.functions.invoke doesn't support streaming responses,
-            // we parse the response which contains the full SSE output
+            // The response is the raw SSE text - parse it
             if (typeof streamData === 'string' && streamData.includes('event:')) {
                 // Parse the SSE events from the string response
                 const events = streamData.split('\n\n').filter(e => e.trim());
@@ -219,6 +201,21 @@ export default function UnifiedTestRunner({
                     }
                 }
                 setIsRunning(false);
+                return;
+            }
+            
+            // If we got a JSON response instead (error or non-streaming)
+            if (streamData && typeof streamData === 'object') {
+                if (streamData.error) {
+                    throw new Error(streamData.error);
+                }
+                // Treat as completed test
+                testLogger.endOperation(scenarioName, { success: true });
+                setLastResult(streamData);
+                setStreamingPhase('complete');
+                setIsRunning(false);
+                toast.success('✅ Test terminé!');
+                setTimeout(() => loadHistory(), 2000);
                 return;
             }
             
