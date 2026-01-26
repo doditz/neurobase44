@@ -4,6 +4,8 @@
  * 
  * Run with: { "entity": "benchmark" } or "devtest", "gauntlet", "alert", "validation", "resource"
  * Or run with: { "entity": "all", "batch_size": 50 } for all with smaller batches
+ * 
+ * v2 - Using bulkCreate with rate limiting
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
