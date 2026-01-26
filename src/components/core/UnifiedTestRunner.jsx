@@ -456,9 +456,24 @@ export default function UnifiedTestRunner({
                     <TabsContent value="results" className="space-y-6">
                         {isRunning && !lastResult ? (
                             <Card className="bg-slate-800 border-slate-700">
-                                <CardContent className="p-12 flex flex-col items-center justify-center">
-                                    <Loader2 className="w-12 h-12 animate-spin text-green-400 mb-4" />
-                                    <p className="text-slate-400">Test en cours...</p>
+                                <CardContent className="p-6">
+                                    <div className="flex items-center gap-4 mb-4">
+                                        <Loader2 className="w-8 h-8 animate-spin text-green-400" />
+                                        <div>
+                                            <p className="text-green-400 font-medium">Test en cours...</p>
+                                            <p className="text-slate-500 text-sm">{currentTest?.scenario}</p>
+                                        </div>
+                                    </div>
+                                    {streamingLogs.length > 0 && (
+                                        <div className="bg-slate-900 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-xs">
+                                            {streamingLogs.map((log, i) => (
+                                                <div key={i} className="text-green-300 py-0.5">
+                                                    {log}
+                                                </div>
+                                            ))}
+                                            <div className="text-green-400 animate-pulse">▊</div>
+                                        </div>
+                                    )}
                                 </CardContent>
                             </Card>
                         ) : lastResult?.error ? (
