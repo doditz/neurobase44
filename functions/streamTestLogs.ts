@@ -325,22 +325,31 @@ Which response is better? Reply with JSON only:
                             phase: 'spg'
                         });
 
+                        // Calculate SPG directly (simplified formula)
+                        // SPG = 0.4 * quality + 0.3 * efficiency + 0.3 * (1 - cost_ratio)
+                        const qualityScore = winner === 'mode_b' ? 0.8 : 0.6;
+                        const efficiencyScore = Math.max(0, Math.min(1, 1 - (mode_b_time / (mode_a_time * 3))));
+                        const costScore = Math.max(0, Math.min(1, 1 - (mode_b_tokens / (mode_a_tokens * 3))));
+                        
+                        spg = (0.4 * qualityScore) + (0.3 * efficiencyScore) + (0.3 * costScore);
+                        spg = Math.max(0, Math.min(1, spg));
+
+                        sendEvent('log', { 
+                            level: 'SUCCESS', 
+                            message: `✅ SPG: ${spg.toFixed(4)} (Q:${qualityScore.toFixed(2)} E:${efficiencyScore.toFixed(2)} C:${costScore.toFixed(2)})`,
+                            phase: 'spg'
+                        });
+
+                        // Update benchmark with SPG
                         try {
-                            const { data: spgData } = await base44.asServiceRole.functions.invoke('calculateSPG', {
-                                benchmark_result_id: benchmark_id
+                            await base44.asServiceRole.entities.BenchmarkResult.update(benchmark_id, {
+                                global_score_performance: spg,
+                                spg_breakdown: { quality: qualityScore, efficiency: efficiencyScore, cost: costScore }
                             });
-                            if (spgData?.spg) {
-                                spg = spgData.spg;
-                                sendEvent('log', { 
-                                    level: 'SUCCESS', 
-                                    message: `✅ SPG: ${spg.toFixed(4)}`,
-                                    phase: 'spg'
-                                });
-                            }
-                        } catch (spgError) {
+                        } catch (updateError) {
                             sendEvent('log', { 
                                 level: 'WARNING', 
-                                message: `⚠️ SPG calculation failed: ${spgError.message}`,
+                                message: `⚠️ Could not update SPG: ${updateError.message}`,
                                 phase: 'spg'
                             });
                         }
