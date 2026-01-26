@@ -166,8 +166,64 @@ export default function UnifiedTestRunner({
         try {
             toast.info('🚀 Lancement du test en streaming...');
 
-            // Get the function URL from base44 and make a direct fetch for SSE
-            const functionUrl = `${window.BASE44_FUNCTIONS_URL || ''}/streamTestLogs`;
+            // Call the streaming function via base44 SDK
+            // The SDK will handle auth and return the response
+            const { data: streamData, response } = await base44.functions.invoke('streamTestLogs', {
+                question_text: promptText,
+                question_id: `${scenarioName}_${Date.now()}`,
+                run_mode: 'ab_test',
+                orchestrator: orchestratorFunction
+            });
+            
+            // If we got a regular JSON response (non-streaming fallback)
+            if (streamData && !response?.body) {
+                if (streamData.success !== false) {
+                    // Process as completed test
+                    testLogger.endOperation(scenarioName, { success: true });
+                    setLastResult(streamData);
+                    setStreamingPhase('complete');
+                    setIsRunning(false);
+                    toast.success('✅ Test terminé!');
+                    setTimeout(() => loadHistory(), 2000);
+                    return;
+                }
+                throw new Error(streamData.error || 'Test failed');
+            }
+
+            // For SSE streaming, we need to use a direct approach
+            // Since base44.functions.invoke doesn't support streaming responses,
+            // we parse the response which contains the full SSE output
+            if (typeof streamData === 'string' && streamData.includes('event:')) {
+                // Parse the SSE events from the string response
+                const events = streamData.split('\n\n').filter(e => e.trim());
+                for (const eventBlock of events) {
+                    const lines = eventBlock.split('\n');
+                    let eventType = 'message';
+                    let eventData = '';
+                    
+                    for (const line of lines) {
+                        if (line.startsWith('event: ')) {
+                            eventType = line.slice(7);
+                        } else if (line.startsWith('data: ')) {
+                            eventData = line.slice(6);
+                        }
+                    }
+                    
+                    if (eventData) {
+                        try {
+                            const data = JSON.parse(eventData);
+                            handleSSEEvent(eventType, data, testLogger, scenarioName);
+                        } catch (e) {
+                            console.warn('Failed to parse SSE event:', eventData);
+                        }
+                    }
+                }
+                setIsRunning(false);
+                return;
+            }
+            
+            // Fallback if response format is unexpected
+            throw new Error('Unexpected response format from streaming endpoint');
             
             // Get auth headers from base44 client
             const authHeaders = {};
