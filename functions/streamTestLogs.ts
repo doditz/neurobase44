@@ -209,7 +209,7 @@ Deno.serve(async (req) => {
                     let grader_rationale = '';
 
                     try {
-                        const { data: grader } = await base44.functions.invoke('evaluateResponseQuality', {
+                        const { data: grader } = await base44.asServiceRole.functions.invoke('evaluateResponseQuality', {
                             question_text,
                             output_naive: mode_a_response,
                             output_d3stib: mode_b_response,
