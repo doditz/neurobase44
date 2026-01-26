@@ -17,6 +17,7 @@ import AlertNotificationBanner from '@/components/alerts/AlertNotificationBanner
 import StrategyComparisonPanel from '@/components/analytics/StrategyComparisonPanel';
 import PerformanceReportGenerator from '@/components/analytics/PerformanceReportGenerator';
 import VersionComparisonPanel from '@/components/versions/VersionComparisonPanel';
+import UnifiedLogDisplay from '@/components/core/UnifiedLogDisplay';
 
 import { toast } from 'sonner';
 import { 
