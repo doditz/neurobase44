@@ -770,14 +770,14 @@ export default function OptimizationMetricsDashboard() {
 
                     {/* Unified Logs Tab */}
                     <TabsContent value="logs">
-                        <div className="space-y-6">
-                            <Card className="bg-slate-800 border-slate-700">
-                                <CardContent className="p-6 text-center text-slate-400">
-                                    <Layers className="w-12 h-12 mx-auto mb-4 text-green-400" />
-                                    <p>Unified Logs - Coming Soon</p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                        <UnifiedLogDisplay
+                            title="Logs Unifiés - Toutes Sources"
+                            limit={100}
+                            showFilters={true}
+                            showSearch={true}
+                            collapsible={false}
+                            maxHeight="600px"
+                        />
                     </TabsContent>
 
                     {/* Versions Tab */}
