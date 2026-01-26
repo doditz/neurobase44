@@ -2,7 +2,8 @@
  * One-time migration script to copy all existing test results and logs
  * into the UnifiedLog entity for centralized data access.
  * 
- * Run this once to migrate historical data.
+ * Run with: { "entity": "benchmark" } or "devtest", "gauntlet", "alert", "validation", "resource"
+ * Or run with: { "entity": "all", "batch_size": 50 } for all with smaller batches
  */
 
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.6';
@@ -16,19 +17,19 @@ Deno.serve(async (req) => {
             return Response.json({ error: 'Admin access required' }, { status: 403 });
         }
 
+        const body = await req.json().catch(() => ({}));
+        const entityType = body.entity || 'benchmark';
+        const batchSize = body.batch_size || 100;
+        const offset = body.offset || 0;
+
         const logs = [];
         const stats = {
-            benchmarkResults: 0,
-            devTestResults: 0,
-            gauntletResults: 0,
-            alertHistory: 0,
-            validationMetrics: 0,
-            resourceUsage: 0,
+            migrated: 0,
             skipped: 0,
             errors: []
         };
 
-        logs.push(`[MIGRATION] Starting unified log migration at ${new Date().toISOString()}`);
+        logs.push(`[MIGRATION] Starting ${entityType} migration at ${new Date().toISOString()} (batch: ${batchSize}, offset: ${offset})`);
 
         // 1. Migrate BenchmarkResult
         logs.push('[MIGRATION] Fetching BenchmarkResult records...');
