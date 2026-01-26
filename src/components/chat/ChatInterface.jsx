@@ -9,7 +9,7 @@ import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Pape
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { LogManager } from '@/components/utils/LogManager';
+import { createLogger } from '@/components/core/NeuronasLogger';
 import { toast } from 'sonner';
 import DebateVisualizationModal from '@/components/benchmark/DebateVisualizationModal';
 import DebateFlowVisualization from './DebateFlowVisualization';
