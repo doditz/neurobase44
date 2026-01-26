@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
                         });
 
                         try {
-                            const { data: spgData } = await base44.functions.invoke('calculateSPG', {
+                            const { data: spgData } = await base44.asServiceRole.functions.invoke('calculateSPG', {
                                 benchmark_result_id: benchmark_id
                             });
                             if (spgData?.spg) {
