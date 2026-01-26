@@ -166,22 +166,12 @@ export default function UnifiedTestRunner({
         try {
             toast.info('🚀 Lancement du test en streaming...');
 
-            // Get auth token for SSE request
-            const token = await base44.auth.getAccessToken();
-            
-            // Create SSE connection via fetch (since EventSource doesn't support POST)
-            const response = await fetch(`${window.location.origin}/api/streamTestLogs`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    question_text: promptText,
-                    question_id: `${scenarioName}_${Date.now()}`,
-                    run_mode: 'ab_test',
-                    orchestrator: orchestratorFunction
-                })
+            // Use base44 functions invoke for streaming - this returns a Response object
+            const response = await base44.functions.invokeRaw('streamTestLogs', {
+                question_text: promptText,
+                question_id: `${scenarioName}_${Date.now()}`,
+                run_mode: 'ab_test',
+                orchestrator: orchestratorFunction
             });
 
             if (!response.ok) {
