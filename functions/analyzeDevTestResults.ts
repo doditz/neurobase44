@@ -17,27 +17,40 @@ Deno.serve(async (req) => {
             question_id 
         });
 
-        // Load test data
+        // Load test data - FIXED: Try BenchmarkResult first since DevTestResult is deprecated
         let tests = [];
         if (test_ids && test_ids.length > 0) {
             for (const id of test_ids) {
                 try {
-                    const test = await base44.asServiceRole.entities.DevTestResult.get(id);
+                    // Try BenchmarkResult first
+                    const test = await base44.asServiceRole.entities.BenchmarkResult.get(id);
                     tests.push(test);
-                } catch (error) {
-                    console.warn(`[AnalyzeDevTest] Failed to load ${id}:`, error.message);
+                } catch (benchError) {
+                    // Fallback to DevTestResult
+                    try {
+                        const test = await base44.asServiceRole.entities.DevTestResult.get(id);
+                        tests.push(test);
+                    } catch (devError) {
+                        console.warn(`[AnalyzeDevTest] Failed to load ${id} from both entities:`, devError.message);
+                    }
                 }
             }
         } else if (question_id) {
-            // Load all tests for this question
-            tests = await base44.asServiceRole.entities.DevTestResult.filter({
-                scenario_name: question_id
-            });
+            // Load all tests for this question from both entities
+            const [benchTests, devTests] = await Promise.all([
+                base44.asServiceRole.entities.BenchmarkResult.filter({
+                    scenario_name: question_id
+                }).catch(() => []),
+                base44.asServiceRole.entities.DevTestResult.filter({
+                    scenario_name: question_id
+                }).catch(() => [])
+            ]);
+            tests = [...benchTests, ...devTests];
         }
 
         if (tests.length === 0) {
             return Response.json({ 
-                error: 'No test data found',
+                error: 'No test data found in BenchmarkResult or DevTestResult entities',
                 success: false 
             });
         }

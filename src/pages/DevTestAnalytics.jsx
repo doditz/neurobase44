@@ -236,11 +236,22 @@ export default function DevTestAnalyticsPage() {
                 )}
 
                 {/* AI-Powered Analysis Section */}
-                {analyticsReport && analyticsReport.results && analyticsReport.results.length > 0 && !showComparison && (
+                {!showComparison && analyticsReport && analyticsReport.results && analyticsReport.results.length > 0 && (
                     <DevTestAIAnalysis 
                         testIds={analyticsReport.results.slice(0, 10).map(r => r.id)}
                         analysisType="multi"
                     />
+                )}
+                
+                {!showComparison && !isLoading && (!analyticsReport || !analyticsReport.results || analyticsReport.results.length === 0) && (
+                    <Card className="bg-yellow-900/20 border-yellow-600/50">
+                        <CardContent className="p-6 text-center">
+                            <AlertTriangle className="w-12 h-12 text-yellow-400 mx-auto mb-3" />
+                            <p className="text-slate-300">
+                                No test results available for AI analysis. Run some tests first.
+                            </p>
+                        </CardContent>
+                    </Card>
                 )}
 
                 {analyticsReport && !showComparison && (
