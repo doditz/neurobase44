@@ -13,9 +13,11 @@ import {
     CheckCircle2,
     Clock,
     Target,
-    Brain
+    Brain,
+    Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function NeuronasGauntletPage() {
     const [user, setUser] = useState(null);
@@ -24,6 +26,17 @@ export default function NeuronasGauntletPage() {
     const [currentRun, setCurrentRun] = useState(null);
     const [results, setResults] = useState([]);
     const [summary, setSummary] = useState(null);
+    const [runLogs, setRunLogs] = useState([]);
+
+    const addLog = (level, message) => {
+        setRunLogs(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            level,
+            message
+        }]);
+    };
+
+    const clearLogs = () => setRunLogs([]);
 
     useEffect(() => {
         loadUser();
@@ -92,6 +105,10 @@ export default function NeuronasGauntletPage() {
         }
 
         try {
+            if (runLogs.length > 0) {
+                addLog('SYSTEM', '────────────────────────────────────────');
+            }
+            addLog('SYSTEM', `🚀 GAUNTLET START: ${questionArray.length} questions`);
             toast.info(`🚀 Starting Neuronas Gauntlet with ${questionArray.length} questions...`);
 
             const { data } = await base44.functions.invoke('runNeuronasGauntlet', {
@@ -106,10 +123,21 @@ export default function NeuronasGauntletPage() {
             setResults(data.results || []);
             setSummary(data.summary);
 
+            // Log each result
+            data.results?.forEach((r, idx) => {
+                if (r.status === 'judged') {
+                    addLog('SUCCESS', `✅ Q${idx + 1}: Score ${r.judge_score}/10`);
+                } else if (r.status === 'error' || r.status === 'timeout') {
+                    addLog('ERROR', `❌ Q${idx + 1}: ${r.error_message || r.status}`);
+                }
+            });
+
+            addLog('SYSTEM', `🏁 GAUNTLET COMPLETE: Avg ${data.summary.average_score.toFixed(1)}/10`);
             toast.success(`✅ Gauntlet complete! Average score: ${data.summary.average_score.toFixed(1)}/10`);
 
         } catch (error) {
             console.error('Gauntlet error:', error);
+            addLog('ERROR', `Gauntlet failed: ${error.message}`);
             toast.error(`Error: ${error.message}`);
         } finally {
             setIsRunning(false);
@@ -200,23 +228,35 @@ export default function NeuronasGauntletPage() {
                             className="min-h-32 bg-slate-700 border-slate-600 text-green-300"
                             disabled={isRunning}
                         />
-                        <Button
-                            onClick={runGauntlet}
-                            disabled={isRunning || !questions.trim()}
-                            className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                            {isRunning ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Running Gauntlet...
-                                </>
-                            ) : (
-                                <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Execute Gauntlet
-                                </>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={runGauntlet}
+                                disabled={isRunning || !questions.trim()}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                            >
+                                {isRunning ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Running Gauntlet...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="w-4 h-4 mr-2" />
+                                        Execute Gauntlet
+                                    </>
+                                )}
+                            </Button>
+                            {runLogs.length > 0 && (
+                                <Button
+                                    onClick={clearLogs}
+                                    variant="outline"
+                                    className="border-slate-600 text-slate-400 hover:text-red-400"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Clear
+                                </Button>
                             )}
-                        </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -279,6 +319,16 @@ export default function NeuronasGauntletPage() {
                             </CardContent>
                         </Card>
                     </div>
+                )}
+
+                {/* Run Logs */}
+                {runLogs.length > 0 && (
+                    <UnifiedLogViewer
+                        logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`)}
+                        title={`Gauntlet Logs (${runLogs.length} entries)`}
+                        showStats={true}
+                        defaultExpanded={false}
+                    />
                 )}
 
                 {/* Results Table */}
