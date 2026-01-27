@@ -107,7 +107,12 @@ Deno.serve(async (req) => {
                             const remainingQuestions = questions.length - i;
                             const estimatedTimeRemaining = avgTimePerQuestion * remainingQuestions;
 
-                            // Mettre à jour la progression EN TEMPS RÉEL
+                            // Mettre à jour la progression EN TEMPS RÉEL avec logs
+                            const currentLogs = [
+                                { level: 'INFO', message: `🚀 Starting question ${i+1}/${questions.length}`, timestamp: Date.now(), phase: 'init' },
+                                { level: 'DEBUG', message: `Question ID: ${question.question_id}`, timestamp: Date.now(), phase: 'init' }
+                            ];
+
                             await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
                                 completed_questions: i,
                                 successful_questions: successCount,
@@ -115,6 +120,11 @@ Deno.serve(async (req) => {
                                 progress_percentage: (i / questions.length) * 100,
                                 current_question_id: question.question_id,
                                 current_question_text: question.question_text,
+                                current_mode_a_response: '',
+                                current_mode_b_response: '',
+                                current_debate_rounds: [],
+                                current_personas: [],
+                                streaming_logs: currentLogs,
                                 real_time_stats: {
                                     running_avg_spg: benchmarksLoaded > 0 ? totalSpg / benchmarksLoaded : 0,
                                     running_avg_cpu_savings: benchmarksLoaded > 0 ? totalCpuSavings / benchmarksLoaded : 0,
@@ -124,12 +134,183 @@ Deno.serve(async (req) => {
                                 }
                             });
 
-                            // Exécuter le benchmark A/B
-                            const { data: result } = await base44.functions.invoke('benchmarkOrchestrator', {
-                                question_text: question.question_text,
-                                question_id: question.question_id,
-                                run_mode: 'ab_test'
+                            // MODE A: Direct LLM call with progress update
+                            currentLogs.push({ level: 'INFO', message: '📝 Starting Mode A (Baseline LLM)...', timestamp: Date.now(), phase: 'mode_a' });
+                            await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                streaming_logs: currentLogs,
+                                current_phase: 'mode_a'
                             });
+
+                            const modeAStart = Date.now();
+                            let modeAResponse = '';
+                            let modeATokens = 0;
+                            try {
+                                modeAResponse = await base44.integrations.Core.InvokeLLM({
+                                    prompt: question.question_text,
+                                    add_context_from_internet: false
+                                });
+                                modeATokens = Math.ceil(modeAResponse.length / 4);
+                                const modeATime = Date.now() - modeAStart;
+                                currentLogs.push({ level: 'SUCCESS', message: `✅ Mode A: ${modeATime}ms, ~${modeATokens} tokens`, timestamp: Date.now(), phase: 'mode_a' });
+                                
+                                // Update with Mode A response
+                                await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                    current_mode_a_response: modeAResponse.substring(0, 1000),
+                                    streaming_logs: currentLogs
+                                });
+                            } catch (modeAError) {
+                                currentLogs.push({ level: 'ERROR', message: `❌ Mode A failed: ${modeAError.message}`, timestamp: Date.now(), phase: 'mode_a' });
+                                modeAResponse = 'Mode A failed';
+                            }
+
+                            // MODE B: Neuronas with debate tracking
+                            currentLogs.push({ level: 'INFO', message: '🧠 Starting Mode B (Neuronas)...', timestamp: Date.now(), phase: 'mode_b' });
+                            await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                streaming_logs: currentLogs,
+                                current_phase: 'mode_b'
+                            });
+
+                            const modeBStart = Date.now();
+                            let modeBResponse = '';
+                            let modeBTokens = 0;
+                            let personasUsed = [];
+
+                            try {
+                                const { data: chatResult } = await base44.functions.invoke('chatOrchestrator', {
+                                    user_message: question.question_text,
+                                    conversation_id: `bench_batch_${Date.now()}`,
+                                    settings: {
+                                        temperature: 0.7,
+                                        maxPersonas: 5,
+                                        debateRounds: 3,
+                                        mode: 'balanced'
+                                    }
+                                });
+
+                                if (chatResult && chatResult.success) {
+                                    modeBResponse = chatResult.response || '';
+                                    modeBTokens = chatResult.metadata?.estimated_tokens || Math.ceil(modeBResponse.length / 4);
+                                    personasUsed = chatResult.metadata?.personas_used || [];
+                                    
+                                    const modeBTime = Date.now() - modeBStart;
+                                    currentLogs.push({ 
+                                        level: 'SUCCESS', 
+                                        message: `✅ Mode B: ${modeBTime}ms, ~${modeBTokens} tokens, ${personasUsed.length} personas`, 
+                                        timestamp: Date.now(), 
+                                        phase: 'mode_b' 
+                                    });
+                                    
+                                    // Update with Mode B response and personas
+                                    await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                        current_mode_b_response: modeBResponse.substring(0, 1000),
+                                        current_personas: personasUsed,
+                                        current_debate_rounds: chatResult.metadata?.debate_rounds || [],
+                                        streaming_logs: currentLogs
+                                    });
+                                } else {
+                                    throw new Error(chatResult?.error || 'Mode B failed');
+                                }
+                            } catch (modeBError) {
+                                currentLogs.push({ level: 'ERROR', message: `❌ Mode B failed: ${modeBError.message}`, timestamp: Date.now(), phase: 'mode_b' });
+                                modeBResponse = 'Mode B failed';
+                            }
+
+                            // EVALUATION
+                            currentLogs.push({ level: 'INFO', message: '🔍 Running evaluation...', timestamp: Date.now(), phase: 'evaluation' });
+                            await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                streaming_logs: currentLogs,
+                                current_phase: 'evaluation'
+                            });
+
+                            // Create benchmark directly instead of recursive call
+                            const modeATime = Date.now() - modeAStart;
+                            const modeBTime = Date.now() - modeBStart;
+                            const cpuReduction = modeATime > 0 ? ((modeATime - modeBTime) / modeATime * 100) : 0;
+                            const tokenReduction = modeATokens > 0 ? ((modeATokens - modeBTokens) / modeATokens * 100) : 0;
+
+                            let winner = 'tie';
+                            let qualityScores = {};
+                            let graderRationale = '';
+
+                            try {
+                                const { data: grader } = await base44.functions.invoke('evaluateResponseQuality', {
+                                    question_text: question.question_text,
+                                    output_naive: modeAResponse,
+                                    output_d3stib: modeBResponse,
+                                    cpu_reduction_percent: cpuReduction,
+                                    ground_truth: question.ground_truth,
+                                    expected_key_points: question.expected_key_points || []
+                                });
+                                
+                                if (grader && grader.success) {
+                                    winner = grader.winner === 'A' ? 'mode_a' : 'mode_b';
+                                    qualityScores = grader.scores || {};
+                                    graderRationale = grader.rationale || '';
+                                    currentLogs.push({ level: 'SUCCESS', message: `✅ Grader: ${winner === 'mode_b' ? 'NEURONAS wins!' : 'Baseline wins'}`, timestamp: Date.now(), phase: 'evaluation' });
+                                }
+                            } catch (graderError) {
+                                currentLogs.push({ level: 'WARNING', message: `⚠️ Grader failed, using fallback`, timestamp: Date.now(), phase: 'evaluation' });
+                                winner = modeBResponse.length > modeAResponse.length * 1.2 ? 'mode_b' : 'mode_a';
+                                graderRationale = 'Fallback comparison';
+                            }
+
+                            // SAVE BENCHMARK
+                            currentLogs.push({ level: 'INFO', message: '💾 Saving benchmark...', timestamp: Date.now(), phase: 'saving' });
+                            await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                streaming_logs: currentLogs,
+                                current_phase: 'saving'
+                            });
+
+                            // Create benchmark entity
+                            let benchmarkId = null;
+                            try {
+                                const benchmark = await base44.asServiceRole.entities.BenchmarkResult.create({
+                                    scenario_name: question.question_id || 'Batch Test',
+                                    scenario_category: question.question_type || 'custom',
+                                    test_prompt: question.question_text,
+                                    mode_a_response: modeAResponse,
+                                    mode_a_time_ms: modeATime,
+                                    mode_a_token_count: modeATokens,
+                                    mode_b_response: modeBResponse,
+                                    mode_b_time_ms: modeBTime,
+                                    mode_b_token_count: modeBTokens,
+                                    mode_b_personas_used: personasUsed,
+                                    mode_b_debate_rounds: 3,
+                                    quality_scores: qualityScores,
+                                    winner,
+                                    performance_improvement: cpuReduction,
+                                    cpu_savings_percentage: cpuReduction,
+                                    token_savings_percentage: tokenReduction,
+                                    passed: winner === 'mode_b',
+                                    grader_rationale: graderRationale,
+                                    ground_truth_c: question.ground_truth,
+                                    expected_key_points: question.expected_key_points || [],
+                                    created_by: user.email
+                                });
+                                benchmarkId = benchmark.id;
+
+                                // Calculate SPG
+                                const qualityScore = winner === 'mode_b' ? 0.8 : 0.6;
+                                const efficiencyScore = Math.max(0, Math.min(1, 1 - (modeBTime / (modeATime * 3))));
+                                const costScore = Math.max(0, Math.min(1, 1 - (modeBTokens / (modeATokens * 3))));
+                                const spg = (0.4 * qualityScore) + (0.3 * efficiencyScore) + (0.3 * costScore);
+
+                                await base44.asServiceRole.entities.BenchmarkResult.update(benchmarkId, {
+                                    global_score_performance: spg,
+                                    spg_breakdown: { quality: qualityScore, efficiency: efficiencyScore, cost: costScore }
+                                });
+
+                                currentLogs.push({ level: 'SUCCESS', message: `✅ Benchmark saved: SPG=${spg.toFixed(3)}`, timestamp: Date.now(), phase: 'complete' });
+                            } catch (saveError) {
+                                currentLogs.push({ level: 'ERROR', message: `❌ Save failed: ${saveError.message}`, timestamp: Date.now(), phase: 'saving' });
+                            }
+
+                            await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                streaming_logs: currentLogs
+                            });
+
+                            // Use benchmarkId as result
+                            const result = benchmarkId ? { success: true, benchmark_id: benchmarkId } : { success: false, error: 'Benchmark save failed' };
 
                             if (result && result.success && result.benchmark_id) {
                                 // Vérifier que le benchmark existe vraiment
