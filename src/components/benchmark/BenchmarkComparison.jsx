@@ -361,7 +361,59 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                 )}
             </Card>
 
-            {/* Mode A Response */}
+            {/* SMAS Debate Rounds - Full Verbose Display */}
+            {benchmark.mode_b_debate_rounds_data && benchmark.mode_b_debate_rounds_data.length > 0 && (
+                <Card className="bg-slate-800 border-purple-600">
+                    <CardHeader>
+                        <CardTitle className="text-purple-400 flex items-center gap-2">
+                            <Brain className="w-5 h-5" />
+                            SMAS Debate Rounds ({benchmark.mode_b_debate_rounds_data.length} rounds)
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        {benchmark.mode_b_debate_rounds_data.map((round, idx) => (
+                            <div key={idx} className="bg-slate-900 rounded-lg border border-purple-600/30 overflow-hidden">
+                                <div className="bg-purple-900/30 px-4 py-2 flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Badge className="bg-purple-600">Round {round.round_number || idx + 1}</Badge>
+                                        {round.persona && (
+                                            <Badge variant="outline" className="text-purple-300">
+                                                {round.persona}
+                                            </Badge>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs text-slate-400">
+                                        {round.time_ms && (
+                                            <span className="flex items-center gap-1">
+                                                <Clock className="w-3 h-3" />
+                                                {(round.time_ms / 1000).toFixed(2)}s
+                                            </span>
+                                        )}
+                                        {round.tokens && (
+                                            <span className="flex items-center gap-1">
+                                                <Zap className="w-3 h-3" />
+                                                {round.tokens} tokens
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                                {round.prompt && (
+                                    <div className="px-4 py-3 border-b border-slate-700">
+                                        <div className="text-xs text-slate-500 mb-1">Prompt:</div>
+                                        <p className="text-xs text-slate-400 whitespace-pre-wrap">{round.prompt}</p>
+                                    </div>
+                                )}
+                                <div className="px-4 py-3">
+                                    <div className="text-xs text-slate-500 mb-1">Response:</div>
+                                    <p className="text-sm text-slate-300 whitespace-pre-wrap">{round.response}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* Mode A Response - FULL HEIGHT, NO TRUNCATION */}
             <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                     <button
@@ -371,6 +423,9 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                         <CardTitle className="text-orange-400 text-base flex items-center gap-2">
                             {expandedSections.modeA ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                             Mode A - LLM Baseline
+                            <span className="text-xs text-slate-500 font-normal ml-2">
+                                ({benchmark.mode_a_response?.length || 0} chars)
+                            </span>
                         </CardTitle>
                         <Badge variant="outline" className="text-orange-400">
                             {safeFixed(safeNumber(benchmark.mode_a_time_ms, 0) / 1000, 1)}s
@@ -379,16 +434,16 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                 </CardHeader>
                 {expandedSections.modeA && (
                     <CardContent>
-                        <ScrollArea className="h-48">
+                        <div className="bg-slate-700 p-4 rounded-lg">
                             <p className="text-sm text-slate-300 whitespace-pre-wrap">
                                 {benchmark.mode_a_response || 'N/A'}
                             </p>
-                        </ScrollArea>
+                        </div>
                     </CardContent>
                 )}
             </Card>
 
-            {/* Mode B Response */}
+            {/* Mode B Response - FULL HEIGHT, NO TRUNCATION */}
             <Card className="bg-slate-800 border-slate-700">
                 <CardHeader>
                     <button
@@ -398,6 +453,9 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                         <CardTitle className="text-green-400 text-base flex items-center gap-2">
                             {expandedSections.modeB ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
                             Mode B - Neuronas Enhanced
+                            <span className="text-xs text-slate-500 font-normal ml-2">
+                                ({benchmark.mode_b_response?.length || 0} chars)
+                            </span>
                         </CardTitle>
                         <Badge variant="outline" className="text-green-400">
                             {safeFixed(safeNumber(benchmark.mode_b_time_ms, 0) / 1000, 1)}s
@@ -406,11 +464,11 @@ export default function BenchmarkComparison({ benchmark, onClose = null }) {
                 </CardHeader>
                 {expandedSections.modeB && (
                     <CardContent>
-                        <ScrollArea className="h-48">
+                        <div className="bg-slate-700 p-4 rounded-lg">
                             <p className="text-sm text-slate-300 whitespace-pre-wrap">
                                 {benchmark.mode_b_response || 'N/A'}
                             </p>
-                        </ScrollArea>
+                        </div>
 
                         {benchmark.mode_b_personas_used && benchmark.mode_b_personas_used.length > 0 && (
                             <div className="mt-4 pt-4 border-t border-slate-700">
