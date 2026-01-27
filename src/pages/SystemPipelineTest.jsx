@@ -4,16 +4,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Loader2, Play, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Play, AlertCircle, Trash2 } from 'lucide-react';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function SystemPipelineTest() {
     const [testPrompt, setTestPrompt] = useState('Explain the ethical implications of AI in healthcare and propose a framework for responsible deployment.');
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState(null);
+    const [allLogs, setAllLogs] = useState([]);
 
     const runPipelineTest = async () => {
         setTesting(true);
-        setResults(null);
+        setAllLogs(prev => [
+            ...prev,
+            ...(prev.length > 0 ? [{ timestamp: new Date().toISOString(), level: 'SYSTEM', module: 'PIPELINE', message: '────────────────────────────────────────' }] : []),
+            { timestamp: new Date().toISOString(), level: 'SYSTEM', module: 'PIPELINE', message: `🚀 NEW TEST RUN: ${testPrompt.substring(0, 50)}...` }
+        ]);
 
         try {
             const { data } = await base44.functions.invoke('pipelineTestRunner', {
@@ -21,16 +27,22 @@ export default function SystemPipelineTest() {
             });
 
             setResults(data);
+            if (data.test_logs) {
+                setAllLogs(prev => [...prev, ...data.test_logs]);
+            }
         } catch (error) {
             setResults({
                 success: false,
                 error: error.message,
                 test_results: { failed: 1, total_tests: 1 }
             });
+            setAllLogs(prev => [...prev, { timestamp: new Date().toISOString(), level: 'ERROR', module: 'PIPELINE', message: `Test failed: ${error.message}` }]);
         } finally {
             setTesting(false);
         }
     };
+
+    const clearLogs = () => setAllLogs([]);
 
     const getStatusColor = (status) => {
         if (status === 'SUCCESS') return 'text-green-400';
@@ -61,23 +73,35 @@ export default function SystemPipelineTest() {
                             />
                         </div>
 
-                        <Button
-                            onClick={runPipelineTest}
-                            disabled={testing || !testPrompt.trim()}
-                            className="w-full bg-green-600 hover:bg-green-700"
-                        >
-                            {testing ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Running Pipeline Tests...
-                                </>
-                            ) : (
-                                <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Run Complete Pipeline Test
-                                </>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={runPipelineTest}
+                                disabled={testing || !testPrompt.trim()}
+                                className="flex-1 bg-green-600 hover:bg-green-700"
+                            >
+                                {testing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Running Pipeline Tests...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="w-4 h-4 mr-2" />
+                                        Run Complete Pipeline Test
+                                    </>
+                                )}
+                            </Button>
+                            {allLogs.length > 0 && (
+                                <Button
+                                    onClick={clearLogs}
+                                    variant="outline"
+                                    className="border-slate-600 text-slate-400 hover:text-red-400"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Clear
+                                </Button>
                             )}
-                        </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -190,26 +214,13 @@ export default function SystemPipelineTest() {
                             </Card>
                         )}
 
-                        {/* Detailed Logs */}
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-slate-400">Detailed Test Logs</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-1 max-h-96 overflow-y-auto">
-                                    {results.test_logs?.map((log, idx) => (
-                                        <div key={idx} className="text-xs font-mono">
-                                            <span className="text-slate-500">{log.timestamp}</span>
-                                            <span className={`ml-2 font-semibold ${getStatusColor(log.level)}`}>
-                                                [{log.level}]
-                                            </span>
-                                            <span className="ml-2 text-slate-400">[{log.module}]</span>
-                                            <span className="ml-2 text-slate-300">{log.message}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        {/* Detailed Logs - Unified */}
+                        <UnifiedLogViewer
+                            logs={allLogs.map(l => `[${l.timestamp}] [${l.level}] [${l.module}] ${l.message}`)}
+                            title={`Pipeline Logs (${allLogs.length} entries)`}
+                            showStats={true}
+                            defaultExpanded={true}
+                        />
                     </>
                 )}
             </div>
