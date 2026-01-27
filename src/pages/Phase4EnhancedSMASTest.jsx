@@ -3,28 +3,40 @@ import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Loader2, Play, Activity } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Play, Activity, Trash2 } from 'lucide-react';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function Phase4EnhancedSMASTest() {
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState(null);
+    const [allLogs, setAllLogs] = useState([]);
 
     const runTest = async () => {
         setTesting(true);
-        setResults(null);
+        setAllLogs(prev => [
+            ...prev,
+            ...(prev.length > 0 ? [{ level: 'SYSTEM', msg: '────────────────────────────────────────', timestamp: new Date().toISOString() }] : []),
+            { level: 'SYSTEM', msg: '🚀 NEW TEST RUN: Phase 4 Enhanced SMAS', timestamp: new Date().toISOString() }
+        ]);
 
         try {
             const { data } = await base44.functions.invoke('testPhase4EnhancedSMAS');
             setResults(data);
+            if (data.logs) {
+                setAllLogs(prev => [...prev, ...data.logs]);
+            }
         } catch (error) {
             setResults({
                 success: false,
                 error: error.message
             });
+            setAllLogs(prev => [...prev, { level: 'ERROR', msg: `Test failed: ${error.message}`, timestamp: new Date().toISOString() }]);
         } finally {
             setTesting(false);
         }
     };
+
+    const clearLogs = () => setAllLogs([]);
 
     return (
         <div className="min-h-screen bg-slate-900 p-6">
@@ -40,23 +52,35 @@ export default function Phase4EnhancedSMASTest() {
                         </p>
                     </CardHeader>
                     <CardContent>
-                        <Button
-                            onClick={runTest}
-                            disabled={testing}
-                            className="w-full bg-cyan-600 hover:bg-cyan-700"
-                        >
-                            {testing ? (
-                                <>
-                                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                    Testing Enhanced SMAS...
-                                </>
-                            ) : (
-                                <>
-                                    <Play className="w-4 h-4 mr-2" />
-                                    Run Phase 4 Tests
-                                </>
+                        <div className="flex gap-2">
+                            <Button
+                                onClick={runTest}
+                                disabled={testing}
+                                className="flex-1 bg-cyan-600 hover:bg-cyan-700"
+                            >
+                                {testing ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                        Testing Enhanced SMAS...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Play className="w-4 h-4 mr-2" />
+                                        Run Phase 4 Tests
+                                    </>
+                                )}
+                            </Button>
+                            {allLogs.length > 0 && (
+                                <Button
+                                    onClick={clearLogs}
+                                    variant="outline"
+                                    className="border-slate-600 text-slate-400 hover:text-red-400"
+                                >
+                                    <Trash2 className="w-4 h-4 mr-1" />
+                                    Clear Logs
+                                </Button>
                             )}
-                        </Button>
+                        </div>
                     </CardContent>
                 </Card>
 
@@ -157,26 +181,12 @@ export default function Phase4EnhancedSMASTest() {
                             </CardContent>
                         </Card>
 
-                        <Card className="bg-slate-800 border-slate-700">
-                            <CardHeader>
-                                <CardTitle className="text-slate-400">Execution Logs</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-1 max-h-96 overflow-y-auto font-mono text-xs">
-                                    {results.logs?.map((log, idx) => (
-                                        <div key={idx} className="text-slate-300">
-                                            <span className="text-slate-500">{log.timestamp}</span>
-                                            <span className="ml-2">{log.msg}</span>
-                                            {log.data && (
-                                                <span className="ml-2 text-cyan-400">
-                                                    {typeof log.data === 'object' ? JSON.stringify(log.data) : log.data}
-                                                </span>
-                                            )}
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
+                        <UnifiedLogViewer
+                            logs={allLogs.map(l => `[${l.timestamp}] [${l.level || 'INFO'}] ${l.msg}${l.data ? ' ' + JSON.stringify(l.data) : ''}`)}
+                            title={`Execution Logs (${allLogs.length} entries)`}
+                            showStats={true}
+                            defaultExpanded={true}
+                        />
                     </>
                 )}
             </div>
