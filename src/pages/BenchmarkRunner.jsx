@@ -16,10 +16,12 @@ import {
     TrendingUp,
     Download,
     Shield,
-    Loader2
+    Loader2,
+    Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function BenchmarkRunner() {
     const [questions, setQuestions] = useState([]);
@@ -36,10 +38,22 @@ export default function BenchmarkRunner() {
         avgImprovement: 0
     });
     const [user, setUser] = useState(null);
+    const [runLogs, setRunLogs] = useState([]);
 
     useEffect(() => {
         loadData();
     }, []);
+
+    const addLog = (level, message, data = null) => {
+        setRunLogs(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            level,
+            message,
+            data
+        }]);
+    };
+
+    const clearLogs = () => setRunLogs([]);
 
     const loadData = async () => {
         try {
@@ -98,6 +112,12 @@ export default function BenchmarkRunner() {
         setIsPaused(false);
         setCurrentIndex(0);
         
+        // Add separator for new batch run
+        if (runLogs.length > 0) {
+            addLog('SYSTEM', '────────────────────────────────────────');
+        }
+        addLog('SYSTEM', `🚀 BATCH START: ${questions.length} questions`);
+        
         const testResults = [];
         let passed = 0;
         let failed = 0;
@@ -109,14 +129,20 @@ export default function BenchmarkRunner() {
             setCurrentIndex(i);
             const question = questions[i];
             
+            addLog('INFO', `Testing ${i + 1}/${questions.length}: ${question.question_id}`);
             toast.info(`Test ${i + 1}/${questions.length}: ${question.question_id}`);
 
             try {
                 const result = await runSingleBenchmark(question);
                 testResults.push(result);
                 
-                if (result.passed) passed++;
-                else failed++;
+                if (result.passed) {
+                    passed++;
+                    addLog('SUCCESS', `✅ ${question.question_id}: Mode B wins (SPG: ${result.global_score_performance?.toFixed(3)})`);
+                } else {
+                    failed++;
+                    addLog('WARNING', `⚠️ ${question.question_id}: Mode A wins`);
+                }
                 
                 totalImprovement += result.performance_improvement;
                 
@@ -130,6 +156,7 @@ export default function BenchmarkRunner() {
             } catch (error) {
                 console.error(`Failed benchmark for question ${i}:`, error);
                 failed++;
+                addLog('ERROR', `❌ ${question.question_id}: ${error.message}`);
             }
 
             if (i < questions.length - 1) {
@@ -139,6 +166,7 @@ export default function BenchmarkRunner() {
 
         setIsRunning(false);
         setCurrentTest(null);
+        addLog('SYSTEM', `🏁 BATCH COMPLETE: ${passed}/${questions.length} passed (${((passed/questions.length)*100).toFixed(1)}%)`);
         toast.success(`✅ Suite terminée: ${passed}/${questions.length} réussis`);
 
         await loadData();
@@ -320,6 +348,32 @@ export default function BenchmarkRunner() {
                         </CardContent>
                     </Card>
                 </div>
+
+                {/* Run Logs */}
+                {runLogs.length > 0 && (
+                    <Card className="bg-slate-800 border-slate-700">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-green-300">Execution Logs ({runLogs.length})</CardTitle>
+                            <Button
+                                onClick={clearLogs}
+                                variant="outline"
+                                size="sm"
+                                className="border-slate-600 text-slate-400 hover:text-red-400"
+                            >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Clear
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <UnifiedLogViewer
+                                logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}${l.data ? ' ' + JSON.stringify(l.data) : ''}`)}
+                                title=""
+                                showStats={true}
+                                defaultExpanded={true}
+                            />
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Results List */}
                 {results.length > 0 && (
