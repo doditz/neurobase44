@@ -165,6 +165,7 @@ Deno.serve(async (req) => {
 
                             // MODE B: Neuronas with debate tracking
                             currentLogs.push({ level: 'INFO', message: '🧠 Starting Mode B (Neuronas)...', timestamp: Date.now(), phase: 'mode_b' });
+                            currentLogs.push({ level: 'DEBUG', message: '📊 SMAS debate starting with 5 personas, 3 rounds...', timestamp: Date.now(), phase: 'mode_b' });
                             await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
                                 streaming_logs: currentLogs,
                                 current_phase: 'mode_b'
@@ -174,6 +175,7 @@ Deno.serve(async (req) => {
                             let modeBResponse = '';
                             let modeBTokens = 0;
                             let personasUsed = [];
+                            let debateRoundsData = [];
 
                             try {
                                 const { data: chatResult } = await base44.functions.invoke('chatOrchestrator', {
@@ -192,6 +194,46 @@ Deno.serve(async (req) => {
                                     modeBTokens = chatResult.metadata?.estimated_tokens || Math.ceil(modeBResponse.length / 4);
                                     personasUsed = chatResult.metadata?.personas_used || [];
                                     
+                                    // Extract debate history from chatOrchestrator
+                                    const debateHistory = chatResult.debate_history || chatResult.metadata?.debate_history || [];
+                                    const debateRoundsDetails = chatResult.metadata?.debate_rounds_details || [];
+                                    
+                                    // Format debate rounds for display
+                                    debateRoundsData = debateHistory.map((round, idx) => ({
+                                        round_number: round.round || idx + 1,
+                                        persona: round.persona || round.speaker || `Persona ${idx + 1}`,
+                                        content: round.response || round.contribution || round.content || '',
+                                        time_ms: round.time_ms || 0,
+                                        hemisphere: round.hemisphere || 'central'
+                                    }));
+                                    
+                                    // Log each debate round
+                                    if (debateHistory.length > 0) {
+                                        currentLogs.push({ level: 'INFO', message: `🎭 SMAS Debate: ${debateHistory.length} rounds captured`, timestamp: Date.now(), phase: 'mode_b' });
+                                        for (const round of debateHistory.slice(0, 5)) { // Show first 5 rounds
+                                            const personaName = round.persona || round.speaker || 'Unknown';
+                                            const snippet = (round.response || round.contribution || round.content || '').substring(0, 80);
+                                            currentLogs.push({ 
+                                                level: 'DEBUG', 
+                                                message: `  🗣️ [${personaName}]: "${snippet}..."`, 
+                                                timestamp: Date.now(), 
+                                                phase: 'mode_b' 
+                                            });
+                                        }
+                                    }
+                                    
+                                    // Log thinking steps if available
+                                    if (chatResult.thinking_steps?.length > 0) {
+                                        for (const step of chatResult.thinking_steps) {
+                                            currentLogs.push({ 
+                                                level: 'DEBUG', 
+                                                message: `📋 ${step.step}: ${JSON.stringify(step).substring(0, 100)}...`, 
+                                                timestamp: Date.now(), 
+                                                phase: 'mode_b' 
+                                            });
+                                        }
+                                    }
+                                    
                                     const modeBTime = Date.now() - modeBStart;
                                     currentLogs.push({ 
                                         level: 'SUCCESS', 
@@ -200,11 +242,11 @@ Deno.serve(async (req) => {
                                         phase: 'mode_b' 
                                     });
                                     
-                                    // Update with Mode B response and personas
+                                    // Update with Mode B response, personas, and debate details
                                     await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
-                                        current_mode_b_response: modeBResponse.substring(0, 1000),
+                                        current_mode_b_response: modeBResponse.substring(0, 1500),
                                         current_personas: personasUsed,
-                                        current_debate_rounds: chatResult.metadata?.debate_rounds || [],
+                                        current_debate_rounds: debateRoundsData,
                                         streaming_logs: currentLogs
                                     });
                                 } else {
@@ -213,6 +255,10 @@ Deno.serve(async (req) => {
                             } catch (modeBError) {
                                 currentLogs.push({ level: 'ERROR', message: `❌ Mode B failed: ${modeBError.message}`, timestamp: Date.now(), phase: 'mode_b' });
                                 modeBResponse = 'Mode B failed';
+                                
+                                await base44.asServiceRole.entities.BatchRunProgress.update(progressRecord.id, {
+                                    streaming_logs: currentLogs
+                                });
                             }
 
                             // EVALUATION
