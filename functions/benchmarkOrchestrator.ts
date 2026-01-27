@@ -316,7 +316,7 @@ Deno.serve(async (req) => {
                                 // Vérifier que le benchmark existe vraiment
                                 let benchmarkExists = false;
                                 let benchmarkData = null;
-                                const maxVerifyAttempts = 5;
+                                const maxVerifyAttempts = 3;
                                 
                                 for (let attempt = 1; attempt <= maxVerifyAttempts; attempt++) {
                                     try {
@@ -328,8 +328,7 @@ Deno.serve(async (req) => {
                                     } catch (verifyError) {
                                         addLog(`  ⚠️ Verification attempt ${attempt} failed: ${verifyError.message}`, 'WARNING');
                                         if (attempt < maxVerifyAttempts) {
-                                            const delay = 500 * attempt;
-                                            addLog(`  → Waiting ${delay}ms before retry...`);
+                                            const delay = 300 * attempt;
                                             await new Promise(resolve => setTimeout(resolve, delay));
                                         }
                                     }
@@ -352,7 +351,7 @@ Deno.serve(async (req) => {
                                     failCount++;
                                     failedQuestions.push({
                                         question_id: question.question_id,
-                                        error: 'Benchmark created but not accessible after 5 verification attempts'
+                                        error: 'Benchmark created but not accessible after verification attempts'
                                     });
                                     addLog(`  ❌ Benchmark ${result.benchmark_id} NOT verified, skipping`, 'ERROR');
                                 }
