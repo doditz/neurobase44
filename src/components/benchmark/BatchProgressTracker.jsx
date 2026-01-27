@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle2, XCircle, Clock, Zap, TrendingUp, Target, Award } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Loader2, CheckCircle2, XCircle, Clock, Zap, TrendingUp, Target, Award, ChevronDown, ChevronUp, MessageSquare, Brain, Users } from 'lucide-react';
 
 const safeNum = (val) => (val === null || val === undefined || isNaN(val)) ? 0 : Number(val);
 
