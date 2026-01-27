@@ -356,47 +356,75 @@ export default function BatchProgressTracker({ progressData, elapsedTime, stream
                     </CollapsibleContent>
                 </Collapsible>
 
-                {/* Mode A/B Responses */}
-                {(current_mode_a_response || current_mode_b_response || currentResponse) && (
-                    <Collapsible open={showResponses} onOpenChange={setShowResponses}>
-                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-blue-900/20 rounded-lg border border-blue-600/30 hover:border-blue-500/50 transition-colors">
-                            <div className="flex items-center gap-2 text-blue-400">
-                                <MessageSquare className="w-4 h-4" />
-                                <span className="text-sm font-medium">Réponses Mode A/B</span>
-                            </div>
-                            {showResponses ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                {/* Mode A Response */}
-                                <div className="p-3 bg-slate-900 rounded-lg border border-slate-700">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Badge className="bg-red-900/30 text-red-400">Mode A</Badge>
-                                        <span className="text-xs text-slate-500">LLM Baseline</span>
-                                    </div>
-                                    <ScrollArea className="h-32">
-                                        <p className="text-xs text-slate-300 whitespace-pre-wrap">
-                                            {current_mode_a_response || currentResponse?.mode_a || 'En attente...'}
-                                        </p>
-                                    </ScrollArea>
+                {/* Mode A/B Responses - Always show when running */}
+                <Collapsible open={showResponses} onOpenChange={setShowResponses}>
+                    <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-blue-900/20 rounded-lg border border-blue-600/30 hover:border-blue-500/50 transition-colors">
+                        <div className="flex items-center gap-2 text-blue-400">
+                            <MessageSquare className="w-4 h-4" />
+                            <span className="text-sm font-medium">Réponses Mode A/B</span>
+                            {current_mode_a_response && (
+                                <Badge className="bg-red-900/30 text-red-400">A ✓</Badge>
+                            )}
+                            {current_mode_b_response && (
+                                <Badge className="bg-green-900/30 text-green-400">B ✓</Badge>
+                            )}
+                        </div>
+                        {showResponses ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {/* Mode A Response */}
+                            <div className="p-3 bg-slate-900 rounded-lg border border-slate-700">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge className="bg-red-900/30 text-red-400">Mode A</Badge>
+                                    <span className="text-xs text-slate-500">LLM Baseline</span>
+                                    {current_mode_a_response && (
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                    )}
                                 </div>
-                                
-                                {/* Mode B Response */}
-                                <div className="p-3 bg-green-900/10 rounded-lg border border-green-600/30">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Badge className="bg-green-900/30 text-green-400">Mode B</Badge>
-                                        <span className="text-xs text-slate-500">Neuronas</span>
-                                    </div>
-                                    <ScrollArea className="h-32">
+                                <ScrollArea className="h-40">
+                                    {current_mode_a_response ? (
                                         <p className="text-xs text-slate-300 whitespace-pre-wrap">
-                                            {current_mode_b_response || currentResponse?.mode_b || 'En attente...'}
+                                            {current_mode_a_response}
                                         </p>
-                                    </ScrollArea>
-                                </div>
+                                    ) : status === 'running' ? (
+                                        <div className="flex flex-col items-center justify-center h-32 text-slate-500">
+                                            <Loader2 className="w-4 h-4 animate-spin text-red-400 mb-1" />
+                                            <span className="text-xs">Génération Mode A...</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-slate-500">En attente...</span>
+                                    )}
+                                </ScrollArea>
                             </div>
-                        </CollapsibleContent>
-                    </Collapsible>
-                )}
+                            
+                            {/* Mode B Response */}
+                            <div className="p-3 bg-green-900/10 rounded-lg border border-green-600/30">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <Badge className="bg-green-900/30 text-green-400">Mode B</Badge>
+                                    <span className="text-xs text-slate-500">Neuronas SMAS</span>
+                                    {current_mode_b_response && (
+                                        <CheckCircle2 className="w-3 h-3 text-green-500" />
+                                    )}
+                                </div>
+                                <ScrollArea className="h-40">
+                                    {current_mode_b_response ? (
+                                        <p className="text-xs text-slate-300 whitespace-pre-wrap">
+                                            {current_mode_b_response}
+                                        </p>
+                                    ) : status === 'running' ? (
+                                        <div className="flex flex-col items-center justify-center h-32 text-slate-500">
+                                            <Brain className="w-4 h-4 animate-pulse text-green-400 mb-1" />
+                                            <span className="text-xs">Débat SMAS en cours...</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-xs text-slate-500">En attente...</span>
+                                    )}
+                                </ScrollArea>
+                            </div>
+                        </div>
+                    </CollapsibleContent>
+                </Collapsible>
             </CardContent>
         </Card>
     );
