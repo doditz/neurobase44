@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { Play, Loader2, Layers, RefreshCw, Radio, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Play, Loader2, Layers, RefreshCw, Radio, CheckCircle2, AlertCircle, Clock, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
@@ -703,7 +703,21 @@ export default function UnifiedTestRunner({
 
                                     {/* Streaming log console */}
                                     {streamingLogs.length > 0 && (
-                                        <div className="bg-slate-900 rounded-lg p-4 max-h-64 overflow-y-auto font-mono text-xs">
+                                        <div className="bg-slate-900 rounded-lg overflow-hidden">
+                                            <div className="flex items-center justify-between px-4 py-2 border-b border-slate-800">
+                                                <span className="text-xs text-slate-500">{streamingLogs.length} entries</span>
+                                                <Button 
+                                                    variant="ghost" 
+                                                    size="sm" 
+                                                    onClick={() => setStreamingLogs([])}
+                                                    className="h-6 text-xs text-slate-500 hover:text-red-400"
+                                                    disabled={isRunning}
+                                                >
+                                                    <Trash2 className="w-3 h-3 mr-1" />
+                                                    Clear
+                                                </Button>
+                                            </div>
+                                            <div className="p-4 max-h-64 overflow-y-auto font-mono text-xs">
                                             {streamingLogs.map((log, i) => {
                                                 const levelColors = {
                                                     'INFO': 'text-blue-300',
@@ -714,15 +728,18 @@ export default function UnifiedTestRunner({
                                                     'SYSTEM': 'text-purple-400'
                                                 };
                                                 return (
-                                                    <div key={i} className={`py-0.5 ${levelColors[log.level] || 'text-green-300'}`}>
-                                                        <span className="text-slate-600 mr-2">
-                                                            [{new Date(log.timestamp).toLocaleTimeString()}]
-                                                        </span>
+                                                    <div key={i} className={`py-0.5 ${log.isSeparator ? 'text-slate-600 my-2' : levelColors[log.level] || 'text-green-300'}`}>
+                                                        {!log.isSeparator && (
+                                                            <span className="text-slate-600 mr-2">
+                                                                [{new Date(log.timestamp).toLocaleTimeString()}]
+                                                            </span>
+                                                        )}
                                                         {log.message}
                                                     </div>
                                                 );
                                             })}
                                             <div className="text-green-400 animate-pulse">▊</div>
+                                        </div>
                                         </div>
                                     )}
                                 </CardContent>
