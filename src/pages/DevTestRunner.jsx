@@ -8,10 +8,11 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
     Play, Loader2, CheckCircle2, XCircle, 
-    Zap, Shield, Download, RotateCcw, Pause
+    Zap, Shield, Download, RotateCcw, Pause, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function DevTestRunner() {
     const [user, setUser] = useState(null);
@@ -23,10 +24,21 @@ export default function DevTestRunner() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [results, setResults] = useState([]);
     const [allResults, setAllResults] = useState([]);
+    const [runLogs, setRunLogs] = useState([]);
 
     useEffect(() => {
         loadData();
     }, []);
+
+    const addLog = (level, message) => {
+        setRunLogs(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            level,
+            message
+        }]);
+    };
+
+    const clearLogs = () => setRunLogs([]);
 
     const loadData = async () => {
         try {
@@ -97,6 +109,11 @@ export default function DevTestRunner() {
         setResults([]);
         setCurrentIndex(0);
 
+        if (runLogs.length > 0) {
+            addLog('SYSTEM', '────────────────────────────────────────');
+        }
+        addLog('SYSTEM', `🚀 DEV BATCH START: ${questions.length} questions`);
+
         const testResults = [];
 
         for (let i = 0; i < questions.length; i++) {
@@ -105,6 +122,7 @@ export default function DevTestRunner() {
             setCurrentIndex(i);
             const question = questions[i];
 
+            addLog('INFO', `Testing ${i + 1}/${questions.length}: ${question.question_id}`);
             toast.info(`Test ${i + 1}/${questions.length}: ${question.question_id}`);
 
             try {
@@ -119,12 +137,19 @@ export default function DevTestRunner() {
                     status: data?.success ? 'success' : 'failed',
                     data: data
                 });
+                
+                if (data?.success) {
+                    addLog('SUCCESS', `✅ ${question.question_id}: ${data.winner === 'mode_b' ? 'Mode B wins' : 'Mode A wins'} (SPG: ${data.spg?.toFixed(3) || 'N/A'})`);
+                } else {
+                    addLog('WARNING', `⚠️ ${question.question_id}: Test returned no success`);
+                }
             } catch (error) {
                 testResults.push({
                     question_id: question.question_id,
                     status: 'failed',
                     error: error.message
                 });
+                addLog('ERROR', `❌ ${question.question_id}: ${error.message}`);
             }
 
             setResults([...testResults]);
@@ -136,6 +161,7 @@ export default function DevTestRunner() {
 
         setIsBatchRunning(false);
         const successCount = testResults.filter(r => r.status === 'success').length;
+        addLog('SYSTEM', `🏁 BATCH COMPLETE: ${successCount}/${testResults.length} passed (${((successCount/testResults.length)*100).toFixed(1)}%)`);
         toast.success(`✅ Batch terminé: ${successCount}/${testResults.length} réussis`);
 
         setTimeout(async () => {
@@ -345,6 +371,32 @@ export default function DevTestRunner() {
                             </CardContent>
                         </Card>
                     </div>
+                )}
+
+                {/* Run Logs */}
+                {runLogs.length > 0 && (
+                    <Card className="bg-slate-800 border-slate-700">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-green-400">Execution Logs ({runLogs.length})</CardTitle>
+                            <Button
+                                onClick={clearLogs}
+                                variant="outline"
+                                size="sm"
+                                className="border-slate-600 text-slate-400 hover:text-red-400"
+                            >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Clear
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <UnifiedLogViewer
+                                logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`)}
+                                title=""
+                                showStats={true}
+                                defaultExpanded={true}
+                            />
+                        </CardContent>
+                    </Card>
                 )}
 
                 {/* Historical Results */}
