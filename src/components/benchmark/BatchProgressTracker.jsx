@@ -221,6 +221,152 @@ export default function BatchProgressTracker({ progressData, elapsedTime, stream
                         Vitesse moyenne: {avgTimePerQuestion > 0 ? `${(60000 / avgTimePerQuestion).toFixed(1)} questions/min` : 'Calcul en cours...'}
                     </span>
                 </div>
+
+                {/* Streaming Logs Section */}
+                {(streamingLogs.length > 0 || status === 'running') && (
+                    <Collapsible open={showLogs} onOpenChange={setShowLogs}>
+                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-700 hover:border-green-600/50 transition-colors">
+                            <div className="flex items-center gap-2 text-green-400">
+                                <MessageSquare className="w-4 h-4" />
+                                <span className="text-sm font-medium">Logs en temps réel</span>
+                                <Badge className="bg-green-900/30 text-green-400">{streamingLogs.length}</Badge>
+                            </div>
+                            {showLogs ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                            <ScrollArea className="h-48 bg-slate-950 rounded-lg p-3 border border-slate-800">
+                                <div className="font-mono text-xs space-y-1">
+                                    {streamingLogs.length === 0 ? (
+                                        <div className="text-slate-500 italic">En attente des logs...</div>
+                                    ) : (
+                                        streamingLogs.map((log, i) => {
+                                            const levelColors = {
+                                                'INFO': 'text-blue-300',
+                                                'DEBUG': 'text-slate-400',
+                                                'SUCCESS': 'text-green-400',
+                                                'WARNING': 'text-yellow-400',
+                                                'ERROR': 'text-red-400',
+                                                'SYSTEM': 'text-purple-400'
+                                            };
+                                            return (
+                                                <div key={i} className={`py-0.5 ${levelColors[log.level] || 'text-green-300'}`}>
+                                                    <span className="text-slate-600 mr-2">
+                                                        [{new Date(log.timestamp).toLocaleTimeString()}]
+                                                    </span>
+                                                    <span className="text-slate-500 mr-2">[{log.level}]</span>
+                                                    {log.message}
+                                                </div>
+                                            );
+                                        })
+                                    )}
+                                    {status === 'running' && <div className="text-green-400 animate-pulse">▊</div>}
+                                </div>
+                            </ScrollArea>
+                        </CollapsibleContent>
+                    </Collapsible>
+                )}
+
+                {/* SMAS Debate Visualization */}
+                {(current_debate_rounds?.length > 0 || current_personas?.length > 0 || debateData) && (
+                    <Collapsible open={showDebate} onOpenChange={setShowDebate}>
+                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-purple-900/20 rounded-lg border border-purple-600/30 hover:border-purple-500/50 transition-colors">
+                            <div className="flex items-center gap-2 text-purple-400">
+                                <Brain className="w-4 h-4" />
+                                <span className="text-sm font-medium">Débat SMAS</span>
+                                {current_personas?.length > 0 && (
+                                    <Badge className="bg-purple-900/30 text-purple-400">
+                                        <Users className="w-3 h-3 mr-1" />
+                                        {current_personas.length} personas
+                                    </Badge>
+                                )}
+                            </div>
+                            {showDebate ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2 space-y-2">
+                            {/* Active Personas */}
+                            {current_personas?.length > 0 && (
+                                <div className="p-3 bg-purple-900/10 rounded-lg border border-purple-600/20">
+                                    <div className="text-xs text-slate-500 mb-2">👥 Personas actives:</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {current_personas.map((persona, i) => (
+                                            <Badge key={i} className="bg-purple-900/30 text-purple-300 border border-purple-600/30">
+                                                {persona}
+                                            </Badge>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            
+                            {/* Debate Rounds */}
+                            {(current_debate_rounds?.length > 0 || debateData?.rounds?.length > 0) && (
+                                <ScrollArea className="h-40 bg-slate-950 rounded-lg p-3 border border-slate-800">
+                                    <div className="space-y-3">
+                                        {(current_debate_rounds || debateData?.rounds || []).map((round, i) => (
+                                            <div key={i} className="p-2 bg-slate-900 rounded border-l-2 border-purple-500">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <Badge className="bg-purple-900/50 text-purple-300 text-xs">
+                                                        Round {round.round_number || i + 1}
+                                                    </Badge>
+                                                    {round.persona && (
+                                                        <span className="text-xs text-purple-400">{round.persona}</span>
+                                                    )}
+                                                    {round.time_ms && (
+                                                        <span className="text-xs text-slate-500">{round.time_ms}ms</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-slate-300 line-clamp-2">
+                                                    {round.response || round.content || 'Processing...'}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </ScrollArea>
+                            )}
+                        </CollapsibleContent>
+                    </Collapsible>
+                )}
+
+                {/* Mode A/B Responses */}
+                {(current_mode_a_response || current_mode_b_response || currentResponse) && (
+                    <Collapsible open={showResponses} onOpenChange={setShowResponses}>
+                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-blue-900/20 rounded-lg border border-blue-600/30 hover:border-blue-500/50 transition-colors">
+                            <div className="flex items-center gap-2 text-blue-400">
+                                <MessageSquare className="w-4 h-4" />
+                                <span className="text-sm font-medium">Réponses Mode A/B</span>
+                            </div>
+                            {showResponses ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="mt-2">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {/* Mode A Response */}
+                                <div className="p-3 bg-slate-900 rounded-lg border border-slate-700">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Badge className="bg-red-900/30 text-red-400">Mode A</Badge>
+                                        <span className="text-xs text-slate-500">LLM Baseline</span>
+                                    </div>
+                                    <ScrollArea className="h-32">
+                                        <p className="text-xs text-slate-300 whitespace-pre-wrap">
+                                            {current_mode_a_response || currentResponse?.mode_a || 'En attente...'}
+                                        </p>
+                                    </ScrollArea>
+                                </div>
+                                
+                                {/* Mode B Response */}
+                                <div className="p-3 bg-green-900/10 rounded-lg border border-green-600/30">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Badge className="bg-green-900/30 text-green-400">Mode B</Badge>
+                                        <span className="text-xs text-slate-500">Neuronas</span>
+                                    </div>
+                                    <ScrollArea className="h-32">
+                                        <p className="text-xs text-slate-300 whitespace-pre-wrap">
+                                            {current_mode_b_response || currentResponse?.mode_b || 'En attente...'}
+                                        </p>
+                                    </ScrollArea>
+                                </div>
+                            </div>
+                        </CollapsibleContent>
+                    </Collapsible>
+                )}
             </CardContent>
         </Card>
     );
