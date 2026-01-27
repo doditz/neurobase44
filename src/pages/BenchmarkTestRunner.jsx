@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { base44 } from '@/api/base44Client';
 import { User } from '@/entities/User';
@@ -8,8 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Zap, Loader2, CheckCircle2, AlertCircle, Shield } from 'lucide-react';
+import { Play, Zap, Loader2, CheckCircle2, AlertCircle, Shield, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function BenchmarkTestRunnerPage() {
     const [user, setUser] = useState(null);
@@ -20,10 +20,21 @@ export default function BenchmarkTestRunnerPage() {
     const [testResults, setTestResults] = useState(null);
     const [batchResults, setBatchResults] = useState([]);
     const [allBenchmarks, setAllBenchmarks] = useState([]);
+    const [runLogs, setRunLogs] = useState([]);
 
     useEffect(() => {
         loadData();
     }, []);
+
+    const addLog = (level, message) => {
+        setRunLogs(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            level,
+            message
+        }]);
+    };
+
+    const clearLogs = () => setRunLogs([]);
 
     const loadData = async () => {
         try {
@@ -54,6 +65,11 @@ export default function BenchmarkTestRunnerPage() {
         setIsSingleTestRunning(true);
         setTestResults(null);
 
+        if (runLogs.length > 0) {
+            addLog('SYSTEM', '────────────────────────────────────────');
+        }
+        addLog('SYSTEM', `🚀 SINGLE TEST: ${selectedQuestion.question_id}`);
+
         try {
             toast.info('🚀 Test en cours...');
 
@@ -69,6 +85,7 @@ export default function BenchmarkTestRunnerPage() {
             }
 
             setTestResults(data);
+            addLog('SUCCESS', `✅ Winner: ${data.winner === 'mode_b' ? 'Mode B (Neuronas)' : 'Mode A (Baseline)'} | SPG: ${data.spg?.toFixed(3) || 'N/A'}`);
             toast.success('✅ Test terminé!');
 
             // Attendre la propagation avant reload
@@ -78,6 +95,7 @@ export default function BenchmarkTestRunnerPage() {
             }, 2000);
         } catch (error) {
             console.error('[BenchmarkTestRunner] Single test error:', error);
+            addLog('ERROR', `❌ Test failed: ${error.message}`);
             toast.error(`Erreur: ${error.message}`);
         } finally {
             setIsSingleTestRunning(false);
@@ -93,11 +111,17 @@ export default function BenchmarkTestRunnerPage() {
         setIsBatchRunning(true);
         setBatchResults([]);
 
+        if (runLogs.length > 0) {
+            addLog('SYSTEM', '────────────────────────────────────────');
+        }
+        addLog('SYSTEM', `🚀 BATCH START: ${questions.length} questions (~${Math.ceil(questions.length * 30 / 60)} min)`);
+
         const results = [];
 
         for (let i = 0; i < questions.length; i++) {
             const question = questions[i];
             
+            addLog('INFO', `Testing ${i + 1}/${questions.length}: ${question.question_id}`);
             toast.info(`Test ${i + 1}/${questions.length}: ${question.question_id}`);
 
             try {
@@ -114,12 +138,14 @@ export default function BenchmarkTestRunnerPage() {
                         status: 'success',
                         data: data
                     });
+                    addLog('SUCCESS', `✅ ${question.question_id}: ${data.winner === 'mode_b' ? 'Mode B' : 'Mode A'} (SPG: ${data.spg?.toFixed(3) || 'N/A'})`);
                 } else {
                     results.push({
                         question_id: question.question_id,
                         status: 'failed',
                         error: data?.error || 'Unknown error'
                     });
+                    addLog('WARNING', `⚠️ ${question.question_id}: No success returned`);
                 }
             } catch (error) {
                 results.push({
@@ -127,6 +153,7 @@ export default function BenchmarkTestRunnerPage() {
                     status: 'failed',
                     error: error.message
                 });
+                addLog('ERROR', `❌ ${question.question_id}: ${error.message}`);
             }
 
             setBatchResults([...results]);
@@ -138,7 +165,9 @@ export default function BenchmarkTestRunnerPage() {
         }
 
         setIsBatchRunning(false);
-        toast.success(`✅ Batch complété: ${results.filter(r => r.status === 'success').length}/${results.length} réussis`);
+        const successCount = results.filter(r => r.status === 'success').length;
+        addLog('SYSTEM', `🏁 BATCH COMPLETE: ${successCount}/${results.length} passed (${((successCount/results.length)*100).toFixed(1)}%)`);
+        toast.success(`✅ Batch complété: ${successCount}/${results.length} réussis`);
 
         // Attendre propagation
         setTimeout(async () => {
@@ -316,6 +345,32 @@ export default function BenchmarkTestRunnerPage() {
                                     </p>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+                )}
+
+                {/* Unified Logs */}
+                {runLogs.length > 0 && (
+                    <Card className="bg-slate-800 border-slate-700">
+                        <CardHeader className="flex flex-row items-center justify-between">
+                            <CardTitle className="text-green-400">Execution Logs ({runLogs.length})</CardTitle>
+                            <Button
+                                onClick={clearLogs}
+                                variant="outline"
+                                size="sm"
+                                className="border-slate-600 text-slate-400 hover:text-red-400"
+                            >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Clear
+                            </Button>
+                        </CardHeader>
+                        <CardContent>
+                            <UnifiedLogViewer
+                                logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`)}
+                                title=""
+                                showStats={true}
+                                defaultExpanded={true}
+                            />
                         </CardContent>
                     </Card>
                 )}
