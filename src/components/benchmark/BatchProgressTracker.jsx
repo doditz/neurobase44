@@ -8,7 +8,11 @@ import { Loader2, CheckCircle2, XCircle, Clock, Zap, TrendingUp, Target, Award, 
 
 const safeNum = (val) => (val === null || val === undefined || isNaN(val)) ? 0 : Number(val);
 
-export default function BatchProgressTracker({ progressData, elapsedTime }) {
+export default function BatchProgressTracker({ progressData, elapsedTime, streamingLogs = [], currentResponse = null, debateData = null }) {
+    const [showLogs, setShowLogs] = useState(true);
+    const [showDebate, setShowDebate] = useState(true);
+    const [showResponses, setShowResponses] = useState(true);
+
     if (!progressData) return null;
 
     const { 
@@ -19,7 +23,11 @@ export default function BatchProgressTracker({ progressData, elapsedTime }) {
         total_questions, 
         progress_percentage, 
         current_question_text,
-        real_time_stats = {}
+        real_time_stats = {},
+        current_mode_a_response = '',
+        current_mode_b_response = '',
+        current_debate_rounds = [],
+        current_personas = []
     } = progressData;
     
     const getStatusConfig = () => {
