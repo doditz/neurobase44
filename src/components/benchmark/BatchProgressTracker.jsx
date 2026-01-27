@@ -222,139 +222,88 @@ export default function BatchProgressTracker({ progressData, elapsedTime, stream
                     </span>
                 </div>
 
-                {/* Streaming Logs Section */}
-                {(streamingLogs.length > 0 || status === 'running') && (
-                    <Collapsible open={showLogs} onOpenChange={setShowLogs}>
-                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-slate-900 rounded-lg border border-slate-700 hover:border-green-600/50 transition-colors">
-                            <div className="flex items-center gap-2 text-green-400">
-                                <MessageSquare className="w-4 h-4" />
-                                <span className="text-sm font-medium">Logs en temps réel</span>
-                                <Badge className="bg-green-900/30 text-green-400">{streamingLogs.length}</Badge>
-                            </div>
-                            {showLogs ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2">
-                            <ScrollArea className="h-48 bg-slate-950 rounded-lg p-3 border border-slate-800">
-                                <div className="font-mono text-xs space-y-1">
-                                    {streamingLogs.length === 0 ? (
-                                        <div className="text-slate-500 italic">En attente des logs...</div>
-                                    ) : (
-                                        streamingLogs.map((log, i) => {
-                                            const levelColors = {
-                                                'INFO': 'text-blue-300',
-                                                'DEBUG': 'text-slate-400',
-                                                'SUCCESS': 'text-green-400',
-                                                'WARNING': 'text-yellow-400',
-                                                'ERROR': 'text-red-400',
-                                                'SYSTEM': 'text-purple-400'
-                                            };
-                                            return (
-                                                <div key={i} className={`py-0.5 ${levelColors[log.level] || 'text-green-300'}`}>
-                                                    <span className="text-slate-600 mr-2">
-                                                        [{new Date(log.timestamp).toLocaleTimeString()}]
-                                                    </span>
-                                                    <span className="text-slate-500 mr-2">[{log.level}]</span>
-                                                    {log.message}
-                                                </div>
-                                            );
-                                        })
-                                    )}
-                                    {status === 'running' && <div className="text-green-400 animate-pulse">▊</div>}
-                                </div>
-                            </ScrollArea>
-                        </CollapsibleContent>
-                    </Collapsible>
-                )}
-
-                {/* SMAS Debate Visualization - Always show when running */}
-                <Collapsible open={showDebate} onOpenChange={setShowDebate}>
-                    <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-purple-900/20 rounded-lg border border-purple-600/30 hover:border-purple-500/50 transition-colors">
-                        <div className="flex items-center gap-2 text-purple-400">
+                {/* UNIFIED CONSOLE - Logs + Debate in one stream */}
+                <div className="bg-slate-950 rounded-lg border border-slate-800 overflow-hidden">
+                    <div className="flex items-center justify-between p-2 bg-slate-900 border-b border-slate-800">
+                        <div className="flex items-center gap-2 text-green-400">
                             <Brain className="w-4 h-4" />
-                            <span className="text-sm font-medium">Débat SMAS</span>
+                            <span className="text-sm font-medium">Console SMAS</span>
                             {current_personas?.length > 0 && (
-                                <Badge className="bg-purple-900/30 text-purple-400">
-                                    <Users className="w-3 h-3 mr-1" />
+                                <Badge className="bg-purple-900/30 text-purple-400 text-xs">
                                     {current_personas.length} personas
                                 </Badge>
                             )}
-                            {current_debate_rounds?.length > 0 && (
-                                <Badge className="bg-green-900/30 text-green-400">
-                                    {current_debate_rounds.length} rounds
-                                </Badge>
-                            )}
-                            {status === 'running' && !current_debate_rounds?.length && (
-                                <Badge className="bg-yellow-900/30 text-yellow-400 animate-pulse">
-                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                    En attente...
-                                </Badge>
-                            )}
                         </div>
-                        {showDebate ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-2 space-y-2">
-                        {/* Active Personas */}
-                        {current_personas?.length > 0 ? (
-                            <div className="p-3 bg-purple-900/10 rounded-lg border border-purple-600/20">
-                                <div className="text-xs text-slate-500 mb-2">👥 Personas actives:</div>
-                                <div className="flex flex-wrap gap-2">
-                                    {current_personas.map((persona, i) => (
-                                        <Badge key={i} className="bg-purple-900/30 text-purple-300 border border-purple-600/30">
-                                            {persona}
-                                        </Badge>
-                                    ))}
+                        {status === 'running' && (
+                            <Badge className="bg-red-600 text-white text-xs animate-pulse">
+                                LIVE
+                            </Badge>
+                        )}
+                    </div>
+                    
+                    <ScrollArea className="h-72 p-3">
+                        <div className="font-mono text-xs space-y-1">
+                            {/* Render logs and debate rounds together chronologically */}
+                            {streamingLogs.length === 0 && !current_debate_rounds?.length ? (
+                                <div className="text-slate-500 italic text-center py-8">
+                                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2 text-green-400" />
+                                    En attente des logs...
                                 </div>
-                            </div>
-                        ) : status === 'running' ? (
-                            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700 text-center">
-                                <Loader2 className="w-4 h-4 animate-spin text-purple-400 mx-auto mb-1" />
-                                <span className="text-xs text-slate-500">Chargement des personas...</span>
-                            </div>
-                        ) : null}
-                        
-                        {/* Debate Rounds - Verbose Display */}
-                        <ScrollArea className="h-64 bg-slate-950 rounded-lg p-3 border border-slate-800">
-                            <div className="space-y-3">
-                                {current_debate_rounds?.length > 0 ? (
-                                    current_debate_rounds.map((round, i) => (
-                                        <div key={i} className={`p-3 rounded-lg border-l-4 ${
-                                            round.hemisphere === 'left' ? 'border-blue-500 bg-blue-900/10' :
-                                            round.hemisphere === 'right' ? 'border-orange-500 bg-orange-900/10' :
-                                            'border-purple-500 bg-purple-900/10'
-                                        }`}>
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Badge className="bg-purple-900/50 text-purple-300 text-xs">
-                                                        Round {round.round_number || i + 1}
-                                                    </Badge>
-                                                    <span className="text-sm font-medium text-purple-300">
-                                                        🗣️ {round.persona || `Persona ${i + 1}`}
+                            ) : (
+                                <>
+                                    {streamingLogs.map((log, i) => {
+                                        const levelColors = {
+                                            'INFO': 'text-blue-300',
+                                            'DEBUG': 'text-slate-400',
+                                            'SUCCESS': 'text-green-400',
+                                            'WARNING': 'text-yellow-400',
+                                            'ERROR': 'text-red-400',
+                                            'SYSTEM': 'text-purple-400'
+                                        };
+                                        
+                                        // Check if this is a debate round log (contains 🗣️)
+                                        const isDebateLog = log.message?.includes('🗣️');
+                                        
+                                        if (isDebateLog) {
+                                            return (
+                                                <div key={`log-${i}`} className="py-1 pl-2 border-l-2 border-purple-500 bg-purple-900/10 rounded-r my-1">
+                                                    <span className="text-slate-600 mr-2 text-[10px]">
+                                                        [{new Date(log.timestamp).toLocaleTimeString()}]
                                                     </span>
+                                                    <span className="text-purple-300">{log.message}</span>
                                                 </div>
-                                                {round.time_ms > 0 && (
-                                                    <span className="text-xs text-slate-500">{round.time_ms}ms</span>
-                                                )}
+                                            );
+                                        }
+                                        
+                                        return (
+                                            <div key={`log-${i}`} className={`py-0.5 ${levelColors[log.level] || 'text-green-300'}`}>
+                                                <span className="text-slate-600 mr-2">
+                                                    [{new Date(log.timestamp).toLocaleTimeString()}]
+                                                </span>
+                                                {log.message}
                                             </div>
-                                            <p className="text-sm text-slate-300 whitespace-pre-wrap">
-                                                {round.content || round.response || 'Processing...'}
-                                            </p>
-                                        </div>
-                                    ))
-                                ) : status === 'running' ? (
-                                    <div className="flex flex-col items-center justify-center h-40 text-slate-500">
-                                        <Brain className="w-8 h-8 mb-2 animate-pulse text-purple-400" />
-                                        <span className="text-sm">SMAS débat en cours...</span>
-                                        <span className="text-xs mt-1">Les rounds apparaîtront ici</span>
-                                    </div>
-                                ) : (
-                                    <div className="text-center text-slate-500 text-sm py-4">
-                                        Aucun débat disponible
-                                    </div>
-                                )}
+                                        );
+                                    })}
+                                </>
+                            )}
+                            {status === 'running' && <div className="text-green-400 animate-pulse">▊</div>}
+                        </div>
+                    </ScrollArea>
+                    
+                    {/* Active Personas Bar */}
+                    {current_personas?.length > 0 && (
+                        <div className="p-2 bg-slate-900 border-t border-slate-800">
+                            <div className="flex flex-wrap gap-1">
+                                <span className="text-xs text-slate-500 mr-1">👥</span>
+                                {current_personas.map((persona, i) => (
+                                    <Badge key={i} className="bg-purple-900/30 text-purple-300 text-[10px] py-0">
+                                        {persona}
+                                    </Badge>
+                                ))}
                             </div>
-                        </ScrollArea>
-                    </CollapsibleContent>
-                </Collapsible>
+                        </div>
+                    )}
+                </div>
 
                 {/* Mode A/B Responses - Always show when running */}
                 <Collapsible open={showResponses} onOpenChange={setShowResponses}>
