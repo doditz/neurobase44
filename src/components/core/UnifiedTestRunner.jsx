@@ -163,7 +163,21 @@ export default function UnifiedTestRunner({
         setCurrentTest({ prompt: promptText, scenario: scenarioName });
         setLastResult(null);
         setLastRunLogs([]);
-        setStreamingLogs([]);
+        // Append separator instead of clearing - accumulate like a chatbot
+        setStreamingLogs(prev => [
+            ...prev,
+            ...(prev.length > 0 ? [{ 
+                level: 'SYSTEM', 
+                message: `────────────────────────────────────────`,
+                timestamp: Date.now(),
+                isSeparator: true
+            }] : []),
+            { 
+                level: 'SYSTEM', 
+                message: `🚀 NEW TEST: ${scenarioName}`,
+                timestamp: Date.now()
+            }
+        ]);
         setStreamingPhase('init');
         setStreamingMetrics({});
         setActiveTab('results');
@@ -320,7 +334,8 @@ export default function UnifiedTestRunner({
     // Fallback function when SSE is not available
     const runTestFallback = async (promptText, scenarioName, testLogger) => {
         try {
-            setStreamingLogs([{ level: 'INFO', message: '⚠️ Fallback mode - SSE unavailable', timestamp: Date.now() }]);
+            // Append fallback notice instead of clearing
+            setStreamingLogs(prev => [...prev, { level: 'INFO', message: '⚠️ Fallback mode - SSE unavailable', timestamp: Date.now() }]);
 
             const { data } = await base44.functions.invoke(orchestratorFunction, {
                 question_text: promptText,
