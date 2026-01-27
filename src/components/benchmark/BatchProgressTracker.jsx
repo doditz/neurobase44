@@ -266,65 +266,95 @@ export default function BatchProgressTracker({ progressData, elapsedTime, stream
                     </Collapsible>
                 )}
 
-                {/* SMAS Debate Visualization */}
-                {(current_debate_rounds?.length > 0 || current_personas?.length > 0 || debateData) && (
-                    <Collapsible open={showDebate} onOpenChange={setShowDebate}>
-                        <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-purple-900/20 rounded-lg border border-purple-600/30 hover:border-purple-500/50 transition-colors">
-                            <div className="flex items-center gap-2 text-purple-400">
-                                <Brain className="w-4 h-4" />
-                                <span className="text-sm font-medium">Débat SMAS</span>
-                                {current_personas?.length > 0 && (
-                                    <Badge className="bg-purple-900/30 text-purple-400">
-                                        <Users className="w-3 h-3 mr-1" />
-                                        {current_personas.length} personas
-                                    </Badge>
-                                )}
-                            </div>
-                            {showDebate ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
-                        </CollapsibleTrigger>
-                        <CollapsibleContent className="mt-2 space-y-2">
-                            {/* Active Personas */}
+                {/* SMAS Debate Visualization - Always show when running */}
+                <Collapsible open={showDebate} onOpenChange={setShowDebate}>
+                    <CollapsibleTrigger className="w-full flex items-center justify-between p-2 bg-purple-900/20 rounded-lg border border-purple-600/30 hover:border-purple-500/50 transition-colors">
+                        <div className="flex items-center gap-2 text-purple-400">
+                            <Brain className="w-4 h-4" />
+                            <span className="text-sm font-medium">Débat SMAS</span>
                             {current_personas?.length > 0 && (
-                                <div className="p-3 bg-purple-900/10 rounded-lg border border-purple-600/20">
-                                    <div className="text-xs text-slate-500 mb-2">👥 Personas actives:</div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {current_personas.map((persona, i) => (
-                                            <Badge key={i} className="bg-purple-900/30 text-purple-300 border border-purple-600/30">
-                                                {persona}
-                                            </Badge>
-                                        ))}
-                                    </div>
-                                </div>
+                                <Badge className="bg-purple-900/30 text-purple-400">
+                                    <Users className="w-3 h-3 mr-1" />
+                                    {current_personas.length} personas
+                                </Badge>
                             )}
-                            
-                            {/* Debate Rounds */}
-                            {(current_debate_rounds?.length > 0 || debateData?.rounds?.length > 0) && (
-                                <ScrollArea className="h-40 bg-slate-950 rounded-lg p-3 border border-slate-800">
-                                    <div className="space-y-3">
-                                        {(current_debate_rounds || debateData?.rounds || []).map((round, i) => (
-                                            <div key={i} className="p-2 bg-slate-900 rounded border-l-2 border-purple-500">
-                                                <div className="flex items-center gap-2 mb-1">
+                            {current_debate_rounds?.length > 0 && (
+                                <Badge className="bg-green-900/30 text-green-400">
+                                    {current_debate_rounds.length} rounds
+                                </Badge>
+                            )}
+                            {status === 'running' && !current_debate_rounds?.length && (
+                                <Badge className="bg-yellow-900/30 text-yellow-400 animate-pulse">
+                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                    En attente...
+                                </Badge>
+                            )}
+                        </div>
+                        {showDebate ? <ChevronUp className="w-4 h-4 text-slate-400" /> : <ChevronDown className="w-4 h-4 text-slate-400" />}
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-2 space-y-2">
+                        {/* Active Personas */}
+                        {current_personas?.length > 0 ? (
+                            <div className="p-3 bg-purple-900/10 rounded-lg border border-purple-600/20">
+                                <div className="text-xs text-slate-500 mb-2">👥 Personas actives:</div>
+                                <div className="flex flex-wrap gap-2">
+                                    {current_personas.map((persona, i) => (
+                                        <Badge key={i} className="bg-purple-900/30 text-purple-300 border border-purple-600/30">
+                                            {persona}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+                        ) : status === 'running' ? (
+                            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-700 text-center">
+                                <Loader2 className="w-4 h-4 animate-spin text-purple-400 mx-auto mb-1" />
+                                <span className="text-xs text-slate-500">Chargement des personas...</span>
+                            </div>
+                        ) : null}
+                        
+                        {/* Debate Rounds - Verbose Display */}
+                        <ScrollArea className="h-64 bg-slate-950 rounded-lg p-3 border border-slate-800">
+                            <div className="space-y-3">
+                                {current_debate_rounds?.length > 0 ? (
+                                    current_debate_rounds.map((round, i) => (
+                                        <div key={i} className={`p-3 rounded-lg border-l-4 ${
+                                            round.hemisphere === 'left' ? 'border-blue-500 bg-blue-900/10' :
+                                            round.hemisphere === 'right' ? 'border-orange-500 bg-orange-900/10' :
+                                            'border-purple-500 bg-purple-900/10'
+                                        }`}>
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center gap-2">
                                                     <Badge className="bg-purple-900/50 text-purple-300 text-xs">
                                                         Round {round.round_number || i + 1}
                                                     </Badge>
-                                                    {round.persona && (
-                                                        <span className="text-xs text-purple-400">{round.persona}</span>
-                                                    )}
-                                                    {round.time_ms && (
-                                                        <span className="text-xs text-slate-500">{round.time_ms}ms</span>
-                                                    )}
+                                                    <span className="text-sm font-medium text-purple-300">
+                                                        🗣️ {round.persona || `Persona ${i + 1}`}
+                                                    </span>
                                                 </div>
-                                                <p className="text-xs text-slate-300 line-clamp-2">
-                                                    {round.response || round.content || 'Processing...'}
-                                                </p>
+                                                {round.time_ms > 0 && (
+                                                    <span className="text-xs text-slate-500">{round.time_ms}ms</span>
+                                                )}
                                             </div>
-                                        ))}
+                                            <p className="text-sm text-slate-300 whitespace-pre-wrap">
+                                                {round.content || round.response || 'Processing...'}
+                                            </p>
+                                        </div>
+                                    ))
+                                ) : status === 'running' ? (
+                                    <div className="flex flex-col items-center justify-center h-40 text-slate-500">
+                                        <Brain className="w-8 h-8 mb-2 animate-pulse text-purple-400" />
+                                        <span className="text-sm">SMAS débat en cours...</span>
+                                        <span className="text-xs mt-1">Les rounds apparaîtront ici</span>
                                     </div>
-                                </ScrollArea>
-                            )}
-                        </CollapsibleContent>
-                    </Collapsible>
-                )}
+                                ) : (
+                                    <div className="text-center text-slate-500 text-sm py-4">
+                                        Aucun débat disponible
+                                    </div>
+                                )}
+                            </div>
+                        </ScrollArea>
+                    </CollapsibleContent>
+                </Collapsible>
 
                 {/* Mode A/B Responses */}
                 {(current_mode_a_response || current_mode_b_response || currentResponse) && (
