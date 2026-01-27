@@ -524,6 +524,7 @@ export default function UnifiedTestRunner({
                             <BatchProgressTracker 
                                 progressData={batchProgress} 
                                 elapsedTime={batchElapsedTime}
+                                streamingLogs={streamingLogs}
                             />
                             {batchProgress.summary_data && (
                                 <BatchQuickStats summaryData={batchProgress.summary_data} />
