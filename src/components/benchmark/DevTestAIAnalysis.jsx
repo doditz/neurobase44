@@ -13,21 +13,46 @@ import {
     Sparkles,
     BarChart3,
     Target,
-    Zap
+    Zap,
+    XCircle,
+    Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
+import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
 
 export default function DevTestAIAnalysis({ testIds, questionId, analysisType = 'single' }) {
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [analysis, setAnalysis] = useState(null);
     const [metadata, setMetadata] = useState(null);
+    const [errorLogs, setErrorLogs] = useState([]);
+    const [analysisLogs, setAnalysisLogs] = useState([]);
+
+    const addLog = (level, message, details = null) => {
+        setAnalysisLogs(prev => [...prev, {
+            timestamp: new Date().toISOString(),
+            level,
+            message,
+            details
+        }]);
+    };
+
+    const clearLogs = () => {
+        setAnalysisLogs([]);
+        setErrorLogs([]);
+    };
 
     const runAnalysis = async () => {
         setIsAnalyzing(true);
         setAnalysis(null);
+        
+        if (analysisLogs.length > 0) {
+            addLog('SYSTEM', '────────────────────────────────────────');
+        }
+        addLog('SYSTEM', `🤖 AI ANALYSIS START: ${testIds?.length || 0} test(s), type: ${analysisType}`);
 
         try {
             toast.info('🤖 AI Analysis en cours...');
+            addLog('INFO', `Invoking analyzeDevTestResults with ${testIds?.length || 0} test IDs`);
 
             const { data } = await base44.functions.invoke('analyzeDevTestResults', {
                 test_ids: testIds,
@@ -35,16 +60,40 @@ export default function DevTestAIAnalysis({ testIds, questionId, analysisType = 
                 analysis_type: analysisType
             });
 
+            addLog('DEBUG', 'Function response received', { success: data?.success, hasAnalysis: !!data?.analysis });
+
             if (!data.success) {
-                throw new Error(data.error || 'Analysis failed');
+                const errorMsg = data.error || 'Analysis failed';
+                addLog('ERROR', `Analysis failed: ${errorMsg}`, data);
+                setErrorLogs([{
+                    timestamp: new Date().toISOString(),
+                    level: 'ERROR',
+                    message: errorMsg,
+                    fullResponse: data
+                }]);
+                throw new Error(errorMsg);
             }
 
             setAnalysis(data.analysis);
             setMetadata(data.metadata);
+            addLog('SUCCESS', `✅ Analysis complete: ${data.metadata?.tests_analyzed || 0} tests analyzed`);
             toast.success('✨ Analyse terminée!');
 
         } catch (error) {
             console.error('[AIAnalysis] Error:', error);
+            addLog('CRITICAL', `Exception caught: ${error.message}`, { 
+                stack: error.stack,
+                response: error.response?.data 
+            });
+            
+            setErrorLogs(prev => [...prev, {
+                timestamp: new Date().toISOString(),
+                level: 'CRITICAL',
+                message: error.message,
+                stack: error.stack,
+                response: error.response?.data
+            }]);
+            
             toast.error(`Erreur d'analyse: ${error.message}`);
         } finally {
             setIsAnalyzing(false);
@@ -310,7 +359,88 @@ export default function DevTestAIAnalysis({ testIds, questionId, analysisType = 
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Error Logs */}
+                    {errorLogs.length > 0 && (
+                        <Card className="bg-red-900/20 border-red-600">
+                            <CardHeader className="flex flex-row items-center justify-between">
+                                <CardTitle className="text-red-400 flex items-center gap-2">
+                                    <XCircle className="w-5 h-5" />
+                                    Error Details ({errorLogs.length})
+                                </CardTitle>
+                                <Button
+                                    onClick={clearLogs}
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-slate-600 text-slate-400 hover:text-red-400"
+                                >
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                    Clear
+                                </Button>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="space-y-3">
+                                    {errorLogs.map((err, idx) => (
+                                        <div key={idx} className="bg-slate-900 rounded-lg border border-red-600/50 p-4">
+                                            <div className="flex items-start gap-3">
+                                                <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-1" />
+                                                <div className="flex-1 space-y-2">
+                                                    <div className="text-sm font-semibold text-red-300">{err.message}</div>
+                                                    {err.fullResponse && (
+                                                        <details className="text-xs">
+                                                            <summary className="cursor-pointer text-slate-400 hover:text-slate-300">
+                                                                Full Response
+                                                            </summary>
+                                                            <pre className="mt-2 bg-slate-800 p-3 rounded overflow-auto max-h-64 text-slate-300">
+                                                                {JSON.stringify(err.fullResponse, null, 2)}
+                                                            </pre>
+                                                        </details>
+                                                    )}
+                                                    {err.stack && (
+                                                        <details className="text-xs">
+                                                            <summary className="cursor-pointer text-slate-400 hover:text-slate-300">
+                                                                Stack Trace
+                                                            </summary>
+                                                            <pre className="mt-2 bg-slate-800 p-3 rounded overflow-auto max-h-64 text-red-400 font-mono">
+                                                                {err.stack}
+                                                            </pre>
+                                                        </details>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    )}
                 </div>
+            )}
+
+            {/* Analysis Logs */}
+            {analysisLogs.length > 0 && (
+                <Card className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-green-400">Analysis Execution Logs ({analysisLogs.length})</CardTitle>
+                        <Button
+                            onClick={clearLogs}
+                            variant="outline"
+                            size="sm"
+                            className="border-slate-600 text-slate-400 hover:text-red-400"
+                        >
+                            <Trash2 className="w-3 h-3 mr-1" />
+                            Clear
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <UnifiedLogViewer
+                            logs={analysisLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}${l.details ? ' ' + JSON.stringify(l.details) : ''}`)}
+                            title=""
+                            showStats={true}
+                            defaultExpanded={true}
+                        />
+                    </CardContent>
+                </Card>
             )}
         </div>
     );
