@@ -73,7 +73,7 @@ export default function UnifiedTestRunner({
         sessionLogger.info(`${testType} runner initialized`);
     }, []);
 
-    // Poll batch progress
+    // Poll batch progress with streaming logs
     useEffect(() => {
         let interval;
         if (isBatchRunning && batchProgress?.id) {
@@ -81,6 +81,16 @@ export default function UnifiedTestRunner({
                 try {
                     const progress = await base44.entities.BatchRunProgress.get(batchProgress.id);
                     setBatchProgress(progress);
+                    
+                    // Update streaming logs from batch progress
+                    if (progress.streaming_logs?.length > 0) {
+                        setStreamingLogs(progress.streaming_logs);
+                    }
+                    
+                    // Update streaming phase from batch
+                    if (progress.current_phase) {
+                        setStreamingPhase(progress.current_phase);
+                    }
 
                     if (progress.status === 'completed' || progress.status === 'failed') {
                         setIsBatchRunning(false);
@@ -95,7 +105,7 @@ export default function UnifiedTestRunner({
                 } catch (error) {
                     sessionLogger.error('Batch poll error', { error: error.message });
                 }
-            }, 2000);
+            }, 1500); // Poll faster for better real-time feel
         }
         return () => clearInterval(interval);
     }, [isBatchRunning, batchProgress?.id]);
