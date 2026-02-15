@@ -131,7 +131,7 @@ Provide:
 Format as JSON with keys: trend_analysis, consistency_assessment, health_scores {mode_a, mode_b, overall}, improvement_areas, anomalies`;
         }
 
-        // Invoke LLM for analysis
+        // Invoke LLM for analysis with enhanced schema
         const analysisResponse = await base44.asServiceRole.integrations.Core.InvokeLLM({
             prompt: analysisPrompt,
             response_json_schema: {
@@ -141,6 +141,16 @@ Format as JSON with keys: trend_analysis, consistency_assessment, health_scores 
                     key_insights: { type: 'string' },
                     trend_analysis: { type: 'string' },
                     consistency_assessment: { type: 'string' },
+                    performance_bottlenecks: { type: 'string' },
+                    parameter_tuning: {
+                        type: 'object',
+                        properties: {
+                            spg_optimization: { type: 'string' },
+                            latency_reduction: { type: 'string' },
+                            token_optimization: { type: 'string' }
+                        }
+                    },
+                    architecture_recommendations: { type: 'string' },
                     health_scores: {
                         type: 'object',
                         properties: {
@@ -151,7 +161,8 @@ Format as JSON with keys: trend_analysis, consistency_assessment, health_scores 
                     },
                     recommendations: { type: 'string' },
                     improvement_areas: { type: 'string' },
-                    anomalies: { type: 'string' }
+                    anomalies: { type: 'string' },
+                    priority_actions: { type: 'string' }
                 }
             }
         });

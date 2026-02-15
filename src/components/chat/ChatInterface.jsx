@@ -5,7 +5,7 @@ import { ResourceUsage } from '@/entities/ResourceUsage';
 import { UserBudget } from '@/entities/UserBudget';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare } from 'lucide-react';
+import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,8 @@ import { createLogger } from '@/components/core/NeuronasLogger';
 import { toast } from 'sonner';
 import DebateVisualizationModal from '@/components/benchmark/DebateVisualizationModal';
 import DebateFlowVisualization from './DebateFlowVisualization';
+import ChatExportPanel from './ChatExportPanel';
+import AnalysisContextPanel from './AnalysisContextPanel';
 
 const MIN_MESSAGE_INTERVAL = 2000;
 const MAX_RETRIES = 3;
@@ -44,6 +46,9 @@ export default function ChatInterface({
     const [showDebateModal, setShowDebateModal] = useState(false);
     const [liveDebateHistory, setLiveDebateHistory] = useState([]);
     const [currentDebateRound, setCurrentDebateRound] = useState(0);
+    const [showExportPanel, setShowExportPanel] = useState(false);
+    const [showAnalysisContext, setShowAnalysisContext] = useState(false);
+    const [injectedContext, setInjectedContext] = useState(null);
     
     const scrollAreaRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -221,7 +226,13 @@ export default function ChatInterface({
             // Settings context for agent
             const settingsContext = `\n\n[SYSTEM SETTINGS: Personas: ${settings.maxPersonas || 5}, Temperature: ${settings.temperature || 0.7}, Mode: ${settings.mode || 'balanced'}, Hemisphere: ${settings.hemisphereMode || 'balanced'}, Rounds: ${settings.debateRounds || 5}]`;
             
-            const messageContent = (input || 'Please analyze the uploaded files.') + settingsContext;
+            // Include injected analysis context if available
+            let messageContent = input || 'Please analyze the uploaded files.';
+            if (injectedContext) {
+                messageContent = injectedContext + '\n\n' + messageContent;
+                setInjectedContext(null); // Clear after use
+            }
+            messageContent += settingsContext;
 
             // Call chatOrchestrator
             const response = await base44.functions.invoke('chatOrchestrator', {
@@ -484,6 +495,48 @@ export default function ChatInterface({
             
             <div className="p-2 sm:p-4 border-t border-slate-700 bg-slate-800 flex-shrink-0">
                 <div className="max-w-4xl mx-auto">
+                    {/* Context/Export Panels */}
+                    {(showExportPanel || showAnalysisContext) && (
+                        <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {showExportPanel && (
+                                <ChatExportPanel
+                                    messages={messages}
+                                    conversationId={conversation?.conversation_id}
+                                    topic={debateRecord?.topic}
+                                    onClose={() => setShowExportPanel(false)}
+                                />
+                            )}
+                            {showAnalysisContext && (
+                                <AnalysisContextPanel
+                                    onInjectContext={(ctx) => {
+                                        setInjectedContext(ctx);
+                                        setShowAnalysisContext(false);
+                                        toast.info('Context loaded - type your question');
+                                    }}
+                                    onClose={() => setShowAnalysisContext(false)}
+                                />
+                            )}
+                        </div>
+                    )}
+
+                    {/* Injected Context Indicator */}
+                    {injectedContext && (
+                        <div className="mb-2 p-2 bg-green-900/30 border border-green-600/50 rounded-lg flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-xs text-green-400">
+                                <Database className="w-3 h-3" />
+                                <span>Analysis context loaded - ask your follow-up question</span>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setInjectedContext(null)}
+                                className="h-5 w-5"
+                            >
+                                <X className="w-3 h-3 text-green-400" />
+                            </Button>
+                        </div>
+                    )}
+
                     {uploadedFiles.length > 0 && (
                         <div className="mb-2 flex flex-wrap gap-2">
                             {uploadedFiles.map((file, index) => (
@@ -547,12 +600,37 @@ export default function ChatInterface({
                             </Button>
                         </div>
                     </div>
-                    <p className="text-xs text-slate-500 mt-2 flex flex-wrap items-center gap-1.5">
-                        <CornerDownLeft className="h-3 w-3 flex-shrink-0" /> 
-                        <span>Shift+Enter pour nouvelle ligne.</span>
-                        <Paperclip className="h-3 w-3 flex-shrink-0 ml-2" />
-                        <span>Fichiers pour analyse.</span>
-                    </p>
+                    <div className="flex items-center justify-between mt-2">
+                        <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+                            <CornerDownLeft className="h-3 w-3 flex-shrink-0" /> 
+                            <span>Shift+Enter pour nouvelle ligne.</span>
+                            <Paperclip className="h-3 w-3 flex-shrink-0 ml-2" />
+                            <span>Fichiers pour analyse.</span>
+                        </p>
+                        <div className="flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowAnalysisContext(!showAnalysisContext)}
+                                className={`h-6 px-2 text-xs ${showAnalysisContext ? 'text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+                                title="Load analysis context for follow-up questions"
+                            >
+                                <Database className="w-3 h-3 mr-1" />
+                                Context
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowExportPanel(!showExportPanel)}
+                                className={`h-6 px-2 text-xs ${showExportPanel ? 'text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+                                disabled={messages.length === 0}
+                                title="Export chat transcript"
+                            >
+                                <Download className="w-3 h-3 mr-1" />
+                                Export
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

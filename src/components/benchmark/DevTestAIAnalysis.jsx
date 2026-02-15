@@ -343,6 +343,95 @@ export default function DevTestAIAnalysis({ testIds, questionId, analysisType = 
                         </Card>
                     )}
 
+                    {/* Performance Bottlenecks */}
+                    {analysis.performance_bottlenecks && (
+                        <Card className="bg-orange-900/20 border-orange-600/50">
+                            <CardHeader>
+                                <CardTitle className="text-orange-400 flex items-center gap-2">
+                                    <AlertTriangle className="w-5 h-5" />
+                                    Performance Bottlenecks
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-slate-300 whitespace-pre-wrap">
+                                    {analysis.performance_bottlenecks}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Parameter Tuning Recommendations */}
+                    {analysis.parameter_tuning && (
+                        <Card className="bg-purple-900/20 border-purple-600/50">
+                            <CardHeader>
+                                <CardTitle className="text-purple-400 flex items-center gap-2">
+                                    <Target className="w-5 h-5" />
+                                    Parameter Tuning Recommendations
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {analysis.parameter_tuning.spg_optimization && (
+                                    <div className="bg-slate-800 p-3 rounded-lg border border-green-600/30">
+                                        <div className="text-xs text-green-400 font-semibold mb-1">📈 SPG Optimization</div>
+                                        <p className="text-slate-300 text-sm whitespace-pre-wrap">
+                                            {analysis.parameter_tuning.spg_optimization}
+                                        </p>
+                                    </div>
+                                )}
+                                {analysis.parameter_tuning.latency_reduction && (
+                                    <div className="bg-slate-800 p-3 rounded-lg border border-blue-600/30">
+                                        <div className="text-xs text-blue-400 font-semibold mb-1">⚡ Latency Reduction</div>
+                                        <p className="text-slate-300 text-sm whitespace-pre-wrap">
+                                            {analysis.parameter_tuning.latency_reduction}
+                                        </p>
+                                    </div>
+                                )}
+                                {analysis.parameter_tuning.token_optimization && (
+                                    <div className="bg-slate-800 p-3 rounded-lg border border-yellow-600/30">
+                                        <div className="text-xs text-yellow-400 font-semibold mb-1">🔢 Token Optimization</div>
+                                        <p className="text-slate-300 text-sm whitespace-pre-wrap">
+                                            {analysis.parameter_tuning.token_optimization}
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Architecture Recommendations */}
+                    {analysis.architecture_recommendations && (
+                        <Card className="bg-indigo-900/20 border-indigo-600/50">
+                            <CardHeader>
+                                <CardTitle className="text-indigo-400 flex items-center gap-2">
+                                    <Brain className="w-5 h-5" />
+                                    Model Architecture Optimization
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-slate-300 whitespace-pre-wrap">
+                                    {analysis.architecture_recommendations}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Priority Actions */}
+                    {analysis.priority_actions && (
+                        <Card className="bg-green-900/20 border-green-600/50">
+                            <CardHeader>
+                                <CardTitle className="text-green-400 flex items-center gap-2">
+                                    <Zap className="w-5 h-5" />
+                                    Priority Action Items
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <p className="text-slate-300 whitespace-pre-wrap">
+                                    {analysis.priority_actions}
+                                </p>
+                            </CardContent>
+                        </Card>
+                    )}
+
                     {/* Anomalies */}
                     {analysis.anomalies && (
                         <Card className="bg-red-900/20 border-red-600/50">
