@@ -4,109 +4,53 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Download, FileText, FileJson, Copy, Check, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { exportData } from '@/components/utils/FileExporter';
 
 export default function ChatExportPanel({ messages, conversationId, topic, onClose }) {
     const [copied, setCopied] = useState(false);
 
-    const formatMessagesAsText = () => {
-        let text = `# Chat Transcript: ${topic || 'Conversation'}\n`;
-        text += `# ID: ${conversationId || 'N/A'}\n`;
-        text += `# Exported: ${new Date().toLocaleString()}\n`;
-        text += `${'='.repeat(60)}\n\n`;
-
-        messages.forEach((msg, idx) => {
-            const role = msg.role === 'user' ? '👤 User' : '🤖 Assistant';
-            const timestamp = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
-            text += `[${idx + 1}] ${role} ${timestamp ? `(${timestamp})` : ''}\n`;
-            text += `${'-'.repeat(40)}\n`;
-            text += `${msg.content}\n\n`;
-            
-            if (msg.metadata) {
-                text += `📊 Metadata: Complexity: ${(msg.metadata.complexity_score * 100).toFixed(0)}%, `;
-                text += `Personas: ${msg.metadata.personas_used?.length || 0}, `;
-                text += `Time: ${msg.metadata.total_time_ms}ms\n\n`;
-            }
-        });
-
-        return text;
-    };
-
-    const formatMessagesAsMarkdown = () => {
-        let md = `# Chat Transcript: ${topic || 'Conversation'}\n\n`;
-        md += `**ID:** ${conversationId || 'N/A'}  \n`;
-        md += `**Exported:** ${new Date().toLocaleString()}  \n`;
-        md += `**Messages:** ${messages.length}\n\n---\n\n`;
-
-        messages.forEach((msg, idx) => {
-            const role = msg.role === 'user' ? '**👤 User**' : '**🤖 Assistant**';
-            md += `### ${role}\n\n`;
-            md += `${msg.content}\n\n`;
-            
-            if (msg.metadata) {
-                md += `> 📊 *Complexity: ${(msg.metadata.complexity_score * 100).toFixed(0)}% | `;
-                md += `Personas: ${msg.metadata.personas_used?.join(', ') || 'N/A'} | `;
-                md += `Time: ${msg.metadata.total_time_ms}ms*\n\n`;
-            }
-            md += `---\n\n`;
-        });
-
-        return md;
-    };
-
-    const formatMessagesAsJSON = () => {
-        return JSON.stringify({
-            conversation_id: conversationId,
-            topic,
-            exported_at: new Date().toISOString(),
-            message_count: messages.length,
-            messages: messages.map(msg => ({
-                role: msg.role,
-                content: msg.content,
-                timestamp: msg.timestamp,
-                metadata: msg.metadata
-            }))
-        }, null, 2);
-    };
-
-    const downloadFile = (content, filename, type) => {
-        const blob = new Blob([content], { type });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        toast.success(`Downloaded ${filename}`);
+    const formatters = {
+        txt: () => {
+            let text = `# Chat Transcript: ${topic || 'Conversation'}\n`;
+            text += `# ID: ${conversationId || 'N/A'}\n`;
+            text += `# Exported: ${new Date().toLocaleString()}\n`;
+            text += `${'='.repeat(60)}\n\n`;
+            messages.forEach((msg, idx) => {
+                const role = msg.role === 'user' ? 'User' : 'Assistant';
+                text += `[${idx + 1}] ${role}\n${'-'.repeat(40)}\n${msg.content || ''}\n\n`;
+                if (msg.metadata?.complexity_score) {
+                    text += `Metadata: Complexity: ${(msg.metadata.complexity_score * 100).toFixed(0)}%, Personas: ${msg.metadata.personas_used?.length || 0}, Time: ${msg.metadata.total_time_ms}ms\n\n`;
+                }
+            });
+            return text;
+        },
+        md: () => {
+            let md = `# Chat Transcript: ${topic || 'Conversation'}\n\n`;
+            md += `**ID:** ${conversationId || 'N/A'}  \n**Exported:** ${new Date().toLocaleString()}  \n**Messages:** ${messages.length}\n\n---\n\n`;
+            messages.forEach(msg => {
+                md += `### **${msg.role === 'user' ? 'User' : 'Assistant'}**\n\n${msg.content || ''}\n\n`;
+                if (msg.metadata?.complexity_score) {
+                    md += `> *Complexity: ${(msg.metadata.complexity_score * 100).toFixed(0)}% | Personas: ${msg.metadata.personas_used?.join(', ') || 'N/A'} | Time: ${msg.metadata.total_time_ms}ms*\n\n`;
+                }
+                md += `---\n\n`;
+            });
+            return md;
+        },
+        json: () => ({ conversation_id: conversationId, topic, exported_at: new Date().toISOString(), message_count: messages.length, messages: messages.map(m => ({ role: m.role, content: m.content, timestamp: m.timestamp, metadata: m.metadata })) })
     };
 
     const copyToClipboard = async () => {
         try {
-            await navigator.clipboard.writeText(formatMessagesAsText());
+            await navigator.clipboard.writeText(formatters.txt());
             setCopied(true);
-            toast.success('Copied to clipboard!');
+            toast.success('Copied!');
             setTimeout(() => setCopied(false), 2000);
-        } catch (err) {
-            toast.error('Failed to copy');
-        }
+        } catch { toast.error('Failed to copy'); }
     };
 
     const handleExport = (format) => {
-        const timestamp = new Date().toISOString().split('T')[0];
-        const safeTopic = (topic || 'chat').replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
-        
-        switch (format) {
-            case 'txt':
-                downloadFile(formatMessagesAsText(), `${safeTopic}_${timestamp}.txt`, 'text/plain');
-                break;
-            case 'md':
-                downloadFile(formatMessagesAsMarkdown(), `${safeTopic}_${timestamp}.md`, 'text/markdown');
-                break;
-            case 'json':
-                downloadFile(formatMessagesAsJSON(), `${safeTopic}_${timestamp}.json`, 'application/json');
-                break;
-        }
+        exportData(messages, topic || 'chat', format, formatters);
+        toast.success(`Downloaded .${format}`);
     };
 
     return (

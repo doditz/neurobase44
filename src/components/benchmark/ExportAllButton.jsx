@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Download, FileJson, FileText, FileType, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { downloadFile, generateFilename } from '@/components/utils/FileExporter';
 
 export default function ExportAllButton({ limit = 100 }) {
     const [isExporting, setIsExporting] = useState(false);
@@ -21,37 +22,20 @@ export default function ExportAllButton({ limit = 100 }) {
         setExportingFormat(format);
 
         try {
-            toast.info(`Génération de l'export ${format.toUpperCase()}...`);
+            toast.info(`Generating ${format.toUpperCase()} export...`);
 
-            const response = await base44.functions.invoke('exportAllDevTests', {
-                format,
-                limit
-            });
+            const response = await base44.functions.invoke('exportAllDevTests', { format, limit });
 
-            if (!response.data) {
-                throw new Error('No data received');
-            }
+            if (!response.data) throw new Error('No data received');
 
-            // Créer un blob et télécharger
-            const blob = new Blob([response.data], { 
-                type: format === 'json' ? 'application/json' : 
-                      format === 'md' ? 'text/markdown' : 
-                      format === 'pdf' ? 'text/html' : 'text/plain' 
-            });
+            const content = typeof response.data === 'object' ? JSON.stringify(response.data, null, 2) : response.data;
+            const ext = format === 'pdf' ? 'html' : format;
+            downloadFile(content, generateFilename('neuronas_devtests', ext), ext);
 
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `neuronas_devtests_${Date.now()}.${format === 'pdf' ? 'html' : format}`;
-            document.body.appendChild(a);
-            a.click();
-            window.URL.revokeObjectURL(url);
-            a.remove();
-
-            toast.success(`✅ Export ${format.toUpperCase()} téléchargé avec succès !`);
+            toast.success(`${format.toUpperCase()} export downloaded!`);
         } catch (error) {
             console.error('[Export All] Error:', error);
-            toast.error(`Erreur lors de l'export: ${error.message}`);
+            toast.error(`Export error: ${error.message}`);
         } finally {
             setIsExporting(false);
             setExportingFormat(null);

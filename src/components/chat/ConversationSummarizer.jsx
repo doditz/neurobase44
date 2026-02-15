@@ -133,15 +133,19 @@ Provide a clear, actionable summary.`,
 
     const downloadSummary = (format) => {
         const text = formatSummaryAsText();
-        const blob = new Blob([text], { type: format === 'md' ? 'text/markdown' : 'text/plain' });
+        const mimeType = format === 'md' ? 'text/markdown;charset=utf-8' : 'text/plain;charset=utf-8';
+        const blob = new Blob([text], { type: mimeType });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `conversation-summary-${Date.now()}.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `conversation-summary-${Date.now()}.${format}`;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        setTimeout(() => {
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }, 100);
         toast.success(`Downloaded as .${format}`);
     };
 
