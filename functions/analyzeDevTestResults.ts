@@ -75,17 +75,17 @@ Deno.serve(async (req) => {
             created: t.created_date
         }));
 
-        // Build analysis prompt based on type
+        // Build analysis prompt based on type - ENHANCED with actionable insights
         let analysisPrompt = '';
         
         if (analysis_type === 'single' && tests.length === 1) {
             const t = dataSummary[0];
-            analysisPrompt = `Analyze this dev test result and provide insights:
+            analysisPrompt = `You are an expert AI performance analyst. Analyze this test result and provide ACTIONABLE insights:
 
 **Test Details:**
 - Scenario: ${t.scenario}
 - Winner: ${t.winner}
-- SPG: ${t.spg?.toFixed(3) || 'N/A'}
+- SPG (Score Performance Global): ${t.spg?.toFixed(3) || 'N/A'}
 - Mode A ARS: ${t.mode_a_ars?.toFixed(3) || 'N/A'}
 - Mode B ARS: ${t.mode_b_ars?.toFixed(3) || 'N/A'}
 - Mode A Time: ${t.mode_a_time}ms, Tokens: ${t.mode_a_tokens}
@@ -94,41 +94,51 @@ Deno.serve(async (req) => {
 - Token Savings: ${t.token_savings?.toFixed(1) || 'N/A'}%
 - Passed: ${t.passed}
 
-Provide:
-1. **Comparative Summary**: Compare Mode A vs Mode B performance
-2. **Key Insights**: What do these metrics tell us?
-3. **Health Scores**: Rate Mode A and Mode B (0-100) based on performance and efficiency
-4. **Recommendations**: Actionable improvement suggestions
+Provide detailed analysis including:
+1. **Comparative Summary**: Compare Mode A vs Mode B with specific metric differences
+2. **Key Insights**: What do these metrics reveal about system performance?
+3. **Performance Bottlenecks**: Identify WHERE time/tokens are being consumed inefficiently
+4. **Parameter Tuning Recommendations**: Suggest SPECIFIC parameter changes for SPG, latency, and token optimization
+5. **Architecture Recommendations**: Suggest changes to persona selection, debate convergence, D2 modulation
+6. **Health Scores**: Rate Mode A and Mode B (0-100)
 
-Format as JSON with keys: comparative_summary, key_insights, health_scores {mode_a, mode_b}, recommendations`;
+Format as JSON.`;
 
         } else {
-            // Multi-test trend analysis
+            // Multi-test trend analysis - ENHANCED
             const avgSpg = dataSummary.reduce((sum, t) => sum + (t.spg || 0), 0) / dataSummary.length;
+            const avgLatencyA = dataSummary.reduce((sum, t) => sum + (t.mode_a_time || 0), 0) / dataSummary.length;
+            const avgLatencyB = dataSummary.reduce((sum, t) => sum + (t.mode_b_time || 0), 0) / dataSummary.length;
+            const avgTokensA = dataSummary.reduce((sum, t) => sum + (t.mode_a_tokens || 0), 0) / dataSummary.length;
+            const avgTokensB = dataSummary.reduce((sum, t) => sum + (t.mode_b_tokens || 0), 0) / dataSummary.length;
             const modeBWins = dataSummary.filter(t => t.winner === 'mode_b').length;
             const passRate = dataSummary.filter(t => t.passed).length / dataSummary.length;
             
-            analysisPrompt = `Analyze these ${tests.length} dev test results and identify trends:
+            analysisPrompt = `You are an expert AI performance analyst. Analyze these ${tests.length} test results and provide ACTIONABLE optimization insights:
 
-**Aggregate Stats:**
+**Aggregate Performance Stats:**
 - Total Tests: ${tests.length}
 - Average SPG: ${avgSpg.toFixed(3)}
 - Mode B Win Rate: ${((modeBWins / tests.length) * 100).toFixed(1)}%
 - Pass Rate: ${(passRate * 100).toFixed(1)}%
+- Avg Latency Mode A: ${avgLatencyA.toFixed(0)}ms, Mode B: ${avgLatencyB.toFixed(0)}ms
+- Avg Tokens Mode A: ${avgTokensA.toFixed(0)}, Mode B: ${avgTokensB.toFixed(0)}
 
-**Individual Results:**
-${dataSummary.slice(0, 20).map((t, i) => 
-    `${i+1}. ${t.scenario} - Winner: ${t.winner}, SPG: ${t.spg?.toFixed(3)}, Pass: ${t.passed}`
+**Individual Results (sample):**
+${dataSummary.slice(0, 15).map((t, i) => 
+    `${i+1}. ${t.scenario} | Win: ${t.winner} | SPG: ${t.spg?.toFixed(3)} | LatB: ${t.mode_b_time}ms | Pass: ${t.passed}`
 ).join('\n')}
 
-Provide:
-1. **Trend Analysis**: Patterns across these runs
-2. **Consistency**: How consistent are the results?
-3. **Health Scores**: Overall Mode A and Mode B ratings (0-100)
-4. **Areas for Improvement**: What patterns suggest optimization opportunities?
-5. **Anomalies**: Any outliers or unexpected results?
+Provide comprehensive analysis including:
+1. **Trend Analysis**: Patterns, correlations, and trajectories
+2. **Consistency Assessment**: Variance analysis - are results stable?
+3. **Performance Bottlenecks**: Which categories/scenarios show worst performance?
+4. **Parameter Tuning**: SPECIFIC recommendations for SPG, latency, token optimization
+5. **Architecture Recommendations**: Persona selection, debate convergence, D2 modulation tuning
+6. **Anomalies**: Outliers and root causes
+7. **Priority Actions**: Top 3 changes for immediate improvement
 
-Format as JSON with keys: trend_analysis, consistency_assessment, health_scores {mode_a, mode_b, overall}, improvement_areas, anomalies`;
+Format as JSON.`;
         }
 
         // Invoke LLM for analysis with enhanced schema
