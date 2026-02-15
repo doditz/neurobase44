@@ -15,6 +15,7 @@ import DebateVisualizationModal from '@/components/benchmark/DebateVisualization
 import DebateFlowVisualization from './DebateFlowVisualization';
 import ChatExportPanel from './ChatExportPanel';
 import AnalysisContextPanel from './AnalysisContextPanel';
+import ResourceMonitorBar from './ResourceMonitorBar';
 
 const MIN_MESSAGE_INTERVAL = 2000;
 const MAX_RETRIES = 3;
@@ -49,6 +50,8 @@ export default function ChatInterface({
     const [showExportPanel, setShowExportPanel] = useState(false);
     const [showAnalysisContext, setShowAnalysisContext] = useState(false);
     const [injectedContext, setInjectedContext] = useState(null);
+    const [lastResponseTokens, setLastResponseTokens] = useState(0);
+    const [sessionTokensUsed, setSessionTokensUsed] = useState(0);
     
     const scrollAreaRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -311,6 +314,11 @@ export default function ChatInterface({
                 setLiveDebateHistory(data.debate_history || []);
                 setCurrentDebateRound(data.metadata.debate_rounds_executed || 0);
                 
+                // Track token usage
+                const tokensUsed = data.metadata.total_tokens || 0;
+                setLastResponseTokens(tokensUsed);
+                setSessionTokensUsed(prev => prev + tokensUsed);
+                
                 // Update debate record with full metadata
                 if (debateRecord?.id && onDebateUpdated) {
                     try {
@@ -412,8 +420,33 @@ export default function ChatInterface({
 
     const canSendMessage = !isSending && !isLoading && (input.trim() || uploadedFiles.length > 0);
 
+    // Handle optimization suggestions from ResourceMonitorBar
+    const handleOptimizeSuggestion = (action) => {
+        switch (action) {
+            case 'reduce_complexity':
+                toast.info('💡 Tip: Reduce debate rounds in settings for faster responses');
+                break;
+            case 'switch_eco':
+                toast.info('💡 Tip: Switch to "eco" mode in settings to conserve tokens');
+                break;
+            case 'simplify_prompt':
+                toast.info('💡 Tip: Try shorter, more focused questions');
+                break;
+            default:
+                break;
+        }
+    };
+
     return (
         <div className="flex-1 flex flex-col h-full bg-slate-900">
+            {/* Resource Monitor Bar */}
+            <ResourceMonitorBar
+                processingTime={processingTime}
+                isProcessing={isLoading || isSending}
+                lastResponseTokens={lastResponseTokens}
+                onOptimizeSuggestion={handleOptimizeSuggestion}
+            />
+
             {error && (
                 <div className="p-2 bg-orange-900/30 border-b border-orange-600/50 text-orange-400 text-sm flex-shrink-0">
                     <div className="flex items-center gap-2 max-w-4xl mx-auto">
@@ -429,9 +462,15 @@ export default function ChatInterface({
                         <Clock className="w-4 h-4 animate-pulse" />
                         <span>
                             Traitement en cours... {processingTime}s
-                            {processingTime > 30 && ' (analyse complexe)'}
+                            {processingTime > 30 && processingTime <= 60 && ' (analyse complexe)'}
                             {processingTime > 60 && ' (débat multi-personas)'}
                         </span>
+                        {processingTime > 45 && (
+                            <Badge variant="outline" className="text-xs py-0 text-yellow-400 border-yellow-600/50">
+                                <AlertTriangle className="w-2.5 h-2.5 mr-1" />
+                                Long processing
+                            </Badge>
+                        )}
                     </div>
                 </div>
             )}
