@@ -5,7 +5,7 @@ import { ResourceUsage } from '@/entities/ResourceUsage';
 import { UserBudget } from '@/entities/UserBudget';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown } from 'lucide-react';
+import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown, Activity, Sparkles } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,8 @@ import DebateFlowVisualization from './DebateFlowVisualization';
 import ChatExportPanel from './ChatExportPanel';
 import AnalysisContextPanel from './AnalysisContextPanel';
 import ResourceMonitorBar from './ResourceMonitorBar';
+import LiveBenchmarkMonitor from './LiveBenchmarkMonitor';
+import ConversationSummarizer from './ConversationSummarizer';
 
 const MIN_MESSAGE_INTERVAL = 2000;
 const MAX_RETRIES = 3;
@@ -52,6 +54,8 @@ export default function ChatInterface({
     const [injectedContext, setInjectedContext] = useState(null);
     const [lastResponseTokens, setLastResponseTokens] = useState(0);
     const [sessionTokensUsed, setSessionTokensUsed] = useState(0);
+    const [showBenchmarkMonitor, setShowBenchmarkMonitor] = useState(false);
+    const [showSummarizer, setShowSummarizer] = useState(false);
     
     const scrollAreaRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -534,8 +538,8 @@ export default function ChatInterface({
             
             <div className="p-2 sm:p-4 border-t border-slate-700 bg-slate-800 flex-shrink-0">
                 <div className="max-w-4xl mx-auto">
-                    {/* Context/Export Panels */}
-                    {(showExportPanel || showAnalysisContext) && (
+                    {/* Context/Export/Monitor Panels */}
+                    {(showExportPanel || showAnalysisContext || showBenchmarkMonitor || showSummarizer) && (
                         <div className="mb-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                             {showExportPanel && (
                                 <ChatExportPanel
@@ -553,6 +557,27 @@ export default function ChatInterface({
                                         toast.info('Context loaded - type your question');
                                     }}
                                     onClose={() => setShowAnalysisContext(false)}
+                                />
+                            )}
+                            {showBenchmarkMonitor && (
+                                <LiveBenchmarkMonitor
+                                    onClose={() => setShowBenchmarkMonitor(false)}
+                                    onInjectResult={(ctx) => {
+                                        setInjectedContext(ctx);
+                                        setShowBenchmarkMonitor(false);
+                                        toast.info('Benchmark result loaded');
+                                    }}
+                                />
+                            )}
+                            {showSummarizer && (
+                                <ConversationSummarizer
+                                    messages={messages}
+                                    topic={debateRecord?.topic}
+                                    onClose={() => setShowSummarizer(false)}
+                                    onInjectSummary={(ctx) => {
+                                        setInjectedContext(ctx);
+                                        setShowSummarizer(false);
+                                    }}
                                 />
                             )}
                         </div>
@@ -656,6 +681,27 @@ export default function ChatInterface({
                             >
                                 <Database className="w-3 h-3 mr-1" />
                                 Context
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowBenchmarkMonitor(!showBenchmarkMonitor)}
+                                className={`h-6 px-2 text-xs ${showBenchmarkMonitor ? 'text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+                                title="Live benchmark monitoring"
+                            >
+                                <Activity className="w-3 h-3 mr-1" />
+                                Live
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowSummarizer(!showSummarizer)}
+                                className={`h-6 px-2 text-xs ${showSummarizer ? 'text-purple-400' : 'text-slate-500 hover:text-purple-400'}`}
+                                disabled={messages.length === 0}
+                                title="AI-powered conversation summary"
+                            >
+                                <Sparkles className="w-3 h-3 mr-1" />
+                                Summary
                             </Button>
                             <Button
                                 variant="ghost"
