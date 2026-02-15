@@ -426,19 +426,26 @@ export default function ChatInterface({
 
     // Handle optimization suggestions from ResourceMonitorBar
     const handleOptimizeSuggestion = (action) => {
-        switch (action) {
-            case 'reduce_complexity':
-                toast.info('💡 Tip: Reduce debate rounds in settings for faster responses');
-                break;
-            case 'switch_eco':
-                toast.info('💡 Tip: Switch to "eco" mode in settings to conserve tokens');
-                break;
-            case 'simplify_prompt':
-                toast.info('💡 Tip: Try shorter, more focused questions');
-                break;
-            default:
-                break;
-        }
+        const tips = {
+            reduce_complexity: '💡 Reducing debate rounds for faster responses',
+            switch_eco: '💡 Switching to eco mode to conserve tokens',
+            simplify_prompt: '💡 Try shorter, more focused questions',
+            conserve: '💡 Approaching token limit - consider simplifying',
+            session_limit_reached: '⚠️ Session limit reached'
+        };
+        toast.info(tips[action] || `Optimization: ${action}`);
+    };
+
+    // Handle auto-optimization
+    const handleAutoOptimize = (optimizations) => {
+        if (!optimizations?.length) return;
+        // Auto-adjust settings when constraints detected
+        const newSettings = { ...settings };
+        if (optimizations.includes('reduce_rounds')) newSettings.debateRounds = Math.max(2, (settings.debateRounds || 5) - 2);
+        if (optimizations.includes('eco_mode')) newSettings.mode = 'eco';
+        if (optimizations.includes('simplify')) newSettings.maxPersonas = Math.max(2, (settings.maxPersonas || 5) - 2);
+        // Notify parent of settings change if handler provided
+        console.log('[AutoOpt] Applied:', optimizations, newSettings);
     };
 
     return (
@@ -449,6 +456,8 @@ export default function ChatInterface({
                 isProcessing={isLoading || isSending}
                 lastResponseTokens={lastResponseTokens}
                 onOptimizeSuggestion={handleOptimizeSuggestion}
+                onAutoOptimize={handleAutoOptimize}
+                settings={settings}
             />
 
             {error && (
