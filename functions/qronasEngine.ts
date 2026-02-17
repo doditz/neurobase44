@@ -100,7 +100,8 @@ Deno.serve(async (req) => {
             dominant_hemisphere = 'central',
             needs_citations = false,
             citation_enforcement_strict = false,
-            settings = {}
+            settings = {},
+            file_urls = []  // VISION SUPPORT: Accept file URLs for image analysis
         } = requestData;
 
         logManager.info(`User: ${user.email}, Agent: ${agent_name}, Prompt: "${prompt.substring(0, 50)}..."`);
@@ -115,7 +116,9 @@ Deno.serve(async (req) => {
             temperature,
             archetype,
             dominant_hemisphere,
-            citation_enforcement_strict
+            citation_enforcement_strict,
+            has_vision_files: file_urls && file_urls.length > 0,
+            vision_file_count: file_urls?.length || 0
         });
 
         // Validation du nombre minimum de personas
@@ -297,11 +300,20 @@ This is Round ${round + 1} of the debate.
 `;
 
                 try {
-                    const response = await base44.integrations.Core.InvokeLLM({
+                    // VISION SUPPORT: Include file_urls for personas to analyze images
+                    const llmParams = {
                         prompt: personaPrompt,
                         temperature,
                         add_context_from_internet: false
-                    });
+                    };
+                    
+                    // Add file_urls for vision analysis if present
+                    if (file_urls && file_urls.length > 0) {
+                        llmParams.file_urls = file_urls;
+                        logManager.info(`🖼️ ${persona.name} analyzing ${file_urls.length} image(s)`);
+                    }
+                    
+                    const response = await base44.integrations.Core.InvokeLLM(llmParams);
 
                     // Extract citations from response
                     const citationMatches = response.match(/\[Source:\s*([^\]]+)\]/g) || [];
