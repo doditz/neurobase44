@@ -1,42 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Loader2, Play, ArrowRight, Trash2 } from 'lucide-react';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
 export default function SMASUpgradeTest() {
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState(null);
-    const [allLogs, setAllLogs] = useState([]);
+    const loggerRef = useRef(createLogger('SMASUpgradeTest'));
 
     const runTest = async () => {
         setTesting(true);
-        setAllLogs(prev => [
-            ...prev,
-            ...(prev.length > 0 ? [{ level: 'SYSTEM', msg: '────────────────────────────────────────', timestamp: new Date().toISOString() }] : []),
-            { level: 'SYSTEM', msg: '🚀 NEW TEST RUN: SMAS v4.3 Dynamics', timestamp: new Date().toISOString() }
-        ]);
+        const logger = loggerRef.current;
+        logger.system('🚀 NEW TEST RUN: SMAS v4.3 Dynamics');
 
         try {
             const { data } = await base44.functions.invoke('testSMASDynamics');
             setResults(data);
             if (data.logs) {
-                setAllLogs(prev => [...prev, ...data.logs]);
+                data.logs.forEach(l => logger.info(l.msg || JSON.stringify(l)));
             }
-        } catch (error) {
-            setResults({
-                success: false,
-                error: error.message
+            logger.success(`Test completed: ${data.test_results?.all_tests_passed ? 'All passed' : 'Some failed'}`);
+            
+            await saveToUnifiedLog(logger, {
+                source_type: 'pipeline_test',
+                execution_context: 'SMASUpgradeTest',
+                metrics: { G_t: data.test_results?.G_t || 0, D_t: data.test_results?.D_t || 0, B_t: data.test_results?.B_t || 0 },
+                result_summary: `SMAS v4.3: ${data.test_results?.all_tests_passed ? 'All passed' : 'Some failed'}`,
+                status: data.test_results?.all_tests_passed ? 'success' : 'failed'
             });
-            setAllLogs(prev => [...prev, { level: 'ERROR', msg: `Test failed: ${error.message}`, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+            setResults({ success: false, error: error.message });
+            logger.error(`Test failed: ${error.message}`);
         } finally {
             setTesting(false);
         }
     };
 
-    const clearLogs = () => setAllLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('SMASUpgradeTest'); };
 
     return (
         <div className="min-h-screen bg-slate-900 p-6">
@@ -140,8 +144,8 @@ export default function SMASUpgradeTest() {
                         </Card>
 
                         <UnifiedLogViewer
-                            logs={allLogs.map(l => `[${l.timestamp}] [${l.level || 'INFO'}] ${l.msg}${l.data ? ' ' + JSON.stringify(l.data) : ''}`)}
-                            title={`Detailed Logs (${allLogs.length} entries)`}
+                            logs={loggerRef.current.getFormattedLogs()}
+                            title="Detailed Logs"
                             showStats={true}
                             defaultExpanded={true}
                         />

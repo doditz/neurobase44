@@ -1,42 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Loader2, Play, Activity, Trash2 } from 'lucide-react';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
 export default function Phase4EnhancedSMASTest() {
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState(null);
-    const [allLogs, setAllLogs] = useState([]);
+    const loggerRef = useRef(createLogger('Phase4EnhancedSMAS'));
 
     const runTest = async () => {
         setTesting(true);
-        setAllLogs(prev => [
-            ...prev,
-            ...(prev.length > 0 ? [{ level: 'SYSTEM', msg: '────────────────────────────────────────', timestamp: new Date().toISOString() }] : []),
-            { level: 'SYSTEM', msg: '🚀 NEW TEST RUN: Phase 4 Enhanced SMAS', timestamp: new Date().toISOString() }
-        ]);
+        const logger = loggerRef.current;
+        logger.system('🚀 NEW TEST RUN: Phase 4 Enhanced SMAS');
 
         try {
             const { data } = await base44.functions.invoke('testPhase4EnhancedSMAS');
             setResults(data);
             if (data.logs) {
-                setAllLogs(prev => [...prev, ...data.logs]);
+                data.logs.forEach(l => logger.info(l.msg || JSON.stringify(l)));
             }
-        } catch (error) {
-            setResults({
-                success: false,
-                error: error.message
+            logger.success(`Test completed: ${data.test_results?.passed || 0}/${data.test_results?.total || 0} passed`);
+            
+            await saveToUnifiedLog(logger, {
+                source_type: 'pipeline_test',
+                execution_context: 'Phase4EnhancedSMASTest',
+                metrics: { pass_rate: parseFloat(data.test_results?.success_rate || '0'), total: data.test_results?.total || 0, passed: data.test_results?.passed || 0 },
+                result_summary: `Enhanced SMAS: ${data.test_results?.passed || 0}/${data.test_results?.total || 0} passed`,
+                status: data.success ? 'success' : 'failed'
             });
-            setAllLogs(prev => [...prev, { level: 'ERROR', msg: `Test failed: ${error.message}`, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+            setResults({ success: false, error: error.message });
+            logger.error(`Test failed: ${error.message}`);
         } finally {
             setTesting(false);
         }
     };
 
-    const clearLogs = () => setAllLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('Phase4EnhancedSMAS'); };
 
     return (
         <div className="min-h-screen bg-slate-900 p-6">
@@ -182,8 +186,8 @@ export default function Phase4EnhancedSMASTest() {
                         </Card>
 
                         <UnifiedLogViewer
-                            logs={allLogs.map(l => `[${l.timestamp}] [${l.level || 'INFO'}] ${l.msg}${l.data ? ' ' + JSON.stringify(l.data) : ''}`)}
-                            title={`Execution Logs (${allLogs.length} entries)`}
+                            logs={loggerRef.current.getFormattedLogs()}
+                            title="Execution Logs"
                             showStats={true}
                             defaultExpanded={true}
                         />

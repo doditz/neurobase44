@@ -1,44 +1,46 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Loader2, Play, AlertTriangle, Trash2 } from 'lucide-react';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
 export default function Phase3JerkFilterTest() {
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState(null);
-    const [allLogs, setAllLogs] = useState([]);
+    const loggerRef = useRef(createLogger('Phase3JerkFilter'));
 
     const runTest = async () => {
         setTesting(true);
-        // Append separator for new test run
-        setAllLogs(prev => [
-            ...prev,
-            ...(prev.length > 0 ? [{ level: 'SYSTEM', msg: '────────────────────────────────────────', timestamp: new Date().toISOString() }] : []),
-            { level: 'SYSTEM', msg: '🚀 NEW TEST RUN: Phase 3 Jerk Filter', timestamp: new Date().toISOString() }
-        ]);
+        const logger = loggerRef.current;
+        logger.system('🚀 NEW TEST RUN: Phase 3 Jerk Filter');
 
         try {
             const { data } = await base44.functions.invoke('testPhase3JerkFilter');
             setResults(data);
-            // Append new logs to accumulated logs
             if (data.logs) {
-                setAllLogs(prev => [...prev, ...data.logs]);
+                data.logs.forEach(l => logger.info(l.msg || JSON.stringify(l)));
             }
-        } catch (error) {
-            setResults({
-                success: false,
-                error: error.message
+            logger.success(`Test completed: ${data.test_results?.passed || 0}/${data.test_results?.total || 0} passed`);
+            
+            await saveToUnifiedLog(logger, {
+                source_type: 'pipeline_test',
+                execution_context: 'Phase3JerkFilterTest',
+                metrics: { pass_rate: parseFloat(data.test_results?.success_rate || '0'), total: data.test_results?.total || 0, passed: data.test_results?.passed || 0 },
+                result_summary: `Jerk Filter: ${data.test_results?.passed || 0}/${data.test_results?.total || 0} passed`,
+                status: data.success ? 'success' : 'failed'
             });
-            setAllLogs(prev => [...prev, { level: 'ERROR', msg: `Test failed: ${error.message}`, timestamp: new Date().toISOString() }]);
+        } catch (error) {
+            setResults({ success: false, error: error.message });
+            logger.error(`Test failed: ${error.message}`);
         } finally {
             setTesting(false);
         }
     };
 
-    const clearLogs = () => setAllLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('Phase3JerkFilter'); };
 
     return (
         <div className="min-h-screen bg-slate-900 p-6">
@@ -193,8 +195,8 @@ export default function Phase3JerkFilterTest() {
                         </Card>
 
                         <UnifiedLogViewer
-                            logs={allLogs.map(l => `[${l.timestamp}] [${l.level || 'INFO'}] ${l.msg}${l.data ? ' ' + JSON.stringify(l.data) : ''}`)}
-                            title={`Execution Logs (${allLogs.length} entries)`}
+                            logs={loggerRef.current.getFormattedLogs()}
+                            title="Execution Logs"
                             showStats={true}
                             defaultExpanded={true}
                         />
