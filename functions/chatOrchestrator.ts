@@ -76,6 +76,14 @@ Deno.serve(async (req) => {
             metadata = {}
         } = requestData;
 
+        // Log file uploads for vision processing
+        if (file_urls && file_urls.length > 0) {
+            logManager.info('📎 Files attached for vision analysis', { 
+                file_count: file_urls.length,
+                file_urls: file_urls 
+            });
+        }
+
         if (!user_message || !user_message.trim()) {
             logManager.error('user_message is empty');
             return Response.json({ success: false, error: 'Message requis', logs }, { status: 400 });
@@ -596,7 +604,9 @@ CRITICAL REQUIREMENTS:
                     dominant_hemisphere,
                     needs_citations: webSearchExecuted,
                     citation_enforcement_strict: true,
-                    settings: dynamicConfig
+                    settings: dynamicConfig,
+                    // VISION SUPPORT: Pass file_urls for image analysis in QRONAS
+                    file_urls: file_urls && file_urls.length > 0 ? file_urls : undefined
                 });
                 
                 if (qronasResult && qronasResult.data && qronasResult.data.success) {
@@ -623,10 +633,15 @@ CRITICAL REQUIREMENTS:
                 logManager.warning('Falling back to simple LLM');
                 
                 try {
-                    masterSynthesis = await base44.integrations.Core.InvokeLLM({
+                    const fallbackParams = {
                         prompt: full_context,
                         temperature: dynamicConfig.temperature
-                    });
+                    };
+                    // VISION SUPPORT in fallback
+                    if (file_urls && file_urls.length > 0) {
+                        fallbackParams.file_urls = file_urls;
+                    }
+                    masterSynthesis = await base44.integrations.Core.InvokeLLM(fallbackParams);
                 } catch (llmError) {
                     logManager.error(`Simple LLM also failed: ${llmError.message}`);
                     throw new Error(`Échec de génération de réponse: ${llmError.message}`);
@@ -635,10 +650,19 @@ CRITICAL REQUIREMENTS:
         } else {
             logManager.info('Using simple LLM (complexity below threshold)');
             try {
-                masterSynthesis = await base44.integrations.Core.InvokeLLM({
+                // VISION SUPPORT: Pass file_urls if images are attached
+                const llmParams = {
                     prompt: full_context,
                     temperature: dynamicConfig.temperature
-                });
+                };
+                
+                // Add file_urls for vision analysis if present
+                if (file_urls && file_urls.length > 0) {
+                    llmParams.file_urls = file_urls;
+                    logManager.info('🖼️ Vision mode activated', { files: file_urls.length });
+                }
+                
+                masterSynthesis = await base44.integrations.Core.InvokeLLM(llmParams);
             } catch (llmError) {
                 logManager.error(`Simple LLM failed: ${llmError.message}`);
                 throw new Error(`Échec de génération de réponse: ${llmError.message}`);
