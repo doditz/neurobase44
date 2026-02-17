@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { User } from '@/entities/User';
 import { BenchmarkQuestion } from '@/entities/BenchmarkQuestion';
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Play, Zap, Loader2, CheckCircle2, AlertCircle, Shield, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
 export default function BenchmarkTestRunnerPage() {
     const [user, setUser] = useState(null);
@@ -20,21 +21,18 @@ export default function BenchmarkTestRunnerPage() {
     const [testResults, setTestResults] = useState(null);
     const [batchResults, setBatchResults] = useState([]);
     const [allBenchmarks, setAllBenchmarks] = useState([]);
-    const [runLogs, setRunLogs] = useState([]);
+    const loggerRef = useRef(createLogger('BenchmarkTestRunner'));
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
-    const addLog = (level, message) => {
-        setRunLogs(prev => [...prev, {
-            timestamp: new Date().toISOString(),
-            level,
-            message
-        }]);
+    const addLog = (level, message, metadata = {}) => {
+        const logger = loggerRef.current;
+        const method = level.toLowerCase();
+        if (logger[method]) logger[method](message, metadata);
+        else logger.info(message, metadata);
     };
 
-    const clearLogs = () => setRunLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('BenchmarkTestRunner'); };
 
     const loadData = async () => {
         try {
@@ -166,14 +164,19 @@ export default function BenchmarkTestRunnerPage() {
 
         setIsBatchRunning(false);
         const successCount = results.filter(r => r.status === 'success').length;
-        addLog('SYSTEM', `🏁 BATCH COMPLETE: ${successCount}/${results.length} passed (${((successCount/results.length)*100).toFixed(1)}%)`);
+        addLog('system', `🏁 BATCH COMPLETE: ${successCount}/${results.length} passed (${((successCount/results.length)*100).toFixed(1)}%)`);
         toast.success(`✅ Batch complété: ${successCount}/${results.length} réussis`);
 
-        // Attendre propagation
-        setTimeout(async () => {
-            await loadData();
-            toast.info('📊 Historique mis à jour');
-        }, 3000);
+        // Save to UnifiedLog
+        await saveToUnifiedLog(loggerRef.current, {
+            source_type: 'benchmark',
+            execution_context: 'BenchmarkTestRunner',
+            metrics: { pass_rate: (successCount / results.length) * 100, total: results.length, passed: successCount },
+            result_summary: `Benchmark test batch: ${successCount}/${results.length} passed`,
+            status: successCount === results.length ? 'success' : 'partial'
+        });
+
+        setTimeout(() => { loadData(); toast.info('📊 Historique mis à jour'); }, 3000);
     };
 
     if (!user) {
@@ -350,30 +353,17 @@ export default function BenchmarkTestRunnerPage() {
                 )}
 
                 {/* Unified Logs */}
-                {runLogs.length > 0 && (
-                    <Card className="bg-slate-800 border-slate-700">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-green-400">Execution Logs ({runLogs.length})</CardTitle>
-                            <Button
-                                onClick={clearLogs}
-                                variant="outline"
-                                size="sm"
-                                className="border-slate-600 text-slate-400 hover:text-red-400"
-                            >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Clear
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <UnifiedLogViewer
-                                logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`)}
-                                title=""
-                                showStats={true}
-                                defaultExpanded={true}
-                            />
-                        </CardContent>
-                    </Card>
-                )}
+                <Card className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-green-400">Execution Logs</CardTitle>
+                        <Button onClick={clearLogs} variant="outline" size="sm" className="border-slate-600 text-slate-400 hover:text-red-400">
+                            <Trash2 className="w-3 h-3 mr-1" /> Clear
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <UnifiedLogViewer logs={loggerRef.current.getFormattedLogs()} title="" showStats={true} defaultExpanded={true} />
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );

@@ -1,23 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import {
-    Play,
-    Loader2,
-    Trophy,
-    AlertCircle,
-    CheckCircle2,
-    Clock,
-    Target,
-    Brain,
-    Trash2
-} from 'lucide-react';
+import { Play, Loader2, Trophy, AlertCircle, CheckCircle2, Clock, Target, Brain, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
 export default function NeuronasGauntletPage() {
     const [user, setUser] = useState(null);
@@ -26,17 +17,16 @@ export default function NeuronasGauntletPage() {
     const [currentRun, setCurrentRun] = useState(null);
     const [results, setResults] = useState([]);
     const [summary, setSummary] = useState(null);
-    const [runLogs, setRunLogs] = useState([]);
+    const loggerRef = useRef(createLogger('NeuronasGauntlet'));
 
-    const addLog = (level, message) => {
-        setRunLogs(prev => [...prev, {
-            timestamp: new Date().toISOString(),
-            level,
-            message
-        }]);
+    const addLog = (level, message, metadata = {}) => {
+        const logger = loggerRef.current;
+        const method = level.toLowerCase();
+        if (logger[method]) logger[method](message, metadata);
+        else logger.info(message, metadata);
     };
 
-    const clearLogs = () => setRunLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('NeuronasGauntlet'); };
 
     useEffect(() => {
         loadUser();
@@ -132,12 +122,21 @@ export default function NeuronasGauntletPage() {
                 }
             });
 
-            addLog('SYSTEM', `🏁 GAUNTLET COMPLETE: Avg ${data.summary.average_score.toFixed(1)}/10`);
+            addLog('system', `🏁 GAUNTLET COMPLETE: Avg ${data.summary.average_score.toFixed(1)}/10`);
             toast.success(`✅ Gauntlet complete! Average score: ${data.summary.average_score.toFixed(1)}/10`);
+
+            // Save to UnifiedLog
+            await saveToUnifiedLog(loggerRef.current, {
+                source_type: 'gauntlet',
+                execution_context: 'NeuronasGauntlet',
+                metrics: { avg_score: data.summary.average_score, total: data.summary.total_questions, judged: data.summary.total_judged },
+                result_summary: `Gauntlet: Avg ${data.summary.average_score.toFixed(1)}/10`,
+                status: 'success'
+            });
 
         } catch (error) {
             console.error('Gauntlet error:', error);
-            addLog('ERROR', `Gauntlet failed: ${error.message}`);
+            addLog('error', `Gauntlet failed: ${error.message}`);
             toast.error(`Error: ${error.message}`);
         } finally {
             setIsRunning(false);
@@ -322,14 +321,12 @@ export default function NeuronasGauntletPage() {
                 )}
 
                 {/* Run Logs */}
-                {runLogs.length > 0 && (
-                    <UnifiedLogViewer
-                        logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`)}
-                        title={`Gauntlet Logs (${runLogs.length} entries)`}
-                        showStats={true}
-                        defaultExpanded={false}
-                    />
-                )}
+                <UnifiedLogViewer
+                    logs={loggerRef.current.getFormattedLogs()}
+                    title="Gauntlet Logs"
+                    showStats={true}
+                    defaultExpanded={false}
+                />
 
                 {/* Results Table */}
                 {results.length > 0 && (
