@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,22 +6,13 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
-    Play,
-    Pause,
-    RotateCcw,
-    CheckCircle2,
-    XCircle,
-    Clock,
-    Brain,
-    TrendingUp,
-    Download,
-    Shield,
-    Loader2,
-    Trash2
+    Play, Pause, RotateCcw, CheckCircle2, XCircle, Clock, Brain, TrendingUp, Download, Shield, Loader2, Trash2
 } from 'lucide-react';
 import { toast } from 'sonner';
 import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
+import { exportData } from '@/components/utils/FileExporter';
 
 export default function BenchmarkRunner() {
     const [questions, setQuestions] = useState([]);
@@ -30,30 +21,20 @@ export default function BenchmarkRunner() {
     const [isPaused, setIsPaused] = useState(false);
     const [results, setResults] = useState([]);
     const [currentTest, setCurrentTest] = useState(null);
-    const [overallStats, setOverallStats] = useState({
-        total: 0,
-        completed: 0,
-        passed: 0,
-        failed: 0,
-        avgImprovement: 0
-    });
+    const [overallStats, setOverallStats] = useState({ total: 0, completed: 0, passed: 0, failed: 0, avgImprovement: 0 });
     const [user, setUser] = useState(null);
-    const [runLogs, setRunLogs] = useState([]);
+    const loggerRef = useRef(createLogger('BenchmarkRunner'));
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
-    const addLog = (level, message, data = null) => {
-        setRunLogs(prev => [...prev, {
-            timestamp: new Date().toISOString(),
-            level,
-            message,
-            data
-        }]);
+    const addLog = (level, message, metadata = {}) => {
+        const logger = loggerRef.current;
+        const method = level.toLowerCase();
+        if (logger[method]) logger[method](message, metadata);
+        else logger.info(message, metadata);
     };
 
-    const clearLogs = () => setRunLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('BenchmarkRunner'); };
 
     const loadData = async () => {
         try {
@@ -166,8 +147,17 @@ export default function BenchmarkRunner() {
 
         setIsRunning(false);
         setCurrentTest(null);
-        addLog('SYSTEM', `🏁 BATCH COMPLETE: ${passed}/${questions.length} passed (${((passed/questions.length)*100).toFixed(1)}%)`);
+        addLog('system', `🏁 BATCH COMPLETE: ${passed}/${questions.length} passed (${((passed/questions.length)*100).toFixed(1)}%)`);
         toast.success(`✅ Suite terminée: ${passed}/${questions.length} réussis`);
+
+        // Save to UnifiedLog
+        await saveToUnifiedLog(loggerRef.current, {
+            source_type: 'benchmark',
+            execution_context: 'BenchmarkRunner',
+            metrics: { pass_rate: (passed / questions.length) * 100, total: questions.length, passed, failed, avg_improvement: totalImprovement / questions.length },
+            result_summary: `Benchmark batch: ${passed}/${questions.length} passed`,
+            status: failed === 0 ? 'success' : 'partial'
+        });
 
         await loadData();
     };
@@ -193,14 +183,8 @@ export default function BenchmarkRunner() {
     };
 
     const exportResults = () => {
-        const dataStr = JSON.stringify(results, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `neuronas_benchmark_results_${new Date().toISOString()}.json`;
-        link.click();
-        URL.revokeObjectURL(url);
+        exportData(results, 'benchmark_results', 'json');
+        toast.success('Results exported');
     };
 
     if (!user) {
@@ -350,30 +334,17 @@ export default function BenchmarkRunner() {
                 </div>
 
                 {/* Run Logs */}
-                {runLogs.length > 0 && (
-                    <Card className="bg-slate-800 border-slate-700">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-green-300">Execution Logs ({runLogs.length})</CardTitle>
-                            <Button
-                                onClick={clearLogs}
-                                variant="outline"
-                                size="sm"
-                                className="border-slate-600 text-slate-400 hover:text-red-400"
-                            >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Clear
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <UnifiedLogViewer
-                                logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}${l.data ? ' ' + JSON.stringify(l.data) : ''}`)}
-                                title=""
-                                showStats={true}
-                                defaultExpanded={true}
-                            />
-                        </CardContent>
-                    </Card>
-                )}
+                <Card className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-green-300">Execution Logs</CardTitle>
+                        <Button onClick={clearLogs} variant="outline" size="sm" className="border-slate-600 text-slate-400 hover:text-red-400">
+                            <Trash2 className="w-3 h-3 mr-1" /> Clear
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <UnifiedLogViewer logs={loggerRef.current.getFormattedLogs()} title="" showStats={true} defaultExpanded={true} />
+                    </CardContent>
+                </Card>
 
                 {/* Results List */}
                 {results.length > 0 && (

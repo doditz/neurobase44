@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,43 +6,46 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { CheckCircle2, XCircle, Loader2, Play, AlertCircle, Trash2 } from 'lucide-react';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
 
 export default function SystemPipelineTest() {
     const [testPrompt, setTestPrompt] = useState('Explain the ethical implications of AI in healthcare and propose a framework for responsible deployment.');
     const [testing, setTesting] = useState(false);
     const [results, setResults] = useState(null);
-    const [allLogs, setAllLogs] = useState([]);
+    const loggerRef = useRef(createLogger('PipelineTest'));
 
     const runPipelineTest = async () => {
         setTesting(true);
-        setAllLogs(prev => [
-            ...prev,
-            ...(prev.length > 0 ? [{ timestamp: new Date().toISOString(), level: 'SYSTEM', module: 'PIPELINE', message: '────────────────────────────────────────' }] : []),
-            { timestamp: new Date().toISOString(), level: 'SYSTEM', module: 'PIPELINE', message: `🚀 NEW TEST RUN: ${testPrompt.substring(0, 50)}...` }
-        ]);
+        const logger = loggerRef.current;
+        logger.system(`🚀 NEW TEST RUN: ${testPrompt.substring(0, 50)}...`);
 
         try {
-            const { data } = await base44.functions.invoke('pipelineTestRunner', {
-                test_prompt: testPrompt
-            });
-
+            const { data } = await base44.functions.invoke('pipelineTestRunner', { test_prompt: testPrompt });
             setResults(data);
+            
             if (data.test_logs) {
-                setAllLogs(prev => [...prev, ...data.test_logs]);
+                data.test_logs.forEach(l => logger.info(l.message || JSON.stringify(l), { module: l.module }));
             }
-        } catch (error) {
-            setResults({
-                success: false,
-                error: error.message,
-                test_results: { failed: 1, total_tests: 1 }
+            
+            logger.success(`Pipeline test completed: ${data.test_results?.passed || 0}/${data.test_results?.total_tests || 0} passed`);
+            
+            // Save to UnifiedLog
+            await saveToUnifiedLog(logger, {
+                source_type: 'pipeline_test',
+                execution_context: 'SystemPipelineTest',
+                metrics: { pass_rate: data.test_results?.success_rate || 0, total: data.test_results?.total_tests || 0, passed: data.test_results?.passed || 0 },
+                result_summary: `Pipeline: ${data.test_results?.passed || 0}/${data.test_results?.total_tests || 0} passed`,
+                status: data.success ? 'success' : 'failed'
             });
-            setAllLogs(prev => [...prev, { timestamp: new Date().toISOString(), level: 'ERROR', module: 'PIPELINE', message: `Test failed: ${error.message}` }]);
+        } catch (error) {
+            setResults({ success: false, error: error.message, test_results: { failed: 1, total_tests: 1 } });
+            logger.error(`Test failed: ${error.message}`);
         } finally {
             setTesting(false);
         }
     };
 
-    const clearLogs = () => setAllLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('PipelineTest'); };
 
     const getStatusColor = (status) => {
         if (status === 'SUCCESS') return 'text-green-400';
@@ -216,8 +219,8 @@ export default function SystemPipelineTest() {
 
                         {/* Detailed Logs - Unified */}
                         <UnifiedLogViewer
-                            logs={allLogs.map(l => `[${l.timestamp}] [${l.level}] [${l.module}] ${l.message}`)}
-                            title={`Pipeline Logs (${allLogs.length} entries)`}
+                            logs={loggerRef.current.getFormattedLogs()}
+                            title="Pipeline Logs"
                             showStats={true}
                             defaultExpanded={true}
                         />

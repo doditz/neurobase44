@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { base44 } from '@/api/base44Client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,13 +6,12 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-    Play, Loader2, CheckCircle2, XCircle, 
-    Zap, Shield, Download, RotateCcw, Pause, Trash2
-} from 'lucide-react';
+import { Play, Loader2, CheckCircle2, XCircle, Zap, Shield, Download, RotateCcw, Pause, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import OptimizationHistoryItem from '@/components/optimization/OptimizationHistoryItem';
 import UnifiedLogViewer from '@/components/debug/UnifiedLogViewer';
+import { createLogger, saveToUnifiedLog } from '@/components/core/NeuronasLogger';
+import { exportData } from '@/components/utils/FileExporter';
 
 export default function DevTestRunner() {
     const [user, setUser] = useState(null);
@@ -24,21 +23,18 @@ export default function DevTestRunner() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [results, setResults] = useState([]);
     const [allResults, setAllResults] = useState([]);
-    const [runLogs, setRunLogs] = useState([]);
+    const loggerRef = useRef(createLogger('DevTestRunner'));
 
-    useEffect(() => {
-        loadData();
-    }, []);
+    useEffect(() => { loadData(); }, []);
 
-    const addLog = (level, message) => {
-        setRunLogs(prev => [...prev, {
-            timestamp: new Date().toISOString(),
-            level,
-            message
-        }]);
+    const addLog = (level, message, metadata = {}) => {
+        const logger = loggerRef.current;
+        const method = level.toLowerCase();
+        if (logger[method]) logger[method](message, metadata);
+        else logger.info(message, metadata);
     };
 
-    const clearLogs = () => setRunLogs([]);
+    const clearLogs = () => { loggerRef.current = createLogger('DevTestRunner'); };
 
     const loadData = async () => {
         try {
@@ -161,12 +157,19 @@ export default function DevTestRunner() {
 
         setIsBatchRunning(false);
         const successCount = testResults.filter(r => r.status === 'success').length;
-        addLog('SYSTEM', `🏁 BATCH COMPLETE: ${successCount}/${testResults.length} passed (${((successCount/testResults.length)*100).toFixed(1)}%)`);
+        addLog('system', `🏁 BATCH COMPLETE: ${successCount}/${testResults.length} passed (${((successCount/testResults.length)*100).toFixed(1)}%)`);
         toast.success(`✅ Batch terminé: ${successCount}/${testResults.length} réussis`);
 
-        setTimeout(async () => {
-            await loadData();
-        }, 3000);
+        // Save to UnifiedLog
+        await saveToUnifiedLog(loggerRef.current, {
+            source_type: 'devtest',
+            execution_context: 'DevTestRunner',
+            metrics: { pass_rate: (successCount / testResults.length) * 100, total: testResults.length, passed: successCount, failed: testResults.length - successCount },
+            result_summary: `DevTest batch: ${successCount}/${testResults.length} passed`,
+            status: successCount === testResults.length ? 'success' : 'partial'
+        });
+
+        setTimeout(() => loadData(), 3000);
     };
 
     const pauseBatch = () => {
@@ -182,14 +185,8 @@ export default function DevTestRunner() {
     };
 
     const exportResults = () => {
-        const dataStr = JSON.stringify(results, null, 2);
-        const blob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `devtest_results_${Date.now()}.json`;
-        a.click();
-        URL.revokeObjectURL(url);
+        exportData(results, 'devtest_results', 'json');
+        toast.success('Results exported');
     };
 
     if (!user) {
@@ -374,30 +371,17 @@ export default function DevTestRunner() {
                 )}
 
                 {/* Run Logs */}
-                {runLogs.length > 0 && (
-                    <Card className="bg-slate-800 border-slate-700">
-                        <CardHeader className="flex flex-row items-center justify-between">
-                            <CardTitle className="text-green-400">Execution Logs ({runLogs.length})</CardTitle>
-                            <Button
-                                onClick={clearLogs}
-                                variant="outline"
-                                size="sm"
-                                className="border-slate-600 text-slate-400 hover:text-red-400"
-                            >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Clear
-                            </Button>
-                        </CardHeader>
-                        <CardContent>
-                            <UnifiedLogViewer
-                                logs={runLogs.map(l => `[${l.timestamp}] [${l.level}] ${l.message}`)}
-                                title=""
-                                showStats={true}
-                                defaultExpanded={true}
-                            />
-                        </CardContent>
-                    </Card>
-                )}
+                <Card className="bg-slate-800 border-slate-700">
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <CardTitle className="text-green-400">Execution Logs</CardTitle>
+                        <Button onClick={clearLogs} variant="outline" size="sm" className="border-slate-600 text-slate-400 hover:text-red-400">
+                            <Trash2 className="w-3 h-3 mr-1" /> Clear
+                        </Button>
+                    </CardHeader>
+                    <CardContent>
+                        <UnifiedLogViewer logs={loggerRef.current.getFormattedLogs()} title="" showStats={true} defaultExpanded={true} />
+                    </CardContent>
+                </Card>
 
                 {/* Historical Results */}
                 <Card className="bg-slate-800 border-slate-700">
