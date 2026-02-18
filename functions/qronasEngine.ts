@@ -127,7 +127,50 @@ Provide your perspective in ${150 - round * 30} words. Round ${round + 1}.`;
         // STEP 3: Final synthesis WITH AGENT INSTRUCTIONS
         log('INFO', 'Generating synthesis');
         
-        const synthesisPrompt = `${hasAgentInstructions ? `## AGENT INSTRUCTIONS (MUST FOLLOW)\n${agent_instructions}\n\n---\n\n` : ''}## DEBATE CONTRIBUTIONS
+        // For Suno agent, use specialized synthesis prompt that enforces format
+        let synthesisPrompt;
+        
+        if (isSunoAgent) {
+            synthesisPrompt = `You are the Suno AI 5.0 Beta Prompt Architect. You MUST produce a Suno-compatible prompt.
+
+## STRICT OUTPUT FORMAT REQUIRED
+
+**[STYLE SECTION]** (minimum 14 individual tags):
+[Genre] [Subgenre] [Mood] [Energy] [Tempo] [Dynamics] [Instrument1] [Instrument2] [Vocal Style] [Production] [Era] [Key] [Time Signature] [More tags...]
+
+**[LYRICS SECTION]**:
+[Intro: BPM, Key, Instruments, Dynamics]
+Lyrics here...
+
+[Verse 1: BPM, Key, Instruments, Dynamics]
+Lyrics here...
+
+[Chorus: BPM, Key, Instruments, Dynamics]
+Lyrics here...
+
+[Outro: BPM, Fade Out]
+Lyrics here...
+
+---
+
+## USER REQUEST
+${prompt}
+
+## DEBATE INSIGHTS TO INTEGRATE
+${debateHistory.map(h => `${h.persona}: ${h.response.substring(0, 300)}`).join('\n\n')}
+
+---
+
+## CRITICAL RULES
+- Each tag in brackets must be INDIVIDUAL (never [Fast Upbeat] → use [Fast] [Upbeat])
+- Never exceed 120 chars per bracket
+- NO artist names
+- Include [BPM] and [Key] in EVERY section header
+- For Québécois: use [Chanson Québécoise] [Folk Québécois] [Joual Vocal Style] [Accordion] [Fiddle]
+
+NOW PRODUCE THE COMPLETE SUNO PROMPT:`;
+        } else {
+            synthesisPrompt = `${hasAgentInstructions ? `## AGENT INSTRUCTIONS (MUST FOLLOW)\n${agent_instructions}\n\n---\n\n` : ''}## DEBATE CONTRIBUTIONS
 ${debateHistory.map(h => `[${h.persona}]: ${h.response}`).join('\n\n')}
 
 ## USER REQUEST
@@ -140,10 +183,11 @@ Create the FINAL response by:
 3. Producing a complete, well-structured output
 
 Respond directly with the final output (no meta-commentary).`;
+        }
 
         const synthesis = await base44.integrations.Core.InvokeLLM({
             prompt: synthesisPrompt,
-            temperature: temperature * 0.9
+            temperature: isSunoAgent ? 0.8 : temperature * 0.9
         });
 
         log('SUCCESS', `Synthesis complete: ${synthesis.length} chars`);
