@@ -665,12 +665,33 @@ CRITICAL REQUIREMENTS:
                 }
             }
         } else {
-            logManager.info('Using simple LLM (complexity below threshold)');
+            logManager.info('Using simple LLM (complexity below threshold or Suno mode)');
             try {
+                // Build prompt with agent instructions for direct mode
+                let directPrompt = full_context;
+                
+                // For Suno agent, prepend the specialized instructions
+                if (isSunoAgent && agentInstructions) {
+                    directPrompt = `## 🎵 SUNO AI PROMPT ARCHITECT INSTRUCTIONS
+
+${agentInstructions}
+
+---
+
+## USER REQUEST:
+
+${user_message}
+
+${webSearchContext ? `\n## ADDITIONAL CONTEXT:\n${webSearchContext}` : ''}
+
+Please generate the Suno AI prompt following the format specified above.`;
+                    logManager.info('🎵 Suno direct mode with full instructions');
+                }
+                
                 // VISION SUPPORT: Pass file_urls if images are attached
                 const llmParams = {
-                    prompt: full_context,
-                    temperature: dynamicConfig.temperature
+                    prompt: directPrompt,
+                    temperature: isSunoAgent ? 0.8 : dynamicConfig.temperature
                 };
                 
                 // Add file_urls for vision analysis if present
