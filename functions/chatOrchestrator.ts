@@ -257,42 +257,34 @@ Lyrics...
             total_sources_found: citations.length
         });
 
-        // STEP 3: PARALLEL SYSTEM CONFIGURATION (OPTIMIZED)
-        logManager.system('=== STEP 3: PARALLEL SYSTEM CONFIG ===');
+        // STEP 3: SYSTEM CONFIGURATION (simplified for Suno)
+        logManager.system('=== STEP 3: SYSTEM CONFIG ===');
         
-        // OPTIMIZATION: Run D2STIM + Memory check in parallel
-        const [d2stimResult, memoryCheckResult] = await Promise.allSettled([
-            base44.functions.invoke('d2stimModulator', {
-                complexity_score,
-                archetype,
-                dominant_hemisphere,
-                user_settings: settings,
-                fact_check_available: webSearchExecuted,
-                citation_count: citations.length
-            }),
-            base44.asServiceRole.entities.TunableParameter.filter({ 
-                parameter_name: 'memoryActive' 
-            })
-        ]);
+        let isMemorySystemEnabled = false; // Disable memory for speed
         
-        // Process D2STIM result
-        if (d2stimResult.status === 'fulfilled' && d2stimResult.value?.data?.success !== false) {
-            dynamicConfig = d2stimResult.value.data.config || dynamicConfig;
-            d2_activation = d2stimResult.value.data.d2_activation || 0;
-            logManager.success('D2STIM completed', { d2_activation });
+        if (agent_name !== 'suno_prompt_architect') {
+            // Only run D2STIM for non-Suno agents
+            try {
+                const d2stimResult = await base44.functions.invoke('d2stimModulator', {
+                    complexity_score,
+                    archetype,
+                    dominant_hemisphere,
+                    user_settings: settings
+                });
+                
+                if (d2stimResult.data?.success !== false) {
+                    dynamicConfig = d2stimResult.data.config || dynamicConfig;
+                    d2_activation = d2stimResult.data.d2_activation || 0;
+                    logManager.success('D2STIM completed', { d2_activation });
+                }
+            } catch (e) {
+                logManager.warning(`D2STIM skipped: ${e.message}`);
+            }
         } else {
-            logManager.error('D2STIM failed, using defaults');
-        }
-        
-        // Process Memory check result
-        let isMemorySystemEnabled = true;
-        if (memoryCheckResult.status === 'fulfilled' && memoryCheckResult.value.length > 0) {
-            isMemorySystemEnabled = memoryCheckResult.value[0].current_value === 1;
-            logManager.info('memoryActive loaded', { 
-                enabled: isMemorySystemEnabled
-            });
-        } else {
-            logManager.warning('memoryActive not found, defaulting to ENABLED');
+            logManager.info('Suno mode: Using optimized config');
+            dynamicConfig.temperature = 0.85;
+            dynamicConfig.debate_rounds = 2;
+            dynamicConfig.max_personas = 3;
         }
 
         // SMAS ACTIVATION: Both SMAS and Suno agents use their respective persona teams
