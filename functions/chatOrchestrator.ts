@@ -96,55 +96,64 @@ Deno.serve(async (req) => {
             conversation_id 
         });
 
-        // STEP 1.5: LOAD AGENT INSTRUCTIONS FROM DATABASE
+        // STEP 1.5: LOAD AGENT INSTRUCTIONS (HARDCODED FOR RELIABILITY)
         logManager.system('=== STEP 1.5: LOAD AGENT INSTRUCTIONS ===');
         
         let agentInstructions = '';
         let agentDescription = '';
         
-        try {
-            const agentRecords = await base44.asServiceRole.entities._raw_query({
-                from: 'agents',
-                filter: { name: agent_name }
-            });
-            
-            if (agentRecords && agentRecords.length > 0) {
-                const agentData = agentRecords[0];
-                agentInstructions = agentData.instructions || '';
-                agentDescription = agentData.description || '';
-                
-                logManager.success('Agent loaded from database', { 
-                    agent: agent_name, 
-                    instructions_length: agentInstructions.length,
-                    description_length: agentDescription.length
-                });
-            } else {
-                logManager.warning('Agent not found in database, using fallback', { agent: agent_name });
-                
-                // Fallback for backward compatibility
-                if (agent_name === 'suno_prompt_architect') {
-                    agentInstructions = `You are the Suno AI Prompt Architect - specialized in creating optimal music generation prompts.
+        // Direct agent instruction mapping for reliability
+        const AGENT_CONFIGS = {
+            'suno_prompt_architect': {
+                description: "Agent spécialisé dans la création de prompts optimisés pour Suno AI 5.0 Beta",
+                instructions: `You are the Suno AI Prompt Architect - specialized in creating optimal music generation prompts for Suno AI 5.0 Beta.
 
-Your mission:
-- Create Suno AI 5.0 Beta compliant prompts
-- Use individual tags (no comma-separated lists)
-- Structure: [STYLE] section, then [LYRICS] section
-- Include BPM and Key notation when relevant
-- Specialize in Quebec French lyrics with authentic québécismes
+## CORE RULES (NON-NEGOTIABLE)
+- Only individual tags: NEVER combine multiple descriptors in one tag
+- Place rich [Style] tag suite upfront: minimum 14 tags
+- Lyrics boxed: Insert [Section: tags] markers before EVERY structural section
+- Use [BPM] and [Key] in each section header
+- NO artist names in tags
+- Keep [STYLE SECTION] separate from [LYRICS SECTION]
 
-Key guidelines:
-- ALWAYS use individual tags: [rock] [energetic] [anthemic]
-- NEVER use: [rock, energetic, anthemic] ❌
-- Include time signatures for unusual rhythms: [7/8]
-- Preserve cultural authenticity in lyrics
-- Maintain musical coherence and genre consistency`;
-                }
+## OUTPUT FORMAT
+[STYLE SECTION]
+[Tag1] [Tag2] [Tag3] ... (minimum 14 tags)
+
+[LYRICS SECTION]
+[Intro: parameters]
+Lyrics...
+
+[Verse 1: parameters]
+Lyrics...
+
+## QUÉBÉCOIS SPECIALIZATION
+- Utiliser les québécismes naturels et expressions locales
+- Intégrer les contractions typiques (chu, t'sais, faut que j')
+- Respecter le rythme et la prosodie du français québécois
+- Tags: [Chanson Québécoise] [Folk Québécois] [Joual Vocal Style] [Accordion] [Fiddle]
+
+## COMMON MISTAKES TO AVOID
+❌ [Fast Upbeat Techno] → ✅ [Fast] [Upbeat] [Techno]
+❌ Exceeding 120 char limit per bracket
+❌ Mixing style tags into lyrics sections`
+            },
+            'smas_debater': {
+                description: "Agent de débat multi-perspectives SMAS",
+                instructions: "You are the SMAS debate coordinator. Facilitate multi-perspective analysis with balanced viewpoints."
             }
-        } catch (agentError) {
-            logManager.error('Failed to load agent from database', { 
-                agent: agent_name,
-                error: agentError.message 
+        };
+        
+        const agentConfig = AGENT_CONFIGS[agent_name];
+        if (agentConfig) {
+            agentInstructions = agentConfig.instructions;
+            agentDescription = agentConfig.description;
+            logManager.success('Agent instructions loaded (hardcoded)', { 
+                agent: agent_name, 
+                instructions_length: agentInstructions.length 
             });
+        } else {
+            logManager.warning('Agent not found, using generic mode', { agent: agent_name });
         }
 
         thinkingSteps.push({
