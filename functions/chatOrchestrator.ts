@@ -345,23 +345,25 @@ After providing the prompt, briefly explain your creative choices.`
         
         // Load conversation history for context continuity
         let conversationHistory = '';
-        if (conversation_id) {
+        if (conversation_id && conversation_id !== 'pending') {
             try {
-                const conversation = await base44.agents.getConversation(conversation_id);
-                if (conversation && conversation.messages && conversation.messages.length > 0) {
-                    // Get last 6 messages for context (3 exchanges)
-                    const recentMessages = conversation.messages.slice(-6);
+                const conversationData = await base44.agents.getConversation(conversation_id);
+                if (conversationData && conversationData.messages && conversationData.messages.length > 0) {
+                    // Get last 8 messages for context (4 exchanges)
+                    const recentMessages = conversationData.messages.slice(-8);
                     conversationHistory = recentMessages
-                        .map(m => `[${m.role === 'user' ? 'User' : 'Assistant'}]: ${m.content?.substring(0, 500) || ''}`)
+                        .map(m => `[${m.role === 'user' ? 'USER' : 'ASSISTANT'}]: ${m.content?.substring(0, 800) || ''}`)
                         .join('\n\n');
-                    logManager.info('Loaded conversation history', { 
-                        total_messages: conversation.messages.length,
+                    logManager.success('Loaded conversation history', { 
+                        total_messages: conversationData.messages.length,
                         used_for_context: recentMessages.length 
                     });
                 }
             } catch (e) {
                 logManager.warning(`Could not load conversation history: ${e.message}`);
             }
+        } else {
+            logManager.info('No conversation_id provided or pending - starting fresh');
         }
         
         let full_context = webSearchContext;
