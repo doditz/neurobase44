@@ -311,43 +311,13 @@ This is Round ${round + 1} of the debate.
                 });
             }
 
-            // PARALLEL DYNAMICS: Calculate bias, dopamine, and global state simultaneously
+            // SIMPLIFIED DYNAMICS (inline calculation for speed)
             const successRate = roundResponses.filter(r => !r.error).length / activePersonas.length;
-            
-            const [biasResult, dopamineResult] = await Promise.all([
-                base44.functions.invoke('biasRewardCalculator', {
-                    personas_active: activePersonas.map(p => p.handle),
-                    debate_round_contributions: roundResponses.map(r => ({
-                        persona_handle: activePersonas.find(p => p.name === r.persona)?.handle,
-                        quality_score: 0.7,
-                        relevance: 0.8
-                    }))
-                }).catch(() => ({ data: { B_t: 0 } })),
-                base44.functions.invoke('dopamineModulator', {
-                    D_current: D_t,
-                    D_history,
-                    events: [...D_events, { time: Date.now(), magnitude: successRate, type: 'debate_round_completed' }],
-                    current_time: Date.now()
-                }).catch(() => ({ data: { D_t, D_history } }))
-            ]);
-            
-            const B_t = biasResult.data?.B_t || 0;
-            D_t = dopamineResult.data?.D_t || D_t;
-            D_history = dopamineResult.data?.D_history || D_history;
-            D_events.push({ time: Date.now(), magnitude: successRate, type: 'debate_round_completed' });
-            
-            // Calculate global state G(t)
-            const globalState = await base44.functions.invoke('globalStateCalculator', {
-                F_L,
-                F_R,
-                B_t,
-                D_t,
-                omega_current: omega_t,
-                Phi_t: 0
-            }).catch(() => ({ data: { omega: omega_t, G_t: 0.5 } }));
-            
-            omega_t = globalState.data?.omega || omega_t;
-            const G_t = globalState.data?.G_t || 0.5;
+            const B_t = successRate * 0.5;
+            D_t = Math.min(1.0, D_t + successRate * 0.1);
+            D_history.push(D_t);
+            omega_t = 0.5 + (F_L - F_R) * 0.2;
+            const G_t = (omega_t + D_t + B_t) / 3;
             
             dynamicsHistory.push({
                 round: round + 1,
@@ -356,12 +326,10 @@ This is Round ${round + 1} of the debate.
                 B_t,
                 D_t,
                 omega_t,
-                G_t,
-                breakdown: globalState.data?.breakdown
+                G_t
             });
             
-            logManager.success(`Round ${round + 1} completed: ${roundResponses.length} responses (parallel), ${roundResponses.reduce((sum, r) => sum + r.citations_count, 0)} citations.`);
-            logManager.info(`Dynamics: G(t)=${G_t.toFixed(3)}, D(t)=${D_t.toFixed(3)}, ω(t)=${omega_t.toFixed(3)}`);
+            logManager.success(`Round ${round + 1}: ${roundResponses.length} responses, G(t)=${G_t.toFixed(3)}`);
         }
 
         // STEP 3: Magistral Synthesis with Citation Preservation
