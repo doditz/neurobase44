@@ -178,62 +178,41 @@ Lyrics...
         let qronasResult;
         let debateMetrics = {};
 
-        // STEP 2: ASSESS (SMARCE + DSTIB)
-        logManager.system('=== STEP 2: ASSESS (SMARCE + DSTIB-Hebden) ===');
-        try {
-            const smarceResponse = await base44.functions.invoke('smarceScorer', {
-                user_message,
-                conversation_id,
-                agent_name,
-                settings
-            });
-
-            if (smarceResponse.data && smarceResponse.data.success !== false) {
-                complexity_score = smarceResponse.data.complexity_score || 0.5;
-                archetype = smarceResponse.data.archetype_detected || 'balanced';
-                dominant_hemisphere = smarceResponse.data.dominant_hemisphere || 'central';
-                logManager.success('SMARCE completed', { complexity_score, archetype });
-            } else {
-                throw new Error(smarceResponse.data?.error || 'SMARCE returned no data');
-            }
-        } catch (error) {
-            logManager.error(`SMARCE error: ${error.message}`);
-            logManager.warning('Using default SMARCE values');
-        }
-
-        // STEP 2.2: DSTIB-Hebden Semantic Routing
-        let dstibRouting = null;
-        try {
-            const dstibResponse = await base44.functions.invoke('dstibHebdenRouter', {
-                user_message,
-                context: user_message // Use user_message as initial context
-            });
-
-            if (dstibResponse.data && dstibResponse.data.success) {
-                dstibRouting = dstibResponse.data.routing_result;
-                logManager.success('DSTIB-Hebden routing completed', {
-                    semantic_tier: dstibRouting.semantic_tier,
-                    routing_layer: dstibRouting.routing_layer,
-                    target_omega: dstibRouting.target_omega
+        // STEP 2: ASSESS - Simplified for speed (skip external calls for Suno)
+        logManager.system('=== STEP 2: ASSESS ===');
+        
+        // For Suno, use creative defaults directly without external calls
+        if (agent_name === 'suno_prompt_architect') {
+            complexity_score = 0.6;
+            archetype = 'creative';
+            dominant_hemisphere = 'right';
+            logManager.info('Suno mode: Using creative defaults (skipping SMARCE/DSTIB)');
+        } else {
+            // Only call SMARCE for non-Suno agents
+            try {
+                const smarceResponse = await base44.functions.invoke('smarceScorer', {
+                    user_message,
+                    conversation_id,
+                    agent_name,
+                    settings
                 });
-                
-                // Override dominant_hemisphere if DSTIB suggests different
-                if (dstibRouting.target_omega < 0.4) {
-                    dominant_hemisphere = 'right';
-                } else if (dstibRouting.target_omega > 0.6) {
-                    dominant_hemisphere = 'left';
+
+                if (smarceResponse.data && smarceResponse.data.success !== false) {
+                    complexity_score = smarceResponse.data.complexity_score || 0.5;
+                    archetype = smarceResponse.data.archetype_detected || 'balanced';
+                    dominant_hemisphere = smarceResponse.data.dominant_hemisphere || 'central';
+                    logManager.success('SMARCE completed', { complexity_score, archetype });
                 }
+            } catch (error) {
+                logManager.warning(`SMARCE skipped: ${error.message}`);
             }
-        } catch (dstibError) {
-            logManager.warning(`DSTIB-Hebden skipped: ${dstibError.message}`);
         }
 
         thinkingSteps.push({
             step: 'ASSESS',
             complexity_score,
             archetype,
-            dominant_hemisphere,
-            dstib_routing: dstibRouting
+            dominant_hemisphere
         });
 
         // STEP 2.5: FACTUAL CACHE CHECK (L3 Optimization)
