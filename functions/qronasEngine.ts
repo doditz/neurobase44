@@ -127,40 +127,50 @@ Deno.serve(async (req) => {
             logManager.warning(`Insufficient personas (${max_paths} < ${MIN_PERSONAS_FOR_DEBATE}) - Debate may be suboptimal`);
         }
 
-        // ÉTAPE 1: Sélection des Personas (simplified - skip DSTIB for speed)
-        logManager.info('Selecting personas for debate');
+        // ÉTAPE 1: Load Personas directly from database (no external function call)
+        logManager.info('Loading personas directly');
 
         let selectedPersonas = [];
+        const isSunoAgent = agent_name === 'suno_prompt_architect';
+        const systemFilter = isSunoAgent ? 'Suno' : 'SMAS';
         
         try {
-            const personaSelectionResult = await withTimeout(
-                base44.functions.invoke('personaTeamOptimizer', {
-                    prompt: prompt,
-                    agent_name: agent_name,
-                    archetype,
-                    dominant_hemisphere,
-                    max_personas: max_paths,
-                    settings
-                }),
-                10000,
-                'Persona selection timeout'
-            );
-
-            if (personaSelectionResult.data && personaSelectionResult.data.success) {
-                selectedPersonas = personaSelectionResult.data.team;
+            // Direct DB query - much faster than function invoke
+            const allPersonas = await base44.asServiceRole.entities.Persona.filter({
+                status: 'Active',
+                system: { "$in": [systemFilter, 'Shared'] }
+            });
+            
+            if (allPersonas.length > 0) {
+                // Simple scoring and selection
+                const scored = allPersonas.map(p => ({
+                    persona: p,
+                    score: (p.priority_level || 5) + (p.expertise_score || 0.5) * 5
+                }));
+                scored.sort((a, b) => b.score - a.score);
+                selectedPersonas = scored.slice(0, max_paths).map(s => s.persona);
+                logManager.success(`Loaded ${selectedPersonas.length} ${systemFilter} personas directly`);
             }
-        } catch (personaError) {
-            logManager.warning(`Persona selection failed: ${personaError.message}, using fallback`);
+        } catch (dbError) {
+            logManager.warning(`Direct persona load failed: ${dbError.message}`);
         }
         
-        // FALLBACK: Create minimal personas if selection failed
+        // FALLBACK: Create minimal personas if loading failed
         if (selectedPersonas.length === 0) {
             logManager.warning('Using fallback personas');
-            selectedPersonas = [
-                { name: 'Expert', handle: 'EXP01', domain: 'General Expertise', default_instructions: 'Provide expert analysis.' },
-                { name: 'Creative', handle: 'CRE01', domain: 'Creative Thinking', default_instructions: 'Provide creative perspectives.' },
-                { name: 'Critic', handle: 'CRI01', domain: 'Critical Analysis', default_instructions: 'Challenge assumptions and identify issues.' }
-            ];
+            if (isSunoAgent) {
+                selectedPersonas = [
+                    { name: 'LyricistAI', handle: 'SUN001', domain: 'Lyric Composition', default_instructions: 'Write compelling lyrics with authentic québécois style.' },
+                    { name: 'GenreExpertAI', handle: 'SUN003', domain: 'Music Genres', default_instructions: 'Ensure genre authenticity and stylistic conventions.' },
+                    { name: 'CulturalAI', handle: 'SUN005', domain: 'Cultural Context', default_instructions: 'Add cultural depth and local authenticity.' }
+                ];
+            } else {
+                selectedPersonas = [
+                    { name: 'Expert', handle: 'EXP01', domain: 'General Expertise', default_instructions: 'Provide expert analysis.' },
+                    { name: 'Creative', handle: 'CRE01', domain: 'Creative Thinking', default_instructions: 'Provide creative perspectives.' },
+                    { name: 'Critic', handle: 'CRI01', domain: 'Critical Analysis', default_instructions: 'Challenge assumptions and identify issues.' }
+                ];
+            }
         }
 
         logManager.success(`Selected ${selectedPersonas.length} personas`, {
