@@ -255,7 +255,8 @@ Deno.serve(async (req) => {
             
             const { F_L, F_R } = hemisphereDynamics.data || { F_L: 0.5, F_R: 0.5 };
 
-            for (const persona of activePersonas) {
+            // PARALLEL EXECUTION: Run all personas simultaneously for speed
+            const personaPromises = activePersonas.map(async (persona) => {
                 // CRITICAL: Prepend agent instructions to ensure compliance
                 const agentInstructionsBlock = agent_instructions ? `
 ## 🎯 AGENT MISSION & GUIDELINES (${agent_name.toUpperCase()})
@@ -307,8 +308,8 @@ This is Round ${round + 1} of the debate.
                         add_context_from_internet: false
                     };
                     
-                    // Add file_urls for vision analysis if present
-                    if (file_urls && file_urls.length > 0) {
+                    // Add file_urls for vision analysis if present (only first round to save time)
+                    if (file_urls && file_urls.length > 0 && round === 0) {
                         llmParams.file_urls = file_urls;
                         logManager.info(`🖼️ ${persona.name} analyzing ${file_urls.length} image(s)`);
                     }
@@ -327,51 +328,44 @@ This is Round ${round + 1} of the debate.
                         });
                     });
 
-                    // Check for unsourced claims if strict enforcement
-                    if (citation_enforcement_strict) {
-                        const factualClaimRegex = /(\d{1,3}(,\d{3})*(\.\d+)?%|\d{4,}|étude|recherche|rapport|données|statistique|montre que|prouve que|selon (des|l')?experts|la science|l'historique|un sondage)/i;
-                        const potentialFactualClaims = response.split(/[.!?\n]/).filter(sentence => factualClaimRegex.test(sentence));
-
-                        let hasUncitedFactualClaim = false;
-                        for (const claim of potentialFactualClaims) {
-                            if (!/\[Source:/.test(claim) && !/(HYPOTHÈSE|RAISONNEMENT|HYPOTHESIS|REASONING):/i.test(claim)) {
-                                hasUncitedFactualClaim = true;
-                                break;
-                            }
-                        }
-
-                        if (hasUncitedFactualClaim) {
-                            logManager.warning(`${persona.name}: Factual claims without explicit source detected in round ${round + 1}.`, {
-                                excerpt: response.substring(0, 200)
-                            });
-                        }
-                    }
-
-                    roundResponses.push({
+                    return {
+                        success: true,
                         persona: persona.name,
                         response,
-                        citations_count: citationMatches.length
-                    });
-
-                    debateHistory.push({
-                        round: round + 1,
-                        persona: persona.name,
-                        response,
+                        citations_count: citationMatches.length,
                         time_ms: Date.now() - roundStart
-                    });
+                    };
                 } catch (personaError) {
-                    logManager.error(`Persona ${persona.name} failed in round ${round + 1}: ${personaError.message}`, {
-                        stack: personaError.stack,
-                        promptExcerpt: personaPrompt.substring(0, 500)
-                    });
-                    debateHistory.push({
-                        round: round + 1,
+                    logManager.error(`Persona ${persona.name} failed in round ${round + 1}: ${personaError.message}`);
+                    return {
+                        success: false,
                         persona: persona.name,
-                        response: `(Error: Persona failed to respond due to ${personaError.message.substring(0, 100)})`,
+                        response: `(Error: ${personaError.message.substring(0, 100)})`,
+                        citations_count: 0,
                         time_ms: Date.now() - roundStart,
                         error: true
-                    });
+                    };
                 }
+            });
+            
+            // Wait for all personas to complete in parallel
+            const personaResults = await Promise.all(personaPromises);
+            
+            // Process results
+            for (const result of personaResults) {
+                roundResponses.push({
+                    persona: result.persona,
+                    response: result.response,
+                    citations_count: result.citations_count
+                });
+                
+                debateHistory.push({
+                    round: round + 1,
+                    persona: result.persona,
+                    response: result.response,
+                    time_ms: result.time_ms,
+                    error: result.error || false
+                });
             }
 
             // Calculate bias/reward for this round
