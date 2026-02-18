@@ -90,17 +90,21 @@ Deno.serve(async (req) => {
         for (let round = 0; round < debate_rounds; round++) {
             log('INFO', `Round ${round + 1}/${debate_rounds} - ${personas.length} personas in parallel`);
             
-            // Build prompts for all personas - INJECT SUNO INSTRUCTIONS INTO DEBATE TOPIC
+            // Build prompts for all personas - INJECT SUNO INSTRUCTIONS + CONVERSATION HISTORY INTO DEBATE TOPIC
             const personaPromises = personas.map(async (persona) => {
+                // Build conversation context prefix if we have history
+                const historyContext = hasConversationHistory ? 
+                    `## CONVERSATION HISTORY (IMPORTANT - maintain continuity with previous exchanges):\n${conversation_history}\n\n---\n\n` : '';
+
                 // For Suno agent, create specialized debate prompt with format requirements
                 let debateTopic;
                 if (isSunoAgent && agent_instructions) {
-                    debateTopic = `## SUNO 5.0 PROMPT CREATION TASK
+                    debateTopic = `${historyContext}## SUNO 5.0 PROMPT CREATION TASK
 
 ### CRITICAL SUNO 5.0 FORMAT RULES (MUST FOLLOW):
 ${agent_instructions}
 
-### USER REQUEST:
+### CURRENT USER REQUEST:
 ${prompt}
 
 ### YOUR MISSION as ${persona.name}:
@@ -108,9 +112,10 @@ Contribute to creating a Suno-compatible prompt following the EXACT format above
 - Style tags must be INDIVIDUAL (never combine multiple concepts in one bracket)
 - Lyrics must include [Section: BPM, Key, Instruments, Dynamics] headers
 - NO artist names allowed
-- Each bracket max 120 characters`;
+- Each bracket max 120 characters
+- IMPORTANT: If this is a follow-up request, BUILD ON the previous context!`;
                 } else {
-                    debateTopic = `## CONTEXT\n${prompt}`;
+                    debateTopic = `${historyContext}## CONTEXT\n${prompt}`;
                 }
 
                 const personaPrompt = `${debateTopic}
