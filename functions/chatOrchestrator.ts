@@ -437,9 +437,17 @@ CRITICAL REQUIREMENTS:
             logManager.warning('memoryActive not found, defaulting to ENABLED');
         }
 
+        // SUNO OPTIMIZATION: Skip heavy SMAS debate for suno agent - use direct LLM with instructions
+        const isSunoAgent = agent_name === 'suno_prompt_architect';
         const COMPLEXITY_THRESHOLD_GATE = 0.3;
         const MIN_PERSONAS = 3;
-        smasActivated = complexity_score >= COMPLEXITY_THRESHOLD_GATE && dynamicConfig.max_personas >= MIN_PERSONAS;
+        
+        // Disable SMAS for Suno - it's a specialized prompt generator, not a debate task
+        smasActivated = !isSunoAgent && complexity_score >= COMPLEXITY_THRESHOLD_GATE && dynamicConfig.max_personas >= MIN_PERSONAS;
+        
+        if (isSunoAgent) {
+            logManager.info('🎵 SUNO MODE: Bypassing SMAS debate for faster prompt generation');
+        }
 
         // STEP 3.2: ADAPTIVE COMPLEXITY ROUTING (Strategy Integration)
         logManager.system('=== STEP 3.2: ADAPTIVE COMPLEXITY ROUTING ===');
