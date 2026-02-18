@@ -312,71 +312,13 @@ Lyrics...
             }
         });
 
-        // STEP 4: RETRIEVE (NEURONAS 7-DB TIERED MEMORY)
-        logManager.system('=== STEP 4: RETRIEVE (7-DB Architecture) ===');
+        // STEP 4: BUILD CONTEXT
+        logManager.system('=== STEP 4: BUILD CONTEXT ===');
         
-        let full_context = webSearchContext;
-        
-        // Add tone context if detected
-        if (tone_analysis && (tone_analysis.is_sarcastic || tone_analysis.detected_tones.length > 0)) {
-            full_context += `\n\n## 🎭 TONE CONTEXT\n`;
-            full_context += `Detected tones: ${tone_analysis.detected_tones.map(t => `${t.tone} (${(t.confidence * 100).toFixed(0)}%)`).join(', ')}\n`;
-            if (tone_analysis.implied_meaning) {
-                full_context += `Implied meaning: ${tone_analysis.implied_meaning}\n`;
-            }
-            if (tone_analysis.meta_commentary) {
-                full_context += `Meta-commentary: ${tone_analysis.meta_commentary}\n`;
-            }
-            full_context += '\n';
-        }
-        
-        full_context += '\n## Question Utilisateur:\n' + user_message;
-        
-        // Calculate omega_t and dopamine_t for memory system
-        const omega_t = dominant_hemisphere === 'left' ? 0.8 : 
-                        dominant_hemisphere === 'right' ? 0.2 : 0.5;
-        
-        const dopamine_t = Math.min(1.0, 0.3 + (complexity_score * 0.7));
-        
-        if (isMemorySystemEnabled) {
-            logManager.info('7-DB Tiered Memory ACTIVE', {
-                omega_t,
-                dopamine_t,
-                mode: dopamine_t < 0.3 ? 'ECONOMY' : dopamine_t > 0.7 ? 'EXPLORATION' : 'BALANCED'
-            });
-            
-            try {
-                const memoryResult = await base44.functions.invoke('smasMemoryManager', {
-                    user_message,
-                    conversation_id: conversation_id || 'pending',
-                    enable_intent_based_retrieval: true,
-                    omega_t,
-                    dopamine_t,
-                    flux_integral: 0.0
-                });
-                
-                if (memoryResult.data && memoryResult.data.full_context) {
-                    full_context += '\n\n' + memoryResult.data.full_context;
-                    logManager.success('7-DB Memory context loaded', {
-                        memory_length: memoryResult.data.full_context.length,
-                        pathway: memoryResult.data.pathway,
-                        stats: memoryResult.data.memory_stats
-                    });
-                } else {
-                    logManager.warning('Memory Manager returned no context');
-                }
-            } catch (memoryError) {
-                logManager.error(`7-DB Memory load failed: ${memoryError.message}`);
-            }
-        } else {
-            logManager.warning('⚠️ MEMORY SYSTEM DISABLED');
-        }
+        let full_context = webSearchContext + '\n## User Request:\n' + user_message;
         
         thinkingSteps.push({
-            step: 'RETRIEVE_7DB',
-            memory_invoked: isMemorySystemEnabled,
-            omega_t,
-            dopamine_t,
+            step: 'CONTEXT_BUILT',
             context_length: full_context.length
         });
 
