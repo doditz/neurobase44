@@ -5,7 +5,7 @@ import { ResourceUsage } from '@/entities/ResourceUsage';
 import { UserBudget } from '@/entities/UserBudget';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown, Activity, Sparkles } from 'lucide-react';
+import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown, Activity, Sparkles, AlertTriangle } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
