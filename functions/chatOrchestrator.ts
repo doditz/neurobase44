@@ -340,14 +340,40 @@ After providing the prompt, briefly explain your creative choices.`
             }
         });
 
-        // STEP 4: BUILD CONTEXT
+        // STEP 4: BUILD CONTEXT WITH CONVERSATION HISTORY
         logManager.system('=== STEP 4: BUILD CONTEXT ===');
         
-        let full_context = webSearchContext + '\n## User Request:\n' + user_message;
+        // Load conversation history for context continuity
+        let conversationHistory = '';
+        if (conversation_id) {
+            try {
+                const conversation = await base44.agents.getConversation(conversation_id);
+                if (conversation && conversation.messages && conversation.messages.length > 0) {
+                    // Get last 6 messages for context (3 exchanges)
+                    const recentMessages = conversation.messages.slice(-6);
+                    conversationHistory = recentMessages
+                        .map(m => `[${m.role === 'user' ? 'User' : 'Assistant'}]: ${m.content?.substring(0, 500) || ''}`)
+                        .join('\n\n');
+                    logManager.info('Loaded conversation history', { 
+                        total_messages: conversation.messages.length,
+                        used_for_context: recentMessages.length 
+                    });
+                }
+            } catch (e) {
+                logManager.warning(`Could not load conversation history: ${e.message}`);
+            }
+        }
+        
+        let full_context = webSearchContext;
+        if (conversationHistory) {
+            full_context += `\n## Previous Conversation:\n${conversationHistory}\n\n`;
+        }
+        full_context += '## Current User Request:\n' + user_message;
         
         thinkingSteps.push({
             step: 'CONTEXT_BUILT',
-            context_length: full_context.length
+            context_length: full_context.length,
+            has_conversation_history: conversationHistory.length > 0
         });
 
         // STEP 5: SYNTHESIZE
