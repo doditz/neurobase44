@@ -297,91 +297,19 @@ Lyrics...
             logManager.info('🎵 SUNO MODE: 2 rounds, 3 personas (optimized)');
         }
 
-        // STEP 3.2: ADAPTIVE COMPLEXITY ROUTING (Strategy Integration)
-        logManager.system('=== STEP 3.2: ADAPTIVE COMPLEXITY ROUTING ===');
+        // STEP 3.2: Strategy selection (simplified)
+        let activeStrategy = isSunoAgent ? 'SunoCreative' : 'SweetSpotBalanced';
         
-        let activeStrategy = 'SweetSpotBalanced';
-        let strategyApplied = false;
-        
-        // AdaptiveComplexityRouting: Route based on SMARCE complexity
-        if (complexity_score < 0.4) {
-            // SIMPLE: MinimalViableDebate
-            activeStrategy = 'MinimalViableDebate';
-            dynamicConfig.debate_rounds = 1;
-            dynamicConfig.max_personas = 3;
-            dynamicConfig.temperature = Math.max(0.4, dynamicConfig.temperature - 0.1);
-            strategyApplied = true;
-            logManager.success('🎯 Strategy: MinimalViableDebate (Simple query)', {
-                complexity: complexity_score,
-                debate_rounds: 1,
-                personas: 3
-            });
-        } else if (complexity_score >= 0.4 && complexity_score < 0.7) {
-            // MODERATE: SweetSpotBalanced
-            activeStrategy = 'SweetSpotBalanced';
-            dynamicConfig.debate_rounds = Math.min(dynamicConfig.debate_rounds, 2);
-            dynamicConfig.max_personas = Math.min(dynamicConfig.max_personas, 5);
-            dynamicConfig.temperature = 0.6;
-            strategyApplied = true;
-            logManager.success('🎯 Strategy: SweetSpotBalanced (Moderate)', {
-                complexity: complexity_score,
-                debate_rounds: dynamicConfig.debate_rounds,
-                personas: dynamicConfig.max_personas
-            });
-        } else {
-            // COMPLEX (>0.7): Full SMAS with AdaptiveComplexityRouting
-            activeStrategy = 'AdaptiveComplexityRouting';
-            dynamicConfig.debate_rounds = Math.min(4, Math.max(3, dynamicConfig.debate_rounds));
-            dynamicConfig.max_personas = Math.min(7, Math.max(5, dynamicConfig.max_personas));
-            strategyApplied = true;
-            logManager.success('🎯 Strategy: AdaptiveComplexityRouting (Complex)', {
-                complexity: complexity_score,
-                debate_rounds: dynamicConfig.debate_rounds,
-                personas: dynamicConfig.max_personas
-            });
-        }
-
         thinkingSteps.push({
             step: 'SYSTEM_CONFIG',
             d2_activation,
             smas_activated: smasActivated,
-            memory_system_enabled: isMemorySystemEnabled,
             active_strategy: activeStrategy,
-            strategy_applied: strategyApplied,
-            optimized_config: {
+            config: {
                 debate_rounds: dynamicConfig.debate_rounds,
                 max_personas: dynamicConfig.max_personas,
                 temperature: dynamicConfig.temperature
             }
-        });
-
-        // STEP 3.5: SARCASM & TONE DETECTION (if enabled)
-        logManager.system('=== STEP 3.5: TONE DETECTION ===');
-        let tone_analysis = null;
-        
-        if (settings.enableSarcasmDetection || settings.sarcasm_sensitivity) {
-            logManager.info('🎭 Detecting tone and sarcasm...');
-            try {
-                const { data: toneData } = await base44.functions.invoke('sarcasmDetector', {
-                    text: user_message,
-                    sensitivity: settings.sarcasm_sensitivity || 'medium',
-                    conversation_id: conversation_id,
-                    include_meta_commentary: true
-                });
-                
-                if (toneData && toneData.success) {
-                    tone_analysis = toneData.analysis;
-                    logManager.success(`🎭 Tone detected: sarcasm=${tone_analysis.is_sarcastic} (${(tone_analysis.sarcasm_confidence * 100).toFixed(0)}%)`);
-                }
-            } catch (toneError) {
-                logManager.warning(`Tone detection failed: ${toneError.message}`);
-            }
-        }
-        
-        thinkingSteps.push({
-            step: 'TONE_DETECTION',
-            enabled: settings.enableSarcasmDetection || false,
-            tone_analysis: tone_analysis
         });
 
         // STEP 4: RETRIEVE (NEURONAS 7-DB TIERED MEMORY)
