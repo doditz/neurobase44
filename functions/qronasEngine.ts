@@ -127,46 +127,41 @@ Deno.serve(async (req) => {
             logManager.warning(`Insufficient personas (${max_paths} < ${MIN_PERSONAS_FOR_DEBATE}) - Debate may be suboptimal`);
         }
 
-        // ÉTAPE 0.5: DSTIB-Hebden Semantic Routing (if not provided by caller)
-        let dstib_routing = settings.dstib_routing || null;
-        if (!dstib_routing) {
-            try {
-                const dstibResponse = await base44.functions.invoke('dstibHebdenRouter', {
-                    user_message: prompt
-                });
-                if (dstibResponse.data && dstibResponse.data.success) {
-                    dstib_routing = dstibResponse.data.routing_result;
-                    logManager.success('DSTIB routing obtained', {
-                        semantic_tier: dstib_routing.semantic_tier,
-                        routing_layer: dstib_routing.routing_layer
-                    });
-                }
-            } catch (dstibError) {
-                logManager.warning(`DSTIB routing skipped: ${dstibError.message}`);
+        // ÉTAPE 1: Sélection des Personas (simplified - skip DSTIB for speed)
+        logManager.info('Selecting personas for debate');
+
+        let selectedPersonas = [];
+        
+        try {
+            const personaSelectionResult = await withTimeout(
+                base44.functions.invoke('personaTeamOptimizer', {
+                    prompt: prompt,
+                    agent_name: agent_name,
+                    archetype,
+                    dominant_hemisphere,
+                    max_personas: max_paths,
+                    settings
+                }),
+                10000,
+                'Persona selection timeout'
+            );
+
+            if (personaSelectionResult.data && personaSelectionResult.data.success) {
+                selectedPersonas = personaSelectionResult.data.team;
             }
+        } catch (personaError) {
+            logManager.warning(`Persona selection failed: ${personaError.message}, using fallback`);
         }
-
-        // ÉTAPE 1: Sélection des Personas (with agent context + DSTIB suggestions)
-        logManager.info('Selecting personas with agent context + DSTIB');
-
-        const personaSelectionResult = await base44.functions.invoke('personaTeamOptimizer', {
-            prompt: prompt,
-            agent_name: agent_name,
-            archetype,
-            dominant_hemisphere,
-            max_personas: max_paths,
-            settings: {
-                ...settings,
-                dstib_routing,
-                suggested_personas: dstib_routing?.suggested_personas || []
-            }
-        });
-
-        if (!personaSelectionResult.data || !personaSelectionResult.data.success) {
-            throw new Error(`Persona selection failed: ${personaSelectionResult.data?.error || 'Unknown error'}`);
+        
+        // FALLBACK: Create minimal personas if selection failed
+        if (selectedPersonas.length === 0) {
+            logManager.warning('Using fallback personas');
+            selectedPersonas = [
+                { name: 'Expert', handle: 'EXP01', domain: 'General Expertise', default_instructions: 'Provide expert analysis.' },
+                { name: 'Creative', handle: 'CRE01', domain: 'Creative Thinking', default_instructions: 'Provide creative perspectives.' },
+                { name: 'Critic', handle: 'CRI01', domain: 'Critical Analysis', default_instructions: 'Challenge assumptions and identify issues.' }
+            ];
         }
-
-        const selectedPersonas = personaSelectionResult.data.team;
 
         logManager.success(`Selected ${selectedPersonas.length} personas`, {
             personas: selectedPersonas.map(p => p.name),
