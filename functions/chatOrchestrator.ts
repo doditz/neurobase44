@@ -397,7 +397,9 @@ After providing the prompt, briefly explain your creative choices.`
                     citation_enforcement_strict: true,
                     settings: dynamicConfig,
                     // VISION SUPPORT: Pass file_urls for image analysis in QRONAS
-                    file_urls: file_urls && file_urls.length > 0 ? file_urls : undefined
+                    file_urls: file_urls && file_urls.length > 0 ? file_urls : undefined,
+                    // CONVERSATION HISTORY for context continuity
+                    conversation_history: conversationHistory
                 });
                 
                 if (qronasResult && qronasResult.data && qronasResult.data.success) {
