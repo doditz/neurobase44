@@ -437,16 +437,19 @@ CRITICAL REQUIREMENTS:
             logManager.warning('memoryActive not found, defaulting to ENABLED');
         }
 
-        // SUNO OPTIMIZATION: Skip heavy SMAS debate for suno agent - use direct LLM with instructions
+        // SMAS ACTIVATION: Both SMAS and Suno agents use their respective persona teams
         const isSunoAgent = agent_name === 'suno_prompt_architect';
         const COMPLEXITY_THRESHOLD_GATE = 0.3;
         const MIN_PERSONAS = 3;
         
-        // Disable SMAS for Suno - it's a specialized prompt generator, not a debate task
-        smasActivated = !isSunoAgent && complexity_score >= COMPLEXITY_THRESHOLD_GATE && dynamicConfig.max_personas >= MIN_PERSONAS;
+        // Suno uses Suno personas, SMAS uses SMAS personas - both go through QRONAS debate
+        smasActivated = complexity_score >= COMPLEXITY_THRESHOLD_GATE && dynamicConfig.max_personas >= MIN_PERSONAS;
         
         if (isSunoAgent) {
-            logManager.info('🎵 SUNO MODE: Bypassing SMAS debate for faster prompt generation');
+            logManager.info('🎵 SUNO MODE: Using Suno-specific personas for music-oriented debate');
+            // Suno uses lighter config for faster generation while maintaining quality
+            dynamicConfig.debate_rounds = Math.min(dynamicConfig.debate_rounds, 2);
+            dynamicConfig.max_personas = Math.min(dynamicConfig.max_personas, 4);
         }
 
         // STEP 3.2: ADAPTIVE COMPLEXITY ROUTING (Strategy Integration)
