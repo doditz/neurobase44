@@ -83,10 +83,30 @@ Deno.serve(async (req) => {
         for (let round = 0; round < debate_rounds; round++) {
             log('INFO', `Round ${round + 1}/${debate_rounds} - ${personas.length} personas in parallel`);
             
-            // Build prompts for all personas
+            // Build prompts for all personas - INJECT SUNO INSTRUCTIONS INTO DEBATE TOPIC
             const personaPromises = personas.map(async (persona) => {
-                const personaPrompt = `${agent_instructions ? `## AGENT INSTRUCTIONS\n${agent_instructions}\n\n---\n\n` : ''}## CONTEXT
+                // For Suno agent, create specialized debate prompt with format requirements
+                let debateTopic;
+                if (isSunoAgent && agent_instructions) {
+                    debateTopic = `## SUNO 5.0 PROMPT CREATION TASK
+
+### CRITICAL SUNO 5.0 FORMAT RULES (MUST FOLLOW):
+${agent_instructions}
+
+### USER REQUEST:
 ${prompt}
+
+### YOUR MISSION as ${persona.name}:
+Contribute to creating a Suno-compatible prompt following the EXACT format above.
+- Style tags must be INDIVIDUAL (never combine multiple concepts in one bracket)
+- Lyrics must include [Section: BPM, Key, Instruments, Dynamics] headers
+- NO artist names allowed
+- Each bracket max 120 characters`;
+                } else {
+                    debateTopic = `## CONTEXT\n${prompt}`;
+                }
+
+                const personaPrompt = `${debateTopic}
 
 ## YOUR ROLE: ${persona.name} (${persona.domain})
 ${persona.default_instructions || 'Provide your unique perspective.'}
