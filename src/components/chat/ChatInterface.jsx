@@ -350,6 +350,27 @@ export default function ChatInterface({
 
             setMessages(prev => prev.filter(m => !m.id?.startsWith('temp-')).concat([userMsg, assistantMsg]));
 
+            // PERSIST messages to agent SDK conversation for history continuity
+            const convId = conversation?.conversation_id;
+            if (convId && convId !== 'pending') {
+                try {
+                    // Add user message
+                    await base44.agents.addMessage({ id: convId }, {
+                        role: 'user',
+                        content: userMsg.content,
+                        file_urls: uploadedFiles.map(f => f.url)
+                    });
+                    // Add assistant message
+                    await base44.agents.addMessage({ id: convId }, {
+                        role: 'assistant',
+                        content: data.response
+                    });
+                    logger.info('Messages persisted to agent conversation');
+                } catch (persistError) {
+                    console.error('[ChatInterface] Failed to persist messages:', persistError);
+                }
+            }
+
             logger.success('Message exchange completed', {
                 total_time_ms: data.metadata?.total_time_ms,
                 tokens: data.metadata?.total_tokens
