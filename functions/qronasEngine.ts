@@ -165,7 +165,7 @@ Provide your perspective in ${150 - round * 30} words. Round ${round + 1}.`;
         if (isSunoAgent) {
             synthesisPrompt = `You are the Suno AI 5.0 Beta Prompt Architect. You MUST produce a Suno-compatible prompt.
 
-## STRICT OUTPUT FORMAT REQUIRED
+${hasConversationHistory ? `## CONVERSATION HISTORY (maintain continuity!):\n${conversation_history}\n\n---\n\n` : ''}## STRICT OUTPUT FORMAT REQUIRED
 
 **[STYLE SECTION]** (minimum 14 individual tags):
 [Genre] [Subgenre] [Mood] [Energy] [Tempo] [Dynamics] [Instrument1] [Instrument2] [Vocal Style] [Production] [Era] [Key] [Time Signature] [More tags...]
@@ -185,7 +185,7 @@ Lyrics here...
 
 ---
 
-## USER REQUEST
+## CURRENT USER REQUEST
 ${prompt}
 
 ## DEBATE INSIGHTS TO INTEGRATE
@@ -199,6 +199,7 @@ ${debateHistory.map(h => `${h.persona}: ${h.response.substring(0, 300)}`).join('
 - NO artist names
 - Include [BPM] and [Key] in EVERY section header
 - For Québécois: use [Chanson Québécoise] [Folk Québécois] [Joual Vocal Style] [Accordion] [Fiddle]
+- **IF THIS IS A FOLLOW-UP**: Modify/enhance the previous prompt based on user feedback!
 
 NOW PRODUCE THE COMPLETE SUNO PROMPT:`;
         } else {
