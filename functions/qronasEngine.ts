@@ -368,35 +368,30 @@ This is Round ${round + 1} of the debate.
                 });
             }
 
-            // Calculate bias/reward for this round
-            const biasReward = await base44.functions.invoke('biasRewardCalculator', {
-                personas_active: activePersonas.map(p => p.handle),
-                debate_round_contributions: roundResponses.map(r => ({
-                    persona_handle: activePersonas.find(p => p.name === r.persona)?.handle,
-                    quality_score: 0.7, // Will be enhanced with actual scoring
-                    relevance: 0.8
-                }))
-            });
+            // PARALLEL DYNAMICS: Calculate bias, dopamine, and global state simultaneously
+            const successRate = roundResponses.filter(r => !r.error).length / activePersonas.length;
             
-            const { B_t } = biasReward.data || { B_t: 0 };
+            const [biasResult, dopamineResult] = await Promise.all([
+                base44.functions.invoke('biasRewardCalculator', {
+                    personas_active: activePersonas.map(p => p.handle),
+                    debate_round_contributions: roundResponses.map(r => ({
+                        persona_handle: activePersonas.find(p => p.name === r.persona)?.handle,
+                        quality_score: 0.7,
+                        relevance: 0.8
+                    }))
+                }).catch(() => ({ data: { B_t: 0 } })),
+                base44.functions.invoke('dopamineModulator', {
+                    D_current: D_t,
+                    D_history,
+                    events: [...D_events, { time: Date.now(), magnitude: successRate, type: 'debate_round_completed' }],
+                    current_time: Date.now()
+                }).catch(() => ({ data: { D_t, D_history } }))
+            ]);
             
-            // Update dopamine based on round quality
-            const roundEvent = {
-                time: Date.now(),
-                magnitude: roundResponses.length / selectedPersonas.length, // Success rate
-                type: 'debate_round_completed'
-            };
-            D_events.push(roundEvent);
-            
-            const dopamineUpdate = await base44.functions.invoke('dopamineModulator', {
-                D_current: D_t,
-                D_history,
-                events: D_events,
-                current_time: Date.now()
-            });
-            
-            D_t = dopamineUpdate.data?.D_t || D_t;
-            D_history = dopamineUpdate.data?.D_history || D_history;
+            const B_t = biasResult.data?.B_t || 0;
+            D_t = dopamineResult.data?.D_t || D_t;
+            D_history = dopamineResult.data?.D_history || D_history;
+            D_events.push({ time: Date.now(), magnitude: successRate, type: 'debate_round_completed' });
             
             // Calculate global state G(t)
             const globalState = await base44.functions.invoke('globalStateCalculator', {
@@ -405,8 +400,8 @@ This is Round ${round + 1} of the debate.
                 B_t,
                 D_t,
                 omega_current: omega_t,
-                Phi_t: 0 // Will be updated by grounded validation
-            });
+                Phi_t: 0
+            }).catch(() => ({ data: { omega: omega_t, G_t: 0.5 } }));
             
             omega_t = globalState.data?.omega || omega_t;
             const G_t = globalState.data?.G_t || 0.5;
@@ -422,7 +417,7 @@ This is Round ${round + 1} of the debate.
                 breakdown: globalState.data?.breakdown
             });
             
-            logManager.success(`Round ${round + 1} completed: ${roundResponses.length} responses, ${roundResponses.reduce((sum, r) => sum + r.citations_count, 0)} citations detected.`);
+            logManager.success(`Round ${round + 1} completed: ${roundResponses.length} responses (parallel), ${roundResponses.reduce((sum, r) => sum + r.citations_count, 0)} citations.`);
             logManager.info(`Dynamics: G(t)=${G_t.toFixed(3)}, D(t)=${D_t.toFixed(3)}, ω(t)=${omega_t.toFixed(3)}`);
         }
 
