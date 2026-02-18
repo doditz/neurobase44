@@ -415,39 +415,17 @@ Lyrics...
             total_time_ms: totalTime,
             thinking_steps: thinkingSteps,
             agent_name,
-            agent_instructions_used: agentInstructions.length > 0,
             complexity_score,
             archetype,
-            dominant_hemisphere,
-            d2_activation,
             smas_activated: smasActivated,
-            memory_system_enabled: isMemorySystemEnabled,
             personas_used: qronasResult?.data?.personas_used || [],
             debate_rounds: dynamicConfig.debate_rounds,
-            debate_rounds_executed: qronasResult?.data?.rounds_executed || 0,
             estimated_tokens: Math.ceil((masterSynthesis?.length || 0) / 4),
             conversation_id,
-            fact_checked: webSearchExecuted,
             web_search_executed: webSearchExecuted,
-            sourcing_confidence: sourcingConfidence,
-            citations: citations.map(c => ({
-                url: c.url,
-                title: c.title,
-                source: c.source,
-                context: c.context,
-                verified: c.verified,
-                external: c.external
-            })),
-            web_search_triggered: shouldSearchWeb,
-            total_sources_count: citations.length,
+            citations: citations.map(c => ({ url: c.url, source: c.source })),
             debate_history: debateHistory,
-            debate_rounds_details: qronasResult?.data?.debate_rounds_details || [],
-            tone_analysis: tone_analysis || null,
-            sarcasm_detected: tone_analysis?.is_sarcastic || false,
-            // NEW: Strategy metrics
-            active_strategy: activeStrategy,
-            strategy_applied: strategyApplied,
-            optimization_tier: complexity_score < 0.4 ? 'MINIMAL' : complexity_score < 0.7 ? 'BALANCED' : 'FULL'
+            active_strategy: activeStrategy
         };
 
         return Response.json({
