@@ -218,7 +218,7 @@ After providing the prompt, briefly explain your creative choices.`
         } else {
             // Only call SMARCE for non-Suno agents
             try {
-                const smarceResponse = await base44.functions.invoke('smarceScorer', {
+                const smarceResponse = await base44.asServiceRole.functions.invoke('smarceScorer', {
                     user_message,
                     conversation_id,
                     agent_name,
@@ -293,7 +293,7 @@ After providing the prompt, briefly explain your creative choices.`
         if (agent_name !== 'suno_prompt_architect') {
             // Only run D2STIM for non-Suno agents
             try {
-                const d2stimResult = await base44.functions.invoke('d2stimModulator', {
+                const d2stimResult = await base44.asServiceRole.functions.invoke('d2stimModulator', {
                     complexity_score,
                     archetype,
                     dominant_hemisphere,
@@ -384,7 +384,7 @@ After providing the prompt, briefly explain your creative choices.`
         if (smasActivated) {
             logManager.system('=== STEP 5: SYNTHESIZE (QRONAS) ===');
             try {
-                qronasResult = await base44.functions.invoke('qronasEngine', {
+                qronasResult = await base44.asServiceRole.functions.invoke('qronasEngine', {
                     prompt: full_context,
                     agent_name: agent_name,
                     agent_instructions: agentInstructions,
