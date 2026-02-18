@@ -35,6 +35,9 @@ Deno.serve(async (req) => {
             file_urls = []
         } = requestData;
 
+        // Store agent instructions for synthesis phase
+        const hasAgentInstructions = agent_instructions && agent_instructions.length > 0;
+
         log('INFO', `Agent: ${agent_name}, Rounds: ${debate_rounds}, MaxPersonas: ${max_paths}`);
 
         // STEP 1: Load personas directly (no external function call)
