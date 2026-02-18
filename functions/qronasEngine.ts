@@ -32,8 +32,13 @@ Deno.serve(async (req) => {
             max_paths = 3,
             debate_rounds = 2,
             temperature = 0.7,
-            file_urls = []
+            file_urls = [],
+            conversation_history = ''
         } = requestData;
+        
+        // Log if we have conversation history for context
+        if (conversation_history) {
+            log('INFO', `Conversation history loaded: ${conversation_history.length} chars`);
 
         // Store agent instructions for synthesis phase
         const hasAgentInstructions = agent_instructions && agent_instructions.length > 0;
