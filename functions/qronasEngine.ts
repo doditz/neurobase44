@@ -124,21 +124,26 @@ Provide your perspective in ${150 - round * 30} words. Round ${round + 1}.`;
             log('SUCCESS', `Round ${round + 1}: ${results.filter(r => r.success).length}/${personas.length} success`);
         }
 
-        // STEP 3: Final synthesis
+        // STEP 3: Final synthesis WITH AGENT INSTRUCTIONS
         log('INFO', 'Generating synthesis');
         
-        const synthesisPrompt = `Create a coherent synthesis from this debate:
-
+        const synthesisPrompt = `${hasAgentInstructions ? `## AGENT INSTRUCTIONS (MUST FOLLOW)\n${agent_instructions}\n\n---\n\n` : ''}## DEBATE CONTRIBUTIONS
 ${debateHistory.map(h => `[${h.persona}]: ${h.response}`).join('\n\n')}
 
-Instructions:
-- Integrate all perspectives
-- Be concise and structured
-- Target 300-400 words`;
+## USER REQUEST
+${prompt}
+
+## YOUR TASK
+Create the FINAL response by:
+1. Following the AGENT INSTRUCTIONS above precisely
+2. Integrating the best insights from all debate contributions
+3. Producing a complete, well-structured output
+
+Respond directly with the final output (no meta-commentary).`;
 
         const synthesis = await base44.integrations.Core.InvokeLLM({
             prompt: synthesisPrompt,
-            temperature: temperature * 0.85
+            temperature: temperature * 0.9
         });
 
         log('SUCCESS', `Synthesis complete: ${synthesis.length} chars`);
