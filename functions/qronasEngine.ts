@@ -39,9 +39,11 @@ Deno.serve(async (req) => {
         // Log if we have conversation history for context
         if (conversation_history) {
             log('INFO', `Conversation history loaded: ${conversation_history.length} chars`);
+        }
 
         // Store agent instructions for synthesis phase
         const hasAgentInstructions = agent_instructions && agent_instructions.length > 0;
+        const hasConversationHistory = conversation_history && conversation_history.length > 0;
 
         log('INFO', `Agent: ${agent_name}, Rounds: ${debate_rounds}, MaxPersonas: ${max_paths}`);
 
