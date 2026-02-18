@@ -215,161 +215,40 @@ Lyrics...
             dominant_hemisphere
         });
 
-        // STEP 2.5: FACTUAL CACHE CHECK (L3 Optimization)
-        logManager.system('=== STEP 2.5: FACTUAL CACHE CHECK ===');
-        
-        let cachedAnswer = null;
-        let usedCache = false;
-        
-        // Check if this is a factual query that might be cached
-        const isFactualQuery = /what is|who is|when did|how many|define|explain/i.test(user_message);
-        
-        if (isFactualQuery && complexity_score < 0.7) {
-            logManager.info('🔍 Checking L3 factual cache...');
-            try {
-                const { data: cacheResult } = await base44.functions.invoke('factualCacheManager', {
-                    operation: 'check',
-                    query: user_message
-                });
-                
-                if (cacheResult.cached) {
-                    cachedAnswer = cacheResult.answer;
-                    usedCache = true;
-                    sourcingConfidence = cacheResult.metadata.confidence;
-                    
-                    logManager.success(`✅ L3 Cache HIT (${cacheResult.metadata.access_count} accesses)`, {
-                        age: new Date(cacheResult.metadata.created).toISOString(),
-                        confidence: cacheResult.metadata.confidence
-                    });
-                    
-                    // Return cached answer directly (MASSIVE speedup)
-                    const totalTime = Date.now() - startTime;
-                    
-                    return Response.json({
-                        success: true,
-                        response: cachedAnswer,
-                        metadata: {
-                            total_time_ms: totalTime,
-                            cached: true,
-                            cache_hit: true,
-                            complexity_score,
-                            agent_name,
-                            estimated_tokens: Math.ceil(cachedAnswer.length / 4),
-                            conversation_id,
-                            cache_metadata: cacheResult.metadata
-                        },
-                        logs,
-                        thinking_steps: [{
-                            step: 'CACHE_HIT',
-                            source: 'L3_FACTUAL_MEMORY',
-                            speedup: '~95%'
-                        }]
-                    });
-                }
-                
-                logManager.info('⚠️ L3 Cache MISS - proceeding with full pipeline');
-            } catch (cacheError) {
-                logManager.warning(`Cache check failed: ${cacheError.message}`);
-            }
-        }
-        
-        // STEP 2.6: CONDITIONAL WEB SEARCH (OPTIMIZED)
-        logManager.system('=== STEP 2.6: CONDITIONAL KNOWLEDGE ENRICHMENT ===');
-        
-        let externalKnowledgeContext = '';
+        // STEP 2.5: Skip cache and heavy web search for Suno (creative task, not factual)
         let webSearchContext = '';
         let webSearchExecuted = false;
         
-        const enableExternalKnowledge = settings.enableExternalKnowledge !== false;
-        const enableWebSearch = settings.enableWebSearch !== false;
-        
-        // MANDATORY web search for factual queries (GROUNDING ENFORCEMENT)
-        const factualKeywords = /what is|who is|when did|how many|where is|why did|define|explain|research|study|evidence|source|citation|fact|data|statistics|latest|recent|current|news/i.test(user_message);
-        const needsCitations = complexity_score >= 0.5 || factualKeywords;
-        
-        // OVERRIDE: Force search for factual queries even if disabled
-        const shouldSearchWeb = needsCitations || (enableWebSearch && factualKeywords);
-        
-        if (shouldSearchWeb) {
-            logManager.info('🌐 Web search activated (citations needed)');
-        } else {
-            logManager.info('⚡ Skipping web search (not needed for this query)');
-        }
-        
-        // OPTIMIZATION: Run searches in parallel ONLY if needed
-        const enrichmentPromises = [];
-        
-        if (shouldSearchWeb) {
-            // MANDATORY GROUNDED WEB SEARCH with citation extraction
-            logManager.info('🔍 MANDATORY web search with citation extraction');
-            enrichmentPromises.push(
-                base44.integrations.Core.InvokeLLM({
-                    prompt: `Research and provide factual, grounded information about: ${user_message}
-
-CRITICAL REQUIREMENTS:
-1. Include ONLY verified, factual information
-2. Cite ALL sources with full URLs
-3. Format citations as: [Source: URL]
-4. Verify facts against multiple sources
-5. Include publication dates when relevant`,
-                    add_context_from_internet: true
-                }).then(result => ({ type: 'grounded_search', result }))
-                .catch(error => ({ type: 'grounded_search', error }))
-            );
-        }
-        
-        // Execute searches in parallel if needed
-        if (enrichmentPromises.length > 0) {
-            const enrichmentResults = await Promise.allSettled(enrichmentPromises);
+        if (agent_name !== 'suno_prompt_architect') {
+            // Only do web search for non-Suno agents
+            logManager.system('=== STEP 2.5: KNOWLEDGE ENRICHMENT ===');
             
-            for (const settled of enrichmentResults) {
-                if (settled.status === 'fulfilled') {
-                    const { type, result, error } = settled.value;
+            const factualKeywords = /what is|who is|when did|how many|where is|why did|define|explain|research|study|evidence|source|citation|fact|data|statistics|latest|recent|current|news/i.test(user_message);
+            
+            if (factualKeywords || complexity_score >= 0.6) {
+                try {
+                    const searchResult = await base44.integrations.Core.InvokeLLM({
+                        prompt: `Research: ${user_message}. Include sources.`,
+                        add_context_from_internet: true
+                    });
                     
-                    if (error) {
-                        logManager.warning(`${type} failed: ${error.message}`);
-                        continue;
-                    }
-                    
-                    if (type === 'grounded_search' && result && typeof result === 'string' && result.length > 50) {
-                        webSearchContext = `\n\n## 🌐 GROUNDED WEB RESEARCH (VERIFIED SOURCES)\n\n${result}\n\n`;
-                        
-                        // RIGOROUS URL EXTRACTION - Multiple patterns
-                        const urlPatterns = [
-                            /\[Source:\s*(https?:\/\/[^\]]+)\]/gi,  // [Source: URL]
-                            /\(https?:\/\/[^\)]+\)/gi,              // (URL)
-                            /https?:\/\/[^\s\]\)]+/gi               // Raw URLs
-                        ];
-                        
-                        const extractedUrls = new Set();
-                        for (const pattern of urlPatterns) {
-                            const matches = result.matchAll(pattern);
-                            for (const match of matches) {
-                                let url = match[1] || match[0];
-                                url = url.replace(/[\[\]\(\),;]+$/g, '').trim();
-                                if (url.startsWith('http')) {
-                                    extractedUrls.add(url);
-                                }
-                            }
-                        }
-                        
-                        // Add all unique URLs as citations
-                        for (const url of extractedUrls) {
-                            citations.push({
-                                url: url,
-                                source: 'Web Research',
-                                context: 'Grounded search',
-                                verified: true,
-                                external: true
-                            });
-                        }
-                        
+                    if (searchResult && searchResult.length > 50) {
+                        webSearchContext = `\n\n## Context:\n${searchResult}\n\n`;
                         webSearchExecuted = true;
-                        sourcingConfidence = citations.length > 0 ? 0.9 : 0.5;
-                        logManager.success(`✅ Grounded search: ${citations.length} verified URLs extracted`);
+                        
+                        // Extract URLs
+                        const urls = searchResult.match(/https?:\/\/[^\s\]\)]+/gi) || [];
+                        for (const url of urls.slice(0, 5)) {
+                            citations.push({ url, source: 'Web', verified: true });
+                        }
+                        logManager.success(`Web search: ${citations.length} sources`);
                     }
+                } catch (e) {
+                    logManager.warning(`Web search skipped: ${e.message}`);
                 }
             }
+        } else {
+            logManager.info('Suno mode: Skipping web search (creative task)');
         }
         
         thinkingSteps.push({
