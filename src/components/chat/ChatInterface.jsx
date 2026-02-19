@@ -393,7 +393,11 @@ export default function ChatInterface({
                 tokens: data.metadata?.total_tokens
             });
 
-            toast.success('✅ Réponse générée');
+            const pathUsed = data.metadata?.path_used || 'full';
+            const pathEmoji = pathUsed === 'fast' ? '⚡' : (pathUsed === 'medium' ? '🔄' : '🧠');
+            toast.success(`${pathEmoji} Réponse générée (${(totalTime/1000).toFixed(1)}s)`);
+            
+            setProcessingPhase(''); // Clear phase message
 
         } catch (error) {
             logger.error(`Failed to send message: ${error.message}`, { stack: error.stack });
