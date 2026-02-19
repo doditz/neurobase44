@@ -3,7 +3,46 @@ import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Brain, Thermometer, Users, Scale, Shield, MessageSquare, Target, RotateCcw, Zap, DollarSign, Clock, Database, Sparkles } from 'lucide-react';
+import { Brain, Thermometer, Users, Scale, Shield, MessageSquare, Target, RotateCcw, Zap, DollarSign, Clock, Database, Sparkles, Pen } from 'lucide-react';
+
+const RESPONSE_STYLES = {
+    balanced: {
+        label: 'Équilibré',
+        icon: '⚖️',
+        description: 'Ton naturel et adaptatif',
+        color: 'bg-blue-100 text-blue-800'
+    },
+    formal: {
+        label: 'Formel',
+        icon: '🎩',
+        description: 'Professionnel et structuré',
+        color: 'bg-slate-100 text-slate-800'
+    },
+    creative: {
+        label: 'Créatif',
+        icon: '🎨',
+        description: 'Expressif et imaginatif',
+        color: 'bg-purple-100 text-purple-800'
+    },
+    concise: {
+        label: 'Concis',
+        icon: '⚡',
+        description: 'Direct et synthétique',
+        color: 'bg-green-100 text-green-800'
+    },
+    pedagogical: {
+        label: 'Pédagogique',
+        icon: '📚',
+        description: 'Explicatif avec exemples',
+        color: 'bg-amber-100 text-amber-800'
+    },
+    socratic: {
+        label: 'Socratique',
+        icon: '🤔',
+        description: 'Questionne pour approfondir',
+        color: 'bg-cyan-100 text-cyan-800'
+    }
+};
 
 const MODES = {
     eco: {
@@ -47,6 +86,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
     const [enableExternalKnowledge, setEnableExternalKnowledge] = useState(settings.enableExternalKnowledge !== false);
     const [enableSarcasmDetection, setEnableSarcasmDetection] = useState(settings.enableSarcasmDetection || false);
     const [sarcasmSensitivity, setSarcasmSensitivity] = useState(settings.sarcasm_sensitivity || 'medium');
+    const [responseStyle, setResponseStyle] = useState(settings.responseStyle || 'balanced');
 
     const handleModeChange = (mode) => {
         const modeConfig = MODES[mode];
@@ -60,6 +100,7 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
     };
 
     const handleReset = () => {
+        setResponseStyle('balanced');
         onSettingsChange({
             temperature: 0.7,
             selectedPersonas: [],
@@ -72,8 +113,14 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
             mode: 'balanced',
             enableExternalKnowledge: false,
             enableSarcasmDetection: false,
-            sarcasm_sensitivity: 'medium'
+            sarcasm_sensitivity: 'medium',
+            responseStyle: 'balanced'
         });
+    };
+
+    const handleResponseStyleChange = (style) => {
+        setResponseStyle(style);
+        onSettingsChange({ ...settings, responseStyle: style });
     };
 
     const handleExternalKnowledgeChange = (checked) => {
@@ -161,6 +208,42 @@ export default function SettingsPanel({ settings, onSettingsChange }) {
                         </button>
                     ))}
                 </div>
+            </div>
+
+            {/* Response Style Selection */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                    <Pen className="w-4 h-4 text-orange-500" />
+                    <label className="text-sm font-medium text-green-300">Style de Réponse</label>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                    {Object.entries(RESPONSE_STYLES).map(([key, style]) => (
+                        <button
+                            key={key}
+                            onClick={() => handleResponseStyleChange(key)}
+                            className={`text-left p-2 rounded-lg border-2 transition-all ${
+                                responseStyle === key
+                                    ? 'border-orange-600 bg-orange-900/20'
+                                    : 'border-slate-600 bg-slate-700 hover:border-slate-500'
+                            }`}
+                        >
+                            <div className="flex items-center gap-2">
+                                <span className="text-lg">{style.icon}</span>
+                                <div>
+                                    <h4 className="text-xs font-semibold text-green-300">{style.label}</h4>
+                                    <p className="text-[10px] text-slate-400">{style.description}</p>
+                                </div>
+                            </div>
+                        </button>
+                    ))}
+                </div>
+                
+                {responseStyle && responseStyle !== 'balanced' && (
+                    <div className="bg-orange-900/20 border border-orange-600/30 rounded p-2 text-xs text-orange-300">
+                        <strong>Style actif:</strong> {RESPONSE_STYLES[responseStyle]?.label} - L'IA adaptera son ton et sa structure.
+                    </div>
+                )}
             </div>
 
             {/* NEW: External Knowledge Settings */}
