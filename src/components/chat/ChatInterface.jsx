@@ -19,9 +19,19 @@ import ResourceMonitorBar from './ResourceMonitorBar';
 import LiveBenchmarkMonitor from './LiveBenchmarkMonitor';
 import ConversationSummarizer from './ConversationSummarizer';
 
-const MIN_MESSAGE_INTERVAL = 2000;
-const MAX_RETRIES = 3;
-const RETRY_BASE_DELAY = 5000;
+const MIN_MESSAGE_INTERVAL = 1000; // Reduced from 2000ms
+const MAX_RETRIES = 2; // Reduced from 3
+const RETRY_BASE_DELAY = 2000; // Reduced from 5000ms
+
+// Processing phase messages for user feedback
+const PROCESSING_PHASES = [
+    { time: 0, msg: '🧠 Analyzing...' },
+    { time: 2, msg: '🔍 Processing context...' },
+    { time: 5, msg: '💭 Generating insights...' },
+    { time: 10, msg: '✨ Synthesizing response...' },
+    { time: 20, msg: '🎯 Finalizing...' },
+    { time: 40, msg: '⏳ Complex query, please wait...' }
+];
 
 export default function ChatInterface({ 
     agentName, 
