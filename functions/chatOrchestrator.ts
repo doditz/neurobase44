@@ -450,7 +450,7 @@ After providing the prompt, briefly explain your creative choices.`
         if (smasActivated) {
             logManager.system('=== STEP 5: SYNTHESIZE (QRONAS) ===');
             try {
-                qronasResult = await base44.asServiceRole.functions.invoke('qronasEngine', {
+                qronasResult = await base44.functions.invoke('qronasEngine', {
                     prompt: full_context,
                     agent_name: agent_name,
                     agent_instructions: agentInstructions,
