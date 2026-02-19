@@ -388,8 +388,10 @@ export default function ChatInterface({
                 }
             }
 
+            const totalTime = data.metadata?.total_time_ms || (Date.now() - startTime);
+            
             logger.success('Message exchange completed', {
-                total_time_ms: data.metadata?.total_time_ms,
+                total_time_ms: totalTime,
                 tokens: data.metadata?.total_tokens
             });
 
