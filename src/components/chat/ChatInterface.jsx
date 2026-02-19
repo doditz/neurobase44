@@ -66,6 +66,7 @@ export default function ChatInterface({
     const [sessionTokensUsed, setSessionTokensUsed] = useState(0);
     const [showBenchmarkMonitor, setShowBenchmarkMonitor] = useState(false);
     const [showSummarizer, setShowSummarizer] = useState(false);
+    const [processingPhase, setProcessingPhase] = useState('');
     
     const scrollAreaRef = useRef(null);
     const fileInputRef = useRef(null);
