@@ -507,21 +507,51 @@ export default function ChatInterface({
                 </div>
             )}
 
-            {(isLoading || isSending) && processingTime > 0 && (
-                <div className="p-2 bg-blue-900/30 border-b border-blue-600/50 text-blue-300 text-sm flex-shrink-0">
-                    <div className="flex items-center justify-center gap-2 max-w-4xl mx-auto">
-                        <Clock className="w-4 h-4 animate-pulse" />
-                        <span>
-                            Traitement en cours... {processingTime}s
-                            {processingTime > 30 && processingTime <= 60 && ' (analyse complexe)'}
-                            {processingTime > 60 && ' (débat multi-personas)'}
-                        </span>
-                        {processingTime > 45 && (
-                            <Badge variant="outline" className="text-xs py-0 text-yellow-400 border-yellow-600/50">
-                                <AlertTriangle className="w-2.5 h-2.5 mr-1" />
-                                Long processing
+            {(isLoading || isSending) && (
+                <div className="p-2 bg-gradient-to-r from-blue-900/40 via-purple-900/30 to-blue-900/40 border-b border-blue-600/50 text-blue-300 text-sm flex-shrink-0">
+                    <div className="flex items-center justify-center gap-3 max-w-4xl mx-auto">
+                        <div className="flex items-center gap-2">
+                            <div className="relative">
+                                <Loader2 className="w-4 h-4 animate-spin text-blue-400" />
+                                <div className="absolute inset-0 animate-ping opacity-30">
+                                    <Sparkles className="w-4 h-4 text-purple-400" />
+                                </div>
+                            </div>
+                            <span className="font-medium">{processingPhase || '🧠 Initializing...'}</span>
+                        </div>
+                        
+                        {processingTime > 0 && (
+                            <Badge variant="outline" className="text-xs py-0 text-blue-300 border-blue-500/50 bg-blue-900/30">
+                                {processingTime}s
                             </Badge>
                         )}
+                        
+                        {processingTime > 15 && processingTime <= 30 && (
+                            <Badge variant="outline" className="text-xs py-0 text-yellow-400 border-yellow-600/50 animate-pulse">
+                                <Brain className="w-2.5 h-2.5 mr-1" />
+                                Deep analysis
+                            </Badge>
+                        )}
+                        
+                        {processingTime > 30 && (
+                            <Badge variant="outline" className="text-xs py-0 text-orange-400 border-orange-600/50 animate-pulse">
+                                <Users className="w-2.5 h-2.5 mr-1" />
+                                Multi-persona debate
+                            </Badge>
+                        )}
+                    </div>
+                    
+                    {/* Progress bar */}
+                    <div className="max-w-md mx-auto mt-2">
+                        <div className="h-1 bg-slate-700 rounded-full overflow-hidden">
+                            <div 
+                                className="h-full bg-gradient-to-r from-blue-500 via-purple-500 to-green-500 transition-all duration-500"
+                                style={{ 
+                                    width: `${Math.min(95, processingTime * 3)}%`,
+                                    animation: 'pulse 2s ease-in-out infinite'
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
             )}
