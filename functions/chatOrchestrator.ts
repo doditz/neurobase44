@@ -269,23 +269,30 @@ After providing the prompt, briefly explain your creative choices.`
             dominant_hemisphere = 'right';
             logManager.info('Suno mode: Using creative defaults (skipping SMARCE/DSTIB)');
         } else {
-            // Only call SMARCE for non-Suno agents
+            // Inline SMARCE logic for speed and reliability (no external call)
             try {
-                const smarceResponse = await base44.asServiceRole.functions.invoke('smarceScorer', {
-                    user_message,
-                    conversation_id,
-                    agent_name,
-                    settings
-                });
-
-                if (smarceResponse.data && smarceResponse.data.success !== false) {
-                    complexity_score = smarceResponse.data.complexity_score || 0.5;
-                    archetype = smarceResponse.data.archetype_detected || 'balanced';
-                    dominant_hemisphere = smarceResponse.data.dominant_hemisphere || 'central';
-                    logManager.success('SMARCE completed', { complexity_score, archetype });
+                const wordCount = user_message.split(/\s+/).length;
+                const hasComplexTerms = /algorithm|neural|quantum|philosophy|metaphysics|epistemology|ontology/i.test(user_message);
+                const hasQuestions = (user_message.match(/\?/g) || []).length;
+                
+                // Simple complexity calculation
+                complexity_score = Math.min(1, (wordCount / 100) + (hasComplexTerms ? 0.3 : 0) + (hasQuestions * 0.1));
+                
+                // Archetype detection
+                if (/create|imagine|design|art|music|story/i.test(user_message)) {
+                    archetype = 'creative';
+                    dominant_hemisphere = 'right';
+                } else if (/analyze|calculate|logic|prove|data|evidence/i.test(user_message)) {
+                    archetype = 'analytical';
+                    dominant_hemisphere = 'left';
+                } else if (/ethics|moral|right|wrong|should|fair/i.test(user_message)) {
+                    archetype = 'ethical';
+                    dominant_hemisphere = 'central';
                 }
+                
+                logManager.success('SMARCE (inline) completed', { complexity_score, archetype });
             } catch (error) {
-                logManager.warning(`SMARCE skipped: ${error.message}`);
+                logManager.warning(`SMARCE inline error: ${error.message}`);
             }
         }
 
@@ -344,22 +351,28 @@ After providing the prompt, briefly explain your creative choices.`
         let isMemorySystemEnabled = false; // Disable memory for speed
         
         if (agent_name !== 'suno_prompt_architect') {
-            // Only run D2STIM for non-Suno agents
+            // Inline D2STIM logic for speed and reliability
             try {
-                const d2stimResult = await base44.asServiceRole.functions.invoke('d2stimModulator', {
-                    complexity_score,
-                    archetype,
-                    dominant_hemisphere,
-                    user_settings: settings
-                });
+                // Calculate d2_activation based on complexity and archetype
+                let baseD2 = 0.5;
+                if (archetype === 'creative') baseD2 = 0.7;
+                else if (archetype === 'analytical') baseD2 = 0.4;
+                else if (archetype === 'ethical') baseD2 = 0.6;
                 
-                if (d2stimResult.data?.success !== false) {
-                    dynamicConfig = d2stimResult.data.config || dynamicConfig;
-                    d2_activation = d2stimResult.data.d2_activation || 0;
-                    logManager.success('D2STIM completed', { d2_activation });
+                d2_activation = Math.min(1, baseD2 + (complexity_score * 0.3));
+                
+                // Adjust config based on d2_activation
+                if (d2_activation > 0.7) {
+                    dynamicConfig.debate_rounds = Math.min(settings.debateRounds || 3, 4);
+                    dynamicConfig.max_personas = Math.min(settings.maxPersonas || 5, 6);
+                } else if (d2_activation < 0.4) {
+                    dynamicConfig.debate_rounds = 2;
+                    dynamicConfig.max_personas = 3;
                 }
+                
+                logManager.success('D2STIM (inline) completed', { d2_activation });
             } catch (e) {
-                logManager.warning(`D2STIM skipped: ${e.message}`);
+                logManager.warning(`D2STIM inline error: ${e.message}`);
             }
         } else {
             logManager.info('Suno mode: Using optimized config');
