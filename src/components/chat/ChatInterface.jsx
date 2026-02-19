@@ -216,7 +216,13 @@ export default function ChatInterface({
         processingTimerRef.current = setInterval(() => {
             const elapsed = Math.floor((Date.now() - startTime) / 1000);
             setProcessingTime(elapsed);
-        }, 1000);
+            
+            // Update processing phase message for user feedback
+            const phase = PROCESSING_PHASES.slice().reverse().find(p => elapsed >= p.time);
+            if (phase) {
+                setProcessingPhase(phase.msg);
+            }
+        }, 500); // Update more frequently for better UX
 
         try {
             logger.info('Sending message to chatOrchestrator', { 
