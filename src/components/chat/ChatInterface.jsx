@@ -258,8 +258,8 @@ export default function ChatInterface({
             }
             messageContent += settingsContext;
 
-            // Call chatOrchestrator
-            const response = await base44.functions.invoke('chatOrchestrator', {
+            // Call FAST chatOrchestrator for improved speed
+            const response = await base44.functions.invoke('chatOrchestratorFast', {
                 conversation_id: conversation?.conversation_id || 'pending',
                 agent_name: agentName,
                 user_message: messageContent,
