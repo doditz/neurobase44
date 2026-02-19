@@ -383,12 +383,8 @@ export default function MessageBubble({ message }) {
     const metadata = message.metadata || {};
     const toneAnalysis = metadata?.tone_analysis;
     
-    // Check if message contains Neuronas audit log (kaomoji theming)
-    const isKaomojiThemed = message.content && (
-        message.content.includes('<(^-^)>') || 
-        message.content.includes('(╯°□°)╯') ||
-        message.content.includes('NEURONAS_AUDIT_LOG')
-    );
+    // ALWAYS use Kaomoji cyberpunk theming for assistant messages (unified style)
+    const isKaomojiThemed = !isUser;
     
     // Progressive text reveal for better perceived latency
     React.useEffect(() => {
