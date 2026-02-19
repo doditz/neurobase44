@@ -76,6 +76,9 @@ Deno.serve(async (req) => {
             metadata = {}
         } = requestData;
 
+        // Extract response style from settings
+        const responseStyle = settings.responseStyle || 'balanced';
+
         // Log file uploads for vision processing
         if (file_urls && file_urls.length > 0) {
             logManager.info('📎 Files attached for vision analysis', { 
@@ -102,6 +105,46 @@ Deno.serve(async (req) => {
         let agentInstructions = '';
         let agentDescription = '';
         
+        // Response style instructions mapping
+        const RESPONSE_STYLE_INSTRUCTIONS = {
+            balanced: '',
+            formal: `
+## STYLE DE RÉPONSE: FORMEL
+- Utilisez un ton professionnel et structuré
+- Structurez avec des titres, sous-titres et puces numérotées
+- Évitez les expressions familières et le langage informel
+- Privilégiez la précision terminologique
+- Adoptez un registre soutenu avec une syntaxe élaborée`,
+            creative: `
+## STYLE DE RÉPONSE: CRÉATIF
+- Utilisez un ton expressif et imaginatif
+- Intégrez des métaphores, analogies et comparaisons évocatrices
+- Explorez des angles originaux et perspectives inattendues
+- Variez les structures de phrases pour dynamiser le texte
+- N'hésitez pas à utiliser des formulations poétiques ou narratives`,
+            concise: `
+## STYLE DE RÉPONSE: CONCIS
+- Soyez direct et allez à l'essentiel
+- Limitez les explications au strict nécessaire
+- Utilisez des phrases courtes et percutantes
+- Évitez les redondances et les formules de politesse superflues
+- Structurez en points clés plutôt qu'en paragraphes`,
+            pedagogical: `
+## STYLE DE RÉPONSE: PÉDAGOGIQUE
+- Expliquez les concepts progressivement, du simple au complexe
+- Utilisez des exemples concrets et des analogies accessibles
+- Anticipez les questions et incompréhensions potentielles
+- Résumez les points clés à la fin
+- Définissez les termes techniques à leur première apparition`,
+            socratic: `
+## STYLE DE RÉPONSE: SOCRATIQUE
+- Posez des questions pour guider la réflexion
+- Invitez l'utilisateur à examiner ses présupposés
+- Proposez des contre-exemples pour approfondir l'analyse
+- Encouragez la pensée critique plutôt que de donner des réponses directes
+- Structurez comme un dialogue intellectuel`
+        };
+
         // Direct agent instruction mapping for reliability - FULL SUNO 5.0 INSTRUCTIONS
         const AGENT_CONFIGS = {
             'suno_prompt_architect': {
@@ -171,17 +214,27 @@ After providing the prompt, briefly explain your creative choices.`
                 instructions: "You are the SMAS debate coordinator. Facilitate multi-perspective analysis with balanced viewpoints."
             }
         };
+
+        // Get style instructions and append to agent instructions
+        const styleInstructions = RESPONSE_STYLE_INSTRUCTIONS[responseStyle] || '';
+        if (styleInstructions) {
+            logManager.info('Response style applied', { style: responseStyle });
+        }
         
         const agentConfig = AGENT_CONFIGS[agent_name];
         if (agentConfig) {
-            agentInstructions = agentConfig.instructions;
+            // Combine agent instructions with style instructions
+            agentInstructions = agentConfig.instructions + (styleInstructions ? '\n' + styleInstructions : '');
             agentDescription = agentConfig.description;
             logManager.success('Agent instructions loaded (hardcoded)', { 
                 agent: agent_name, 
-                instructions_length: agentInstructions.length 
+                instructions_length: agentInstructions.length,
+                response_style: responseStyle
             });
         } else {
-            logManager.warning('Agent not found, using generic mode', { agent: agent_name });
+            // Even without agent config, apply style instructions
+            agentInstructions = styleInstructions;
+            logManager.warning('Agent not found, using generic mode with style', { agent: agent_name, style: responseStyle });
         }
 
         thinkingSteps.push({
