@@ -747,54 +747,54 @@ export default function ChatInterface({
                             </Button>
                         </div>
                     </div>
-                    <div className="flex items-center justify-between mt-2">
-                        <p className="text-xs text-slate-500 flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-2">
+                        <p className="hidden sm:flex text-xs text-slate-500 items-center gap-1.5">
                             <CornerDownLeft className="h-3 w-3 flex-shrink-0" /> 
                             <span>Shift+Enter pour nouvelle ligne.</span>
                             <Paperclip className="h-3 w-3 flex-shrink-0 ml-2" />
                             <span>Fichiers pour analyse.</span>
                         </p>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center justify-center sm:justify-end gap-1 flex-wrap">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowAnalysisContext(!showAnalysisContext)}
-                                className={`h-6 px-2 text-xs ${showAnalysisContext ? 'text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+                                className={`h-8 sm:h-6 px-3 sm:px-2 text-sm sm:text-xs ${showAnalysisContext ? 'text-green-400' : 'text-slate-400 hover:text-green-400'}`}
                                 title="Load analysis context for follow-up questions"
                             >
-                                <Database className="w-3 h-3 mr-1" />
+                                <Database className="w-4 h-4 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
                                 Context
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowBenchmarkMonitor(!showBenchmarkMonitor)}
-                                className={`h-6 px-2 text-xs ${showBenchmarkMonitor ? 'text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+                                className={`h-8 sm:h-6 px-3 sm:px-2 text-sm sm:text-xs ${showBenchmarkMonitor ? 'text-green-400' : 'text-slate-400 hover:text-green-400'}`}
                                 title="Live benchmark monitoring"
                             >
-                                <Activity className="w-3 h-3 mr-1" />
+                                <Activity className="w-4 h-4 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
                                 Live
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowSummarizer(!showSummarizer)}
-                                className={`h-6 px-2 text-xs ${showSummarizer ? 'text-purple-400' : 'text-slate-500 hover:text-purple-400'}`}
+                                className={`h-8 sm:h-6 px-3 sm:px-2 text-sm sm:text-xs ${showSummarizer ? 'text-purple-400' : 'text-slate-400 hover:text-purple-400'}`}
                                 disabled={messages.length === 0}
                                 title="AI-powered conversation summary"
                             >
-                                <Sparkles className="w-3 h-3 mr-1" />
+                                <Sparkles className="w-4 h-4 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
                                 Summary
                             </Button>
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setShowExportPanel(!showExportPanel)}
-                                className={`h-6 px-2 text-xs ${showExportPanel ? 'text-green-400' : 'text-slate-500 hover:text-green-400'}`}
+                                className={`h-8 sm:h-6 px-3 sm:px-2 text-sm sm:text-xs ${showExportPanel ? 'text-green-400' : 'text-slate-400 hover:text-green-400'}`}
                                 disabled={messages.length === 0}
                                 title="Export chat transcript"
                             >
-                                <Download className="w-3 h-3 mr-1" />
+                                <Download className="w-4 h-4 sm:w-3 sm:h-3 mr-1.5 sm:mr-1" />
                                 Export
                             </Button>
                         </div>
