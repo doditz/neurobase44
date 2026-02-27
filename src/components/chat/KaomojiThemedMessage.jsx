@@ -23,17 +23,17 @@ export default function KaomojiThemedMessage({ content }) {
     : content;
 
     // UNIFIED CYBERPUNK THEME - Midnight Blue background, Orange/Green/Cyan accents
-    // MOBILE-RESPONSIVE: Dynamic sizing based on viewport
+    // MOBILE-RESPONSIVE: Fixed small font sizes for mobile readability
     const kaomojiStyle = {
         fontFamily: "'Courier New', 'Monaco', 'Consolas', monospace",
         color: '#FFA500', // Orange text default
         backgroundColor: '#0a0a1a', // Deep midnight blue
-        padding: 'clamp(0.5rem, 2vw, 1rem)', // Responsive padding
+        padding: '0.75rem',
         borderRadius: '12px',
         border: '1px solid rgba(255, 165, 0, 0.4)',
-        boxShadow: '0 0 15px rgba(255, 165, 0, 0.2), 0 0 30px rgba(0, 100, 150, 0.15), inset 0 0 60px rgba(0, 50, 100, 0.1)',
-        lineHeight: '1.6',
-        fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)', // Responsive font size
+        boxShadow: '0 0 15px rgba(255, 165, 0, 0.2)',
+        lineHeight: '1.5',
+        fontSize: '0.8rem', // Fixed small size
         wordBreak: 'break-word',
         overflowWrap: 'break-word',
         maxWidth: '100%',
@@ -43,8 +43,8 @@ export default function KaomojiThemedMessage({ content }) {
     const headerStyle = {
         color: '#00FF00', // Bright green for headers
         fontWeight: 'bold',
-        fontSize: 'clamp(0.9rem, 3vw, 1.1rem)', // Responsive header size
-        marginBottom: '0.5rem',
+        fontSize: '0.9rem', // Fixed header size
+        marginBottom: '0.4rem',
         textShadow: '0 0 8px rgba(0, 255, 0, 0.4)'
     };
 
@@ -69,11 +69,11 @@ export default function KaomojiThemedMessage({ content }) {
                         h1: ({ children }) => (
                             <div style={{ 
                                 ...headerStyle, 
-                                fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
+                                fontSize: '0.95rem', 
                                 color: '#00FF00',
                                 borderBottom: '2px solid rgba(255, 165, 0, 0.6)',
-                                paddingBottom: '0.5rem',
-                                marginTop: '0.75rem',
+                                paddingBottom: '0.4rem',
+                                marginTop: '0.5rem',
                                 textShadow: '0 0 10px rgba(0, 255, 0, 0.5)'
                             }}>
                                 {children}
@@ -82,12 +82,12 @@ export default function KaomojiThemedMessage({ content }) {
                         h2: ({ children }) => (
                             <div style={{ 
                                 ...headerStyle, 
-                                color: '#00FFFF', // Cyan
-                                fontSize: 'clamp(0.85rem, 3vw, 1.1rem)',
-                                marginTop: '0.75rem',
-                                marginBottom: '0.4rem',
-                                borderLeft: '3px solid #00FFFF',
-                                paddingLeft: '0.5rem',
+                                color: '#00FFFF',
+                                fontSize: '0.85rem',
+                                marginTop: '0.5rem',
+                                marginBottom: '0.3rem',
+                                borderLeft: '2px solid #00FFFF',
+                                paddingLeft: '0.4rem',
                                 textShadow: '0 0 8px rgba(0, 255, 255, 0.4)'
                             }}>
                                 {children}
@@ -95,18 +95,18 @@ export default function KaomojiThemedMessage({ content }) {
                         ),
                         h3: ({ children }) => (
                             <div style={{ 
-                                color: '#FFD700', // Gold
+                                color: '#FFD700',
                                 fontWeight: 'bold', 
-                                marginTop: '0.5rem',
-                                marginBottom: '0.25rem',
-                                fontSize: 'clamp(0.8rem, 2.5vw, 1rem)',
+                                marginTop: '0.4rem',
+                                marginBottom: '0.2rem',
+                                fontSize: '0.8rem',
                                 textShadow: '0 0 6px rgba(255, 215, 0, 0.3)'
                             }}>
                                 {children}
                             </div>
                         ),
                         p: ({ children }) => (
-                            <p style={{ margin: '0.5rem 0', color: '#e0e0e0' }}>{children}</p>
+                            <p style={{ margin: '0.3rem 0', color: '#e0e0e0', fontSize: '0.8rem', lineHeight: '1.5' }}>{children}</p>
                         ),
                         ul: ({ children }) => (
                             <ul style={{ marginLeft: '1.5rem', listStyle: 'none', color: '#c0c0c0' }}>
