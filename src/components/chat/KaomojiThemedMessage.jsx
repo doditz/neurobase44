@@ -23,21 +23,27 @@ export default function KaomojiThemedMessage({ content }) {
     : content;
 
     // UNIFIED CYBERPUNK THEME - Midnight Blue background, Orange/Green/Cyan accents
+    // MOBILE-RESPONSIVE: Dynamic sizing based on viewport
     const kaomojiStyle = {
         fontFamily: "'Courier New', 'Monaco', 'Consolas', monospace",
         color: '#FFA500', // Orange text default
         backgroundColor: '#0a0a1a', // Deep midnight blue
-        padding: '1rem',
+        padding: 'clamp(0.5rem, 2vw, 1rem)', // Responsive padding
         borderRadius: '12px',
         border: '1px solid rgba(255, 165, 0, 0.4)',
         boxShadow: '0 0 15px rgba(255, 165, 0, 0.2), 0 0 30px rgba(0, 100, 150, 0.15), inset 0 0 60px rgba(0, 50, 100, 0.1)',
-        lineHeight: '1.7'
+        lineHeight: '1.6',
+        fontSize: 'clamp(0.75rem, 2.5vw, 0.9rem)', // Responsive font size
+        wordBreak: 'break-word',
+        overflowWrap: 'break-word',
+        maxWidth: '100%',
+        overflow: 'hidden'
     };
 
     const headerStyle = {
         color: '#00FF00', // Bright green for headers
         fontWeight: 'bold',
-        fontSize: '1.1em',
+        fontSize: 'clamp(0.9rem, 3vw, 1.1rem)', // Responsive header size
         marginBottom: '0.5rem',
         textShadow: '0 0 8px rgba(0, 255, 0, 0.4)'
     };
@@ -63,11 +69,11 @@ export default function KaomojiThemedMessage({ content }) {
                         h1: ({ children }) => (
                             <div style={{ 
                                 ...headerStyle, 
-                                fontSize: '1.25em', 
+                                fontSize: 'clamp(1rem, 3.5vw, 1.25rem)', 
                                 color: '#00FF00',
                                 borderBottom: '2px solid rgba(255, 165, 0, 0.6)',
                                 paddingBottom: '0.5rem',
-                                marginTop: '1rem',
+                                marginTop: '0.75rem',
                                 textShadow: '0 0 10px rgba(0, 255, 0, 0.5)'
                             }}>
                                 {children}
@@ -77,11 +83,11 @@ export default function KaomojiThemedMessage({ content }) {
                             <div style={{ 
                                 ...headerStyle, 
                                 color: '#00FFFF', // Cyan
-                                fontSize: '1.1em',
-                                marginTop: '1rem',
-                                marginBottom: '0.5rem',
+                                fontSize: 'clamp(0.85rem, 3vw, 1.1rem)',
+                                marginTop: '0.75rem',
+                                marginBottom: '0.4rem',
                                 borderLeft: '3px solid #00FFFF',
-                                paddingLeft: '0.75rem',
+                                paddingLeft: '0.5rem',
                                 textShadow: '0 0 8px rgba(0, 255, 255, 0.4)'
                             }}>
                                 {children}
@@ -91,9 +97,9 @@ export default function KaomojiThemedMessage({ content }) {
                             <div style={{ 
                                 color: '#FFD700', // Gold
                                 fontWeight: 'bold', 
-                                marginTop: '0.75rem',
+                                marginTop: '0.5rem',
                                 marginBottom: '0.25rem',
-                                fontSize: '1em',
+                                fontSize: 'clamp(0.8rem, 2.5vw, 1rem)',
                                 textShadow: '0 0 6px rgba(255, 215, 0, 0.3)'
                             }}>
                                 {children}
