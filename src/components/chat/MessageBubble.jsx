@@ -419,14 +419,14 @@ export default function MessageBubble({ message }) {
     );
     
     return (
-        <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
-            {/* Avatar dot - aligned in same column as messages */}
+        <div className={cn("flex", isUser ? "justify-end" : "justify-start gap-2")}>
+            {/* Avatar dot */}
             {!isUser && (
-                <div className="h-5 w-5 sm:h-6 sm:w-6 rounded-lg bg-slate-700 flex items-center justify-center mb-1 flex-shrink-0">
+                <div className="h-6 w-6 rounded-lg bg-slate-700 flex items-center justify-center mt-1 flex-shrink-0">
                     <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
                 </div>
             )}
-            <div className={cn("max-w-[92%] sm:max-w-[85%] min-w-0 overflow-hidden", isUser && "flex flex-col items-end")}>
+            <div className={cn("max-w-[85%] sm:max-w-[80%] min-w-0 overflow-hidden", isUser && "flex flex-col items-end")}>
                 {/* Tone Indicator for User Messages */}
                 {isUser && toneAnalysis && (
                     <div className="mb-2">
