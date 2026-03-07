@@ -321,7 +321,7 @@ export default function Layout({ children, currentPageName }) {
                 const hasActiveItem = section.items.some(item => location.pathname === item.url);
                 
                 return (
-                  <div key={section.id} className="relative group">
+                  <div key={section.id} className="relative group" data-menu-section>
                     <button
                       onClick={() => toggleSection(section.id)}
                       className={`flex items-center gap-1 px-2 py-1.5 rounded-md transition-colors ${
