@@ -255,6 +255,20 @@ export default function KaomojiThemedMessage({ content }) {
                                 {children}
                             </a>
                         ),
+                        img: ({ src, alt }) => (
+                            <img
+                                src={src}
+                                alt={alt || ''}
+                                style={{
+                                    maxWidth: '100%',
+                                    height: 'auto',
+                                    borderRadius: '8px',
+                                    border: '1px solid rgba(255, 165, 0, 0.3)',
+                                    margin: '6px 0',
+                                    display: 'block'
+                                }}
+                            />
+                        ),
                         blockquote: ({ children }) => (
                             <blockquote style={{
                                 borderLeft: '2px solid #FFA500',
