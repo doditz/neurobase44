@@ -139,13 +139,14 @@ export default function KaomojiThemedMessage({ content }) {
                             }}>{children}</em>
                         ),
                         table: ({ children }) => (
-                            <div style={{ overflowX: 'auto', margin: '1rem 0' }}>
+                            <div style={{ overflowX: 'auto', margin: '8px 0', maxWidth: '100%', WebkitOverflowScrolling: 'touch' }}>
                                 <table style={{
                                     width: '100%',
                                     borderCollapse: 'collapse',
                                     border: '1px solid rgba(0, 255, 255, 0.4)',
                                     backgroundColor: 'rgba(0, 20, 40, 0.5)',
-                                    borderRadius: '6px'
+                                    borderRadius: '6px',
+                                    fontSize: '13px'
                                 }}>
                                     {children}
                                 </table>
@@ -190,17 +191,17 @@ export default function KaomojiThemedMessage({ content }) {
                         code: ({ inline, className, children, ...props }) => {
                             const match = /language-(\w+)/.exec(className || '');
                             return !inline && match ? (
-                                <div style={{ position: 'relative', margin: '0.75rem 0' }}>
+                                <div style={{ position: 'relative', margin: '6px 0', maxWidth: '100%' }}>
                                     <div style={{ 
                                         color: '#00FF00', 
-                                        marginBottom: '0.25rem', 
-                                        fontSize: '0.75em',
+                                        marginBottom: '2px', 
+                                        fontSize: '11px',
                                         opacity: 0.8 
                                     }}>
                                         ⚡ {match[1].toUpperCase()}
                                     </div>
                                     <div style={codeBlockStyle}>
-                                        <pre style={{ margin: 0, color: '#00FF00', fontSize: '0.85em' }}>
+                                        <pre style={{ margin: 0, color: '#00FF00', fontSize: '12px', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>
                                             <code className={className} {...props}>
                                                 {children}
                                             </code>
@@ -228,10 +229,12 @@ export default function KaomojiThemedMessage({ content }) {
                                 <code style={{
                                     backgroundColor: 'rgba(0, 100, 150, 0.25)',
                                     color: '#00FF00',
-                                    padding: '0.15rem 0.4rem',
-                                    borderRadius: '4px',
-                                    fontSize: '0.9em',
-                                    border: '1px solid rgba(0, 255, 0, 0.2)'
+                                    padding: '1px 4px',
+                                    borderRadius: '3px',
+                                    fontSize: '13px',
+                                    fontFamily: "'Courier New', monospace",
+                                    border: '1px solid rgba(0, 255, 0, 0.2)',
+                                    wordBreak: 'break-all'
                                 }}>
                                     {children}
                                 </code>
@@ -254,16 +257,17 @@ export default function KaomojiThemedMessage({ content }) {
                         ),
                         blockquote: ({ children }) => (
                             <blockquote style={{
-                                borderLeft: '3px solid #FFA500',
-                                paddingLeft: '1rem',
-                                marginLeft: '0.5rem',
-                                marginTop: '0.5rem',
-                                marginBottom: '0.5rem',
+                                borderLeft: '2px solid #FFA500',
+                                paddingLeft: '8px',
+                                marginLeft: '4px',
+                                marginTop: '4px',
+                                marginBottom: '4px',
                                 color: '#FFD93D',
                                 fontStyle: 'italic',
                                 backgroundColor: 'rgba(255, 165, 0, 0.05)',
-                                padding: '0.5rem 1rem',
-                                borderRadius: '0 6px 6px 0'
+                                padding: '6px 10px',
+                                borderRadius: '0 6px 6px 0',
+                                fontSize: '14px'
                             }}>
                                 {children}
                             </blockquote>
