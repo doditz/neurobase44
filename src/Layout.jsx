@@ -197,6 +197,21 @@ export default function Layout({ children, currentPageName }) {
     );
   };
 
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (Object.keys(expandedSections).length > 0 && !e.target.closest('[data-menu-section]')) {
+        setExpandedSections({});
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('touchstart', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [expandedSections]);
+
   // Agent indicator configuration
   const agentIndicator = isSunoPage ? {
     icon: Music,
