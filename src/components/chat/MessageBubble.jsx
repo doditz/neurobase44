@@ -419,12 +419,7 @@ export default function MessageBubble({ message }) {
     );
     
     return (
-        <div className={cn("flex gap-1 sm:gap-3", isUser ? "justify-end" : "justify-start")}>
-            {!isUser && (
-                <div className="flex h-5 w-5 sm:h-7 sm:w-7 rounded-lg bg-slate-100 items-center justify-center mt-0.5 flex-shrink-0">
-                    <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
-                </div>
-            )}
+        <div className={cn("flex flex-col", isUser ? "items-end" : "items-start")}>
             <div className={cn("max-w-[92%] sm:max-w-[85%] min-w-0 overflow-hidden", isUser && "flex flex-col items-end")}>
                 {/* Tone Indicator for User Messages */}
                 {isUser && toneAnalysis && (
