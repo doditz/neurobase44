@@ -192,10 +192,9 @@ export default function Layout({ children, currentPageName }) {
   ];
 
   const toggleSection = (sectionId) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [sectionId]: !prev[sectionId]
-    }));
+    setExpandedSections(prev => 
+      prev[sectionId] ? {} : { [sectionId]: true }
+    );
   };
 
   // Agent indicator configuration
