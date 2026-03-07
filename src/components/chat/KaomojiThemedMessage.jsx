@@ -22,39 +22,42 @@ export default function KaomojiThemedMessage({ content }) {
         .replace(/\[SYNTHESIZED RESPONSE\]/g, '# <(^-^)> SYNTHESIZED RESPONSE')
     : content;
 
-    // UNIFIED CYBERPUNK THEME - Midnight Blue background, Orange/Green/Cyan accents
-    // MOBILE-RESPONSIVE: Fixed small font sizes for mobile readability
+    // UNIFIED CYBERPUNK THEME - Android-safe with px units (rem unreliable on Android monospace)
     const kaomojiStyle = {
-        fontFamily: "'Courier New', 'Monaco', 'Consolas', monospace",
-        color: '#FFA500', // Orange text default
-        backgroundColor: '#0a0a1a', // Deep midnight blue
-        padding: '0.75rem',
+        fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+        color: '#FFA500',
+        backgroundColor: '#0a0a1a',
+        padding: '10px',
         borderRadius: '12px',
         border: '1px solid rgba(255, 165, 0, 0.4)',
-        boxShadow: '0 0 15px rgba(255, 165, 0, 0.2)',
+        boxShadow: '0 0 10px rgba(255, 165, 0, 0.15)',
         lineHeight: '1.5',
-        fontSize: '0.8rem', // Fixed small size
+        fontSize: '14px', // px units are consistent cross-platform
         wordBreak: 'break-word',
-        overflowWrap: 'break-word',
+        overflowWrap: 'anywhere',
         maxWidth: '100%',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        boxSizing: 'border-box'
     };
 
     const headerStyle = {
-        color: '#00FF00', // Bright green for headers
+        color: '#00FF00',
         fontWeight: 'bold',
-        fontSize: '0.9rem', // Fixed header size
-        marginBottom: '0.4rem',
-        textShadow: '0 0 8px rgba(0, 255, 0, 0.4)'
+        fontSize: '15px',
+        marginBottom: '4px',
+        textShadow: '0 0 6px rgba(0, 255, 0, 0.3)',
+        wordBreak: 'break-word'
     };
 
     const codeBlockStyle = {
         backgroundColor: '#0d1a2d',
         border: '1px solid rgba(0, 255, 255, 0.3)',
         borderRadius: '6px',
-        padding: '0.75rem',
-        margin: '0.5rem 0',
-        overflow: 'auto'
+        padding: '8px',
+        margin: '6px 0',
+        overflow: 'auto',
+        fontFamily: "'Courier New', monospace",
+        fontSize: '12px'
     };
 
     // Parse content to identify special kaomoji blocks
@@ -69,12 +72,11 @@ export default function KaomojiThemedMessage({ content }) {
                         h1: ({ children }) => (
                             <div style={{ 
                                 ...headerStyle, 
-                                fontSize: '0.95rem', 
+                                fontSize: '16px', 
                                 color: '#00FF00',
-                                borderBottom: '2px solid rgba(255, 165, 0, 0.6)',
-                                paddingBottom: '0.4rem',
-                                marginTop: '0.5rem',
-                                textShadow: '0 0 10px rgba(0, 255, 0, 0.5)'
+                                borderBottom: '1px solid rgba(255, 165, 0, 0.5)',
+                                paddingBottom: '4px',
+                                marginTop: '8px'
                             }}>
                                 {children}
                             </div>
@@ -83,12 +85,11 @@ export default function KaomojiThemedMessage({ content }) {
                             <div style={{ 
                                 ...headerStyle, 
                                 color: '#00FFFF',
-                                fontSize: '0.85rem',
-                                marginTop: '0.5rem',
-                                marginBottom: '0.3rem',
+                                fontSize: '15px',
+                                marginTop: '6px',
+                                marginBottom: '3px',
                                 borderLeft: '2px solid #00FFFF',
-                                paddingLeft: '0.4rem',
-                                textShadow: '0 0 8px rgba(0, 255, 255, 0.4)'
+                                paddingLeft: '6px'
                             }}>
                                 {children}
                             </div>
@@ -97,44 +98,43 @@ export default function KaomojiThemedMessage({ content }) {
                             <div style={{ 
                                 color: '#FFD700',
                                 fontWeight: 'bold', 
-                                marginTop: '0.4rem',
-                                marginBottom: '0.2rem',
-                                fontSize: '0.8rem',
-                                textShadow: '0 0 6px rgba(255, 215, 0, 0.3)'
+                                marginTop: '4px',
+                                marginBottom: '2px',
+                                fontSize: '14px'
                             }}>
                                 {children}
                             </div>
                         ),
                         p: ({ children }) => (
-                            <p style={{ margin: '0.3rem 0', color: '#e0e0e0', fontSize: '0.8rem', lineHeight: '1.5' }}>{children}</p>
+                            <p style={{ margin: '4px 0', color: '#e0e0e0', fontSize: '14px', lineHeight: '1.5' }}>{children}</p>
                         ),
                         ul: ({ children }) => (
-                            <ul style={{ marginLeft: '1.5rem', listStyle: 'none', color: '#c0c0c0' }}>
+                            <ul style={{ marginLeft: '16px', listStyle: 'none', color: '#c0c0c0', fontSize: '14px' }}>
                                 {React.Children.map(children, child => 
-                                    child ? <li style={{ margin: '0.3rem 0', paddingLeft: '0.5rem', borderLeft: '2px solid rgba(255, 165, 0, 0.3)' }}>{child.props?.children}</li> : null
+                                    child ? <li style={{ margin: '3px 0', paddingLeft: '6px', borderLeft: '2px solid rgba(255, 165, 0, 0.3)' }}>{child.props?.children}</li> : null
                                 )}
                             </ul>
                         ),
                         ol: ({ children }) => (
-                            <ol style={{ marginLeft: '1.5rem', color: '#c0c0c0', listStyle: 'decimal' }}>
+                            <ol style={{ marginLeft: '16px', color: '#c0c0c0', listStyle: 'decimal', fontSize: '14px' }}>
                                 {children}
                             </ol>
                         ),
                         li: ({ children }) => (
-                            <li style={{ margin: '0.3rem 0', color: '#d0d0d0' }}>{children}</li>
+                            <li style={{ margin: '3px 0', color: '#d0d0d0', fontSize: '14px' }}>{children}</li>
                         ),
                         strong: ({ children }) => (
                             <strong style={{ 
-                                color: '#FF6B6B', // Red for emphasis
+                                color: '#FF6B6B',
                                 backgroundColor: 'rgba(255, 107, 107, 0.15)',
-                                padding: '0.1rem 0.4rem',
+                                padding: '1px 4px',
                                 borderRadius: '3px',
                                 fontWeight: '600'
                             }}>{children}</strong>
                         ),
                         em: ({ children }) => (
                             <em style={{ 
-                                color: '#FFD93D', // Yellow/gold for italics
+                                color: '#FFD93D',
                                 fontStyle: 'italic'
                             }}>{children}</em>
                         ),

@@ -493,7 +493,7 @@ export default function ChatInterface({
     };
 
     return (
-        <div className="flex-1 flex flex-col h-full bg-slate-900">
+        <div className="flex-1 flex flex-col h-full min-h-0 bg-slate-900 overflow-hidden">
             {/* Resource Monitor Bar */}
             <ResourceMonitorBar
                 processingTime={processingTime}
@@ -599,8 +599,8 @@ export default function ChatInterface({
                 </div>
             )}
             
-            <ScrollArea className="flex-1 p-2 sm:p-4" ref={scrollAreaRef}>
-                <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
+            <ScrollArea className="flex-1 min-h-0 p-2 sm:p-4" ref={scrollAreaRef}>
+                <div className="space-y-3 sm:space-y-4 max-w-4xl mx-auto w-full overflow-hidden">
                     {welcomeMessage && messages.length === 0 && (
                         <div className="p-4 bg-slate-800 rounded-lg border border-slate-600">
                             <p className="text-green-300">{welcomeMessage}</p>

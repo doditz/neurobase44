@@ -425,7 +425,7 @@ export default function MessageBubble({ message }) {
                     <div className="h-1.5 w-1.5 rounded-full bg-slate-400" />
                 </div>
             )}
-            <div className={cn("max-w-[95%] sm:max-w-[85%] min-w-0", isUser && "flex flex-col items-end")}>
+            <div className={cn("max-w-[92%] sm:max-w-[85%] min-w-0 overflow-hidden", isUser && "flex flex-col items-end")}>
                 {/* Tone Indicator for User Messages */}
                 {isUser && toneAnalysis && (
                     <div className="mb-2">
@@ -448,7 +448,7 @@ export default function MessageBubble({ message }) {
                 {/* Message Content */}
                 {message.content && (
                     <div className={cn(
-                        "rounded-2xl px-4 py-2.5",
+                        "rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 max-w-full overflow-hidden",
                         isUser ? "bg-slate-800 text-white" : isKaomojiThemed ? "" : "bg-white border border-slate-200"
                     )}>
                         {isUser ? (
