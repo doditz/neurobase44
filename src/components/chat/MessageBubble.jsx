@@ -419,14 +419,25 @@ export default function MessageBubble({ message }) {
     );
     
     return (
-        <div className={cn("flex", isUser ? "justify-end" : "justify-start gap-2")}>
-            {/* Avatar dot */}
+        <div className="flex flex-col w-full">
+            {/* Avatar dot - inline before message */}
             {!isUser && (
-                <div className="h-6 w-6 rounded-lg bg-slate-700 flex items-center justify-center mt-1 flex-shrink-0">
-                    <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                <div className="flex items-center gap-1.5 mb-1">
+                    <div className="h-5 w-5 rounded-lg bg-slate-700 flex items-center justify-center flex-shrink-0">
+                        <div className="h-1.5 w-1.5 rounded-full bg-green-400" />
+                    </div>
+                    <span className="text-xs text-slate-500">Neuronas</span>
                 </div>
             )}
-            <div className={cn("max-w-[85%] sm:max-w-[80%] min-w-0 overflow-hidden", isUser && "flex flex-col items-end")}>
+            {isUser && (
+                <div className="flex items-center gap-1.5 mb-1">
+                    <div className="h-5 w-5 rounded-lg bg-slate-600 flex items-center justify-center flex-shrink-0">
+                        <div className="h-1.5 w-1.5 rounded-full bg-blue-400" />
+                    </div>
+                    <span className="text-xs text-slate-500">You</span>
+                </div>
+            )}
+            <div className="w-full min-w-0 overflow-hidden">
                 {/* Tone Indicator for User Messages */}
                 {isUser && toneAnalysis && (
                     <div className="mb-2">
