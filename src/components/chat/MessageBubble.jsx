@@ -437,7 +437,7 @@ export default function MessageBubble({ message }) {
                     <span className="text-xs text-slate-500">You</span>
                 </div>
             )}
-            <div className="w-full min-w-0">
+            <div className="w-full min-w-0 overflow-x-hidden">
                 {/* Tone Indicator for User Messages */}
                 {isUser && toneAnalysis && (
                     <div className="mb-2">
