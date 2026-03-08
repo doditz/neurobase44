@@ -1,11 +1,80 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 /**
- * QRONAS Engine v7.0 - Optimized for Speed
+ * QRONAS Engine v8.0 - Google AI Compatible
+ * - Google Gemini as primary LLM provider
+ * - Base44 InvokeLLM as fallback
  * - Direct DB access for personas
  * - Parallel LLM calls
  * - Inline dynamics calculations
+ * 
+ * CHANGELOG:
+ * v8.0 - Added Google AI integration with fallback
+ * v7.0 - Optimized for speed
  */
+
+const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+/**
+ * LLM Provider abstraction - tries Google Gemini first, falls back to Base44.
+ * @param {object} base44 - Base44 SDK instance
+ * @param {object} params - { prompt, temperature, file_urls }
+ * @returns {Promise<string>} Generated text
+ */
+async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls }) {
+    // Try Google Gemini first if API key is configured
+    if (GOOGLE_AI_API_KEY) {
+        try {
+            const parts = [{ text: prompt }];
+            
+            // Add vision parts if file_urls provided
+            if (file_urls && file_urls.length > 0) {
+                for (const url of file_urls) {
+                    try {
+                        const response = await fetch(url);
+                        const buffer = await response.arrayBuffer();
+                        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                        const contentType = response.headers.get('content-type') || 'image/jpeg';
+                        parts.push({ inline_data: { mime_type: contentType, data: base64 } });
+                    } catch (e) {
+                        console.warn(`[QRONAS] Vision fetch failed: ${e.message}`);
+                    }
+                }
+            }
+
+            const requestBody = {
+                contents: [{ parts }],
+                generationConfig: { temperature, maxOutputTokens: 4096 }
+            };
+
+            const endpoint = `${GEMINI_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_AI_API_KEY}`;
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                    console.log('[QRONAS] Using Google Gemini');
+                    return text;
+                }
+            }
+            console.warn(`[QRONAS] Gemini failed (${response.status}), falling back to Base44`);
+        } catch (e) {
+            console.warn(`[QRONAS] Gemini error: ${e.message}, falling back to Base44`);
+        }
+    }
+
+    // Fallback to Base44 InvokeLLM
+    const llmParams = { prompt, temperature };
+    if (file_urls?.length > 0) llmParams.file_urls = file_urls;
+    return await base44.integrations.Core.InvokeLLM(llmParams);
+}
 
 Deno.serve(async (req) => {
     const startTime = Date.now();
@@ -133,7 +202,7 @@ Provide your perspective in ${150 - round * 30} words. Round ${round + 1}.`;
                         llmParams.file_urls = file_urls;
                     }
                     
-                    const response = await base44.integrations.Core.InvokeLLM(llmParams);
+                    const response = await invokeLLM(base44, llmParams);
                     return { persona: persona.name, response, success: true };
                 } catch (e) {
                     return { persona: persona.name, response: `Error: ${e.message}`, success: false };
@@ -218,7 +287,7 @@ Create the FINAL response by:
 Respond directly with the final output (no meta-commentary).`;
         }
 
-        const synthesis = await base44.integrations.Core.InvokeLLM({
+        const synthesis = await invokeLLM(base44, {
             prompt: synthesisPrompt,
             temperature: isSunoAgent ? 0.8 : temperature * 0.9
         });
