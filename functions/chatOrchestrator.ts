@@ -1,11 +1,96 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 /**
- * CHAT ORCHESTRATOR v12.1 - Agent Instructions Propagation (FIXED)
+ * CHAT ORCHESTRATOR v13.0 - Google AI Compatible
+ * - Google Gemini as primary LLM provider with Base44 fallback
  * - Loads agent-specific instructions from agent JSON files
  * - Passes instructions to qronasEngine for persona context
  * - Conditional memory system execution
+ * 
+ * CHANGELOG:
+ * v13.0 - Added Google Gemini integration with automatic fallback
+ * v12.1 - Agent instructions propagation fix
  */
+
+const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+/**
+ * LLM Provider abstraction - tries Google Gemini first, falls back to Base44.
+ * Supports text, vision, JSON schema output, and web search grounding.
+ * @param {object} base44 - Base44 SDK instance
+ * @param {object} params - { prompt, temperature, file_urls, add_context_from_internet, response_json_schema }
+ * @returns {Promise<string|object>} Generated text or parsed JSON
+ */
+async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls, add_context_from_internet, response_json_schema }) {
+    if (GOOGLE_AI_API_KEY) {
+        try {
+            const parts = [{ text: prompt }];
+
+            // Vision support
+            if (file_urls && file_urls.length > 0) {
+                for (const url of file_urls) {
+                    try {
+                        const resp = await fetch(url);
+                        const buffer = await resp.arrayBuffer();
+                        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                        const mime = resp.headers.get('content-type') || 'image/jpeg';
+                        parts.push({ inline_data: { mime_type: mime, data: base64 } });
+                    } catch (e) {
+                        console.warn(`[ChatOrch] Vision fetch failed: ${e.message}`);
+                    }
+                }
+            }
+
+            const requestBody = {
+                contents: [{ parts }],
+                generationConfig: { temperature, maxOutputTokens: 8192 }
+            };
+
+            // JSON schema output
+            if (response_json_schema) {
+                requestBody.generationConfig.responseMimeType = 'application/json';
+                requestBody.generationConfig.responseSchema = response_json_schema;
+            }
+
+            // Web search grounding
+            if (add_context_from_internet) {
+                requestBody.tools = [{ google_search: {} }];
+            }
+
+            const endpoint = `${GEMINI_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_AI_API_KEY}`;
+            const response = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(requestBody)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                    console.log('[ChatOrch] Using Google Gemini');
+                    if (response_json_schema) {
+                        try { return JSON.parse(text); } catch { return text; }
+                    }
+                    return text;
+                }
+            }
+            console.warn(`[ChatOrch] Gemini failed (${response.status}), falling back to Base44`);
+        } catch (e) {
+            console.warn(`[ChatOrch] Gemini error: ${e.message}, falling back to Base44`);
+        }
+    }
+
+    // Fallback to Base44 InvokeLLM
+    const llmParams = { prompt };
+    if (temperature) llmParams.temperature = temperature;
+    if (file_urls?.length > 0) llmParams.file_urls = file_urls;
+    if (add_context_from_internet) llmParams.add_context_from_internet = true;
+    if (response_json_schema) llmParams.response_json_schema = response_json_schema;
+    return await base44.integrations.Core.InvokeLLM(llmParams);
+}
 
 Deno.serve(async (req) => {
     const logs = [];
@@ -315,7 +400,7 @@ After providing the prompt, briefly explain your creative choices.`
             
             if (factualKeywords || complexity_score >= 0.6) {
                 try {
-                    const searchResult = await base44.integrations.Core.InvokeLLM({
+                    const searchResult = await invokeLLM(base44, {
                         prompt: `Research: ${user_message}. Include sources.`,
                         add_context_from_internet: true
                     });
@@ -500,7 +585,7 @@ After providing the prompt, briefly explain your creative choices.`
                     if (file_urls && file_urls.length > 0) {
                         fallbackParams.file_urls = file_urls;
                     }
-                    masterSynthesis = await base44.integrations.Core.InvokeLLM(fallbackParams);
+                    masterSynthesis = await invokeLLM(base44, fallbackParams);
                 } catch (llmError) {
                     logManager.error(`Simple LLM also failed: ${llmError.message}`);
                     throw new Error(`Échec de génération de réponse: ${llmError.message}`);
@@ -521,7 +606,7 @@ After providing the prompt, briefly explain your creative choices.`
                     logManager.info('🖼️ Vision mode activated', { files: file_urls.length });
                 }
                 
-                masterSynthesis = await base44.integrations.Core.InvokeLLM(llmParams);
+                masterSynthesis = await invokeLLM(base44, llmParams);
             } catch (llmError) {
                 logManager.error(`Simple LLM failed: ${llmError.message}`);
                 throw new Error(`Échec de génération de réponse: ${llmError.message}`);
