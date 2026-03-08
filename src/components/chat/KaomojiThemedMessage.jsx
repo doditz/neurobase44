@@ -32,11 +32,13 @@ export default function KaomojiThemedMessage({ content }) {
         border: '1px solid rgba(255, 165, 0, 0.4)',
         boxShadow: '0 0 10px rgba(255, 165, 0, 0.15)',
         lineHeight: '1.5',
-        fontSize: '14px', // px units are consistent cross-platform
+        fontSize: '14px',
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
+        width: '100%',
         maxWidth: '100%',
-        boxSizing: 'border-box'
+        boxSizing: 'border-box',
+        overflowX: 'hidden'
     };
 
     const headerStyle = {
@@ -108,14 +110,14 @@ export default function KaomojiThemedMessage({ content }) {
                             <p style={{ margin: '4px 0', color: '#e0e0e0', fontSize: '14px', lineHeight: '1.5' }}>{children}</p>
                         ),
                         ul: ({ children }) => (
-                            <ul style={{ marginLeft: '16px', listStyle: 'none', color: '#c0c0c0', fontSize: '14px' }}>
+                            <ul style={{ marginLeft: '8px', listStyle: 'none', color: '#c0c0c0', fontSize: '14px' }}>
                                 {React.Children.map(children, child => 
                                     child ? <li style={{ margin: '3px 0', paddingLeft: '6px', borderLeft: '2px solid rgba(255, 165, 0, 0.3)' }}>{child.props?.children}</li> : null
                                 )}
                             </ul>
                         ),
                         ol: ({ children }) => (
-                            <ol style={{ marginLeft: '16px', color: '#c0c0c0', listStyle: 'decimal', fontSize: '14px' }}>
+                            <ol style={{ marginLeft: '8px', color: '#c0c0c0', listStyle: 'decimal', fontSize: '14px' }}>
                                 {children}
                             </ol>
                         ),
@@ -272,7 +274,8 @@ export default function KaomojiThemedMessage({ content }) {
                             <blockquote style={{
                                 borderLeft: '2px solid #FFA500',
                                 paddingLeft: '8px',
-                                marginLeft: '4px',
+                                marginLeft: '0',
+                                marginRight: '0',
                                 marginTop: '4px',
                                 marginBottom: '4px',
                                 color: '#FFD93D',
@@ -280,7 +283,8 @@ export default function KaomojiThemedMessage({ content }) {
                                 backgroundColor: 'rgba(255, 165, 0, 0.05)',
                                 padding: '6px 10px',
                                 borderRadius: '0 6px 6px 0',
-                                fontSize: '14px'
+                                fontSize: '14px',
+                                boxSizing: 'border-box'
                             }}>
                                 {children}
                             </blockquote>
