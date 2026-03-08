@@ -437,7 +437,7 @@ export default function MessageBubble({ message }) {
                     <span className="text-xs text-slate-500">You</span>
                 </div>
             )}
-            <div className="w-full min-w-0 overflow-hidden">
+            <div className="w-full min-w-0">
                 {/* Tone Indicator for User Messages */}
                 {isUser && toneAnalysis && (
                     <div className="mb-2">
@@ -460,7 +460,7 @@ export default function MessageBubble({ message }) {
                 {/* Message Content */}
                 {message.content && (
                     <div className={cn(
-                        "rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 max-w-full overflow-hidden",
+                        "rounded-2xl px-3 py-2 sm:px-4 sm:py-2.5 w-full",
                         isUser ? "bg-slate-800 text-white" : isKaomojiThemed ? "" : "bg-white border border-slate-200"
                     )}>
                         {isUser ? (

@@ -36,7 +36,6 @@ export default function KaomojiThemedMessage({ content }) {
         wordBreak: 'break-word',
         overflowWrap: 'anywhere',
         maxWidth: '100%',
-        overflow: 'hidden',
         boxSizing: 'border-box'
     };
 
