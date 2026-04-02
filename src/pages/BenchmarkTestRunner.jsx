@@ -63,7 +63,7 @@ export default function BenchmarkTestRunnerPage() {
         setIsSingleTestRunning(true);
         setTestResults(null);
 
-        if (runLogs.length > 0) {
+        if (loggerRef.current.getFormattedLogs().length > 0) {
             addLog('SYSTEM', '────────────────────────────────────────');
         }
         addLog('SYSTEM', `🚀 SINGLE TEST: ${selectedQuestion.question_id}`);
@@ -109,7 +109,7 @@ export default function BenchmarkTestRunnerPage() {
         setIsBatchRunning(true);
         setBatchResults([]);
 
-        if (runLogs.length > 0) {
+        if (loggerRef.current.getFormattedLogs().length > 0) {
             addLog('SYSTEM', '────────────────────────────────────────');
         }
         addLog('SYSTEM', `🚀 BATCH START: ${questions.length} questions (~${Math.ceil(questions.length * 30 / 60)} min)`);
