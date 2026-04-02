@@ -95,7 +95,7 @@ export default function NeuronasGauntletPage() {
         }
 
         try {
-            if (runLogs.length > 0) {
+            if (loggerRef.current.getFormattedLogs().length > 0) {
                 addLog('SYSTEM', '────────────────────────────────────────');
             }
             addLog('SYSTEM', `🚀 GAUNTLET START: ${questionArray.length} questions`);
@@ -245,7 +245,7 @@ export default function NeuronasGauntletPage() {
                                     </>
                                 )}
                             </Button>
-                            {runLogs.length > 0 && (
+                            {loggerRef.current.getFormattedLogs().length > 0 && (
                                 <Button
                                     onClick={clearLogs}
                                     variant="outline"
