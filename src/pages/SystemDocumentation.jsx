@@ -47,10 +47,10 @@ export default function SystemDocumentationPage() {
                 <div className="text-center mb-8">
                     <h1 className="text-4xl font-bold text-green-400 mb-2 flex items-center justify-center gap-3">
                         <BookOpen className="w-10 h-10" />
-                        System Documentation
+                        Cognitronic OS — Documentation
                     </h1>
                     <p className="text-slate-400">
-                        Guide complet du système de diagnostic autonome Neuronas
+                        Guide complet du Cognitronic Computing — Cognitive OS pour LLM
                     </p>
                 </div>
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Persona } from '@/entities/Persona';
 import { Input } from '@/components/ui/input';
@@ -124,7 +123,7 @@ export default function PersonasPage() {
                     <div className="flex items-center justify-between mb-4">
                         <div className="flex items-center gap-3">
                             <Brain className="w-8 h-8 text-indigo-400" />
-                            <h1 className="text-3xl font-bold text-slate-50">Neuronas AI Personas</h1>
+                            <h1 className="text-3xl font-bold text-slate-50">Cognitronic Personas</h1>
                         </div>
                         <Button onClick={loadPersonas} variant="outline" size="sm" className="bg-slate-800 text-slate-200 border-slate-700 hover:bg-slate-700 hover:text-slate-50">
                             <RefreshCw className="w-4 h-4 mr-2" />
@@ -132,7 +131,7 @@ export default function PersonasPage() {
                         </Button>
                     </div>
                     <p className="text-slate-300 mb-6">
-                        Comprehensive ecosystem of specialized AI personas for advanced multi-agent debate and reasoning.
+                        Comprehensive ecosystem of specialized AI personas for Cognitronic Computing multi-agent debate and reasoning.
                     </p>
 
                     {/* Stats */}

@@ -201,7 +201,7 @@ export default function ChatPage() {
                 agentName="smas_debater"
                 initialConversationId={activeConversation && activeConversation.conversation_id !== 'pending' ? activeConversation.conversation_id : null}
                 onConversationCreated={(conversationId) => updateConversationId(activeConversation?.id, conversationId)}
-                welcomeMessage={activeConversation ? `**${activeConversation.topic || activeConversation.title}**\n\nJe suis votre assistant Neuronas AI avec accès à 200+ personas spécialisées. Que souhaitez-vous explorer aujourd'hui ?` : "Je suis votre assistant Neuronas AI. De quoi souhaitez-vous discuter ?"}
+                welcomeMessage={activeConversation ? `**${activeConversation.topic || activeConversation.title}**\n\nJe suis votre assistant Cognitronic OS avec accès à 200+ personas spécialisées. Que souhaitez-vous explorer aujourd'hui ?` : "Je suis votre assistant Cognitronic OS. De quoi souhaitez-vous discuter ?"}
                 settings={settings}
                 autoStart={true}
                 debateRecord={activeConversation}

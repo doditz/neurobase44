@@ -20,10 +20,10 @@ const menuSections = [
   },
   {
     id: "ai",
-    title: "AI Chat",
+    title: "Cognitive Interface",
     icon: MessageSquare,
     items: [
-      { title: "SMAS Chat", url: createPageUrl("Chat"), icon: MessageSquare },
+      { title: "Cognitive Chat", url: createPageUrl("Chat"), icon: MessageSquare },
       { title: "Suno AI", url: createPageUrl("Suno"), icon: Music },
       { title: "Perplexity", url: createPageUrl("PerplexityHistory"), icon: Search }
     ]
@@ -33,7 +33,7 @@ const menuSections = [
     title: "Personas",
     icon: Users,
     items: [
-      { title: "SMAS Personas", url: createPageUrl("Personas"), icon: Users },
+      { title: "Cognitronic Personas", url: createPageUrl("Personas"), icon: Users },
       { title: "Suno Personas", url: createPageUrl("SunoPersonas"), icon: Music }
     ]
   },
@@ -58,7 +58,7 @@ const menuSections = [
   },
   {
     id: "devtest",
-    title: "Dev Tests",
+    title: "Cognitronic Lab",
     icon: FlaskConical,
     items: [
       { title: "Tests Dev", url: createPageUrl("DevTest"), icon: FlaskConical },
@@ -119,7 +119,7 @@ const adminMenuSections = [
   },
   {
     id: "admin-system",
-    title: "System Admin",
+    title: "Kernel Admin",
     icon: Activity,
     adminOnly: true,
     items: [
@@ -130,7 +130,7 @@ const adminMenuSections = [
       { title: "Docs", url: createPageUrl("SystemDocumentation"), icon: BookOpen, adminOnly: true },
       { title: "Auto-Opt", url: createPageUrl("AutoOptimization"), icon: Zap, adminOnly: true },
       { title: "Test DSTIB", url: createPageUrl("AutoOptimizationTest"), icon: Zap, adminOnly: true },
-      { title: "Cleanup", url: createPageUrl("PersonaCleanup"), icon: Trash2, adminOnly: true }
+
     ]
   }
 ];
@@ -221,7 +221,7 @@ export default function Layout({ children, currentPageName }) {
     borderColor: 'border-purple-600/50'
   } : isChatPage ? {
     icon: MessageSquare,
-    label: 'SMAS Chat',
+    label: 'Cognitive OS',
     color: 'text-green-400',
     bgColor: 'bg-green-900/30',
     borderColor: 'border-green-600/50'
@@ -257,7 +257,7 @@ export default function Layout({ children, currentPageName }) {
                 <div className="w-7 h-7 bg-gradient-to-br from-emerald-600 to-green-600 rounded-lg flex items-center justify-center">
                   <Brain className="w-4 h-4 text-slate-900" />
                 </div>
-                <h2 className="font-semibold text-green-400 text-sm hidden sm:block">Neuronas AI</h2>
+                <h2 className="font-semibold text-green-400 text-sm hidden sm:block">Cognitronic OS</h2>
               </Link>
 
               {/* NEW: Agent Indicator Badge */}
@@ -494,7 +494,7 @@ export default function Layout({ children, currentPageName }) {
               <SheetHeader className="p-3 border-b border-slate-700">
                 <SheetTitle className="text-green-400 text-sm flex items-center gap-2">
                   <Settings className="w-4 h-4" />
-                  {isSunoPage ? 'Suno Settings' : 'SMAS Settings'}
+                  {isSunoPage ? 'Suno Settings' : 'Cognitronic Settings'}
                 </SheetTitle>
               </SheetHeader>
               <div className="h-[calc(100%-60px)] overflow-y-auto">
