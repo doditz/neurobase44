@@ -94,7 +94,7 @@ export default function BenchmarkRunner() {
         setCurrentIndex(0);
         
         // Add separator for new batch run
-        if (runLogs.length > 0) {
+        if (loggerRef.current.getFormattedLogs().length > 0) {
             addLog('SYSTEM', '────────────────────────────────────────');
         }
         addLog('SYSTEM', `🚀 BATCH START: ${questions.length} questions`);
