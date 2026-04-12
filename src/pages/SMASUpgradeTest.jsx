@@ -74,7 +74,7 @@ export default function SMASUpgradeTest() {
                                     </>
                                 )}
                             </Button>
-                            {allLogs.length > 0 && (
+                            {loggerRef.current.getFormattedLogs().length > 0 && (
                                 <Button
                                     onClick={clearLogs}
                                     variant="outline"

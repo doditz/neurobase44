@@ -17,6 +17,7 @@ import CitationBadge from './CitationBadge';
 import DebateAnalysisDisplay from './DebateAnalysisDisplay';
 import ExternalSourcesBadge from './ExternalSourcesBadge';
 import KaomojiThemedMessage from './KaomojiThemedMessage';
+import ToneIndicator from './ToneIndicator';
 
 const FunctionDisplay = ({ toolCall }) => {
     const [expanded, setExpanded] = useState(false);

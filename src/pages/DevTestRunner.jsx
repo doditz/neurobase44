@@ -105,7 +105,7 @@ export default function DevTestRunner() {
         setResults([]);
         setCurrentIndex(0);
 
-        if (runLogs.length > 0) {
+        if (loggerRef.current.getFormattedLogs().length > 0) {
             addLog('SYSTEM', '────────────────────────────────────────');
         }
         addLog('SYSTEM', `🚀 DEV BATCH START: ${questions.length} questions`);
