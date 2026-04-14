@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.25';
 
 /**
  * PIPELINE TEST RUNNER - Autonomous Pipeline Validation
@@ -218,12 +218,12 @@ Deno.serve(async (req) => {
                 dopamine_t: qronasResult?.smas_dynamics?.final_D_t || 0.5
             });
             
-            if (data.success && data.bronas_score !== undefined) {
+            if (data.success && data.ethics_score !== undefined) {
                 bronasResult = data;
                 log('SUCCESS', 'BRONAS', '✅ BRONAS test passed', {
-                    bronas_score: data.bronas_score,
-                    validation_passed: data.validation_passed,
-                    ethical_checkpoints: data.ethical_checkpoint_status,
+                    ethics_score: data.ethics_score,
+                    status: data.status,
+                    bias_score: data.bias_score,
                     smrce_breakdown: data.smrce_breakdown
                 });
                 testResults.passed++;
@@ -379,8 +379,9 @@ Deno.serve(async (req) => {
                 dynamics: qronasResult.smas_dynamics
             } : null,
             bronas_output: bronasResult ? {
-                score: bronasResult.bronas_score,
-                passed: bronasResult.validation_passed
+                ethics_score: bronasResult.ethics_score,
+                status: bronasResult.status,
+                bias_score: bronasResult.bias_score
             } : null,
             validator_output: validatorResult ? {
                 verdict: validatorResult.verdict,
