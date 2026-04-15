@@ -5,7 +5,7 @@ import { ResourceUsage } from '@/entities/ResourceUsage';
 import { UserBudget } from '@/entities/UserBudget';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown, Activity, Sparkles, AlertTriangle } from 'lucide-react';
+import { Send, Loader2, CornerDownLeft, Bot, AlertCircle, RefreshCw, Clock, Paperclip, X, FileText, Image as ImageIcon, FileCode, Eye, Brain, Users, Zap, MessageSquare, Download, Database, ChevronUp, ChevronDown, Activity, Sparkles, AlertTriangle, Square } from 'lucide-react';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
@@ -72,6 +72,7 @@ export default function ChatInterface({
     const fileInputRef = useRef(null);
     const conversationRef = useRef(null);
     const processingTimerRef = useRef(null);
+    const abortControllerRef = useRef(null);
 
     useEffect(() => {
         conversationRef.current = conversation;
@@ -189,6 +190,23 @@ export default function ChatInterface({
         if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
         return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     };
+
+    // Stop generation handler
+    const handleStopGeneration = useCallback(() => {
+        if (abortControllerRef.current) {
+            abortControllerRef.current.abort();
+            abortControllerRef.current = null;
+        }
+        setIsSending(false);
+        setIsLoading(false);
+        setProcessingPhase('');
+        setProcessingTime(0);
+        if (processingTimerRef.current) {
+            clearInterval(processingTimerRef.current);
+            processingTimerRef.current = null;
+        }
+        toast.info('Génération arrêtée');
+    }, []);
 
     // Send message via chatOrchestrator
     const handleSendMessage = async () => {
@@ -737,14 +755,25 @@ export default function ChatInterface({
                                     <Paperclip className="h-4 w-4" />
                                 )}
                             </Button>
-                            <Button
-                                size="icon"
-                                onClick={handleSendMessage}
-                                disabled={!canSendMessage}
-                                className="h-8 w-8 bg-orange-600 hover:bg-orange-700"
-                            >
-                                {isSending || isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                            </Button>
+                            {isSending || isLoading ? (
+                                <Button
+                                    size="icon"
+                                    onClick={handleStopGeneration}
+                                    className="h-8 w-8 bg-red-600 hover:bg-red-700 animate-pulse"
+                                    title="Arrêter la génération"
+                                >
+                                    <Square className="h-3.5 w-3.5 fill-current" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    size="icon"
+                                    onClick={handleSendMessage}
+                                    disabled={!canSendMessage}
+                                    className="h-8 w-8 bg-orange-600 hover:bg-orange-700"
+                                >
+                                    <Send className="h-4 w-4" />
+                                </Button>
+                            )}
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-2 gap-2">
