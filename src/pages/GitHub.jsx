@@ -20,10 +20,12 @@ import {
     Key,
     Eye,
     EyeOff,
-    Trash2, // Added for remove button
-    XCircle // Added for write permission warning
+    Trash2,
+    XCircle,
+    GitCommit
 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
+import CommitHistory from '@/components/github/CommitHistory';
 
 export default function GitHubPage() {
     const [user, setUser] = useState(null);
@@ -35,6 +37,7 @@ export default function GitHubPage() {
     const [isPrivate, setIsPrivate] = useState(false);
     const [showToken, setShowToken] = useState(false);
     const [integrationType, setIntegrationType] = useState('personal_token');
+    const [activeRepoForHistory, setActiveRepoForHistory] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -356,6 +359,14 @@ export default function GitHubPage() {
                                         <div className="flex gap-2">
                                             <Button
                                                 size="sm"
+                                                onClick={() => setActiveRepoForHistory(integration)}
+                                                className="bg-green-600 hover:bg-green-700"
+                                            >
+                                                <GitCommit className="w-4 h-4 mr-2" />
+                                                Commits
+                                            </Button>
+                                            <Button
+                                                size="sm"
                                                 onClick={() => startDebateFromRepo(integration)}
                                                 className="bg-orange-600 hover:bg-orange-700"
                                             >
@@ -384,6 +395,26 @@ export default function GitHubPage() {
                             </div>
                         </CardContent>
                     </Card>
+                )}
+
+                {/* Commit History Panel */}
+                {activeRepoForHistory && (
+                    <div className="mb-6">
+                        <div className="flex items-center justify-between mb-3">
+                            <h2 className="text-xl font-semibold text-green-300">
+                                Commit History: {activeRepoForHistory.repository_name}
+                            </h2>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setActiveRepoForHistory(null)}
+                                className="border-slate-600 text-slate-400"
+                            >
+                                Close
+                            </Button>
+                        </div>
+                        <CommitHistory integration={activeRepoForHistory} />
+                    </div>
                 )}
 
                 {/* Features Overview */}
