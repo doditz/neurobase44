@@ -191,8 +191,9 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
         let citations = [];
         let webSearchContext = '';
         let webSearchExecuted = false;
-        const factualSignals = /what is|who is|when|how many|where|why|define|explain|research|study|evidence|source|fact|data|statistics|latest|recent|current|news|report|leaked|benchmark|open[- ]?source|model|license|claim|announce|release|today|verify|true|rumor/i.test(user_message);
-        const shouldSearch = !isSuno && (settings.forceWebSearch === true || factualSignals || complexity >= 0.4);
+        // MANDATORY: web search is now forced for EVERY non-Suno task (enforced policy).
+        // Suno (music prompt builder) is excluded — grounding/debate are irrelevant there.
+        const shouldSearch = !isSuno;
         if (shouldSearch) {
             try {
                 const { text, citations: found } = await groundedWebSearch(base44, user_message);
@@ -225,9 +226,9 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
         let personasUsed = [];
         let debateRoundsExecuted = 0;
 
-        // If web search ran (factual/news/ethical query), force the full debate path so the
-        // grounded facts are actually debated and a position is taken — never a plain summary.
-        const forceFullDebate = webSearchExecuted;
+        // MANDATORY: the full SMAS debate path is now enforced for EVERY non-Suno task.
+        // Fast/medium shortcuts are disabled by policy so every answer is debated + grounded.
+        const forceFullDebate = !isSuno;
 
         if (isSimpleQuery && !isSuno && !forceFullDebate) {
             // ===== FAST PATH: Direct LLM call =====

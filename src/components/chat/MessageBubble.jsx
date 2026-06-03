@@ -18,6 +18,7 @@ import DebateAnalysisDisplay from './DebateAnalysisDisplay';
 import ExternalSourcesBadge from './ExternalSourcesBadge';
 import KaomojiThemedMessage from './KaomojiThemedMessage';
 import ToneIndicator from './ToneIndicator';
+import AuditLogPanel from './AuditLogPanel';
 
 const FunctionDisplay = ({ toolCall }) => {
     const [expanded, setExpanded] = useState(false);
@@ -559,6 +560,11 @@ export default function MessageBubble({ message }) {
                 {/* Debate Metrics Display */}
                 {!isUser && message.metadata && (metadata.debate_rounds_executed > 0 || metadata.personas_used) && (
                     <DebateMetricsDisplay metadata={message.metadata} />
+                )}
+
+                {/* Full NEURONAS audit log + cognitive metrics + debate transcript */}
+                {!isUser && (
+                    <AuditLogPanel metadata={message.metadata} />
                 )}
 
                 {/* 🔥 NEW: Rich metadata display for assistant messages */}

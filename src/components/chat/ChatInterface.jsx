@@ -374,11 +374,17 @@ export default function ChatInterface({
                 }
             }
 
-            // Add assistant response with progressive reveal
+            // Add assistant response with progressive reveal.
+            // Enrich metadata with the orchestrator audit log + debate transcript so the
+            // MessageBubble can render the full audit trail and cognitive metrics inline.
             const assistantMsg = {
                 role: 'assistant',
                 content: data.response,
-                metadata: data.metadata,
+                metadata: {
+                    ...data.metadata,
+                    audit_logs: data.logs || [],
+                    debate_history: data.debate_history || []
+                },
                 id: `asst-${Date.now()}`,
                 progressive: true
             };
