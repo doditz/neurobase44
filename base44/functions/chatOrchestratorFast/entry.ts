@@ -225,6 +225,7 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
         let debateHistory = [];
         let personasUsed = [];
         let debateRoundsExecuted = 0;
+        let debateMethod = 'standard';
 
         // MANDATORY: the full SMAS debate path is now enforced for EVERY non-Suno task.
         // Fast/medium shortcuts are disabled by policy so every answer is debated + grounded.
@@ -297,8 +298,45 @@ Synthesize these insights into a coherent, helpful response.`;
                 temperature: settings.temperature || 0.7
             });
 
+        } else if (!isSuno && complexity >= 0.6) {
+            // ===== TRI-LLM PATH: complexity levels 4 (>=0.6) & 5 (>=0.8) =====
+            // Three distinct models each run an independent pre-debate, then their
+            // converged drafts debate against each other, then a final grounded
+            // multi-POV synthesis selects the most plausible/truthful outcome.
+            const complexityLevel = complexity >= 0.8 ? 5 : 4;
+            log('TRILLM_PATH', `Tri-LLM SMAS debate engaged (complexity L${complexityLevel})`);
+            try {
+                const triResult = await base44.functions.invoke('triLlmDebate', {
+                    prompt: fullContext,
+                    agent_instructions: agentInstr + styleInstr,
+                    temperature: settings.temperature || 0.7,
+                    file_urls: hasFiles ? file_urls : undefined,
+                    complexity_level: complexityLevel
+                });
+
+                if (triResult?.data?.success) {
+                    response = triResult.data.synthesis || '';
+                    debateHistory = triResult.data.debate_history || [];
+                    personasUsed = triResult.data.personas_used || [];
+                    debateRoundsExecuted = triResult.data.debate_rounds || 2;
+                    debateMethod = 'tri_llm_smas';
+                    log('TRILLM_OK', `Synthesis: ${response.length} chars | models: ${(triResult.data.models_succeeded || []).length}/3`);
+                } else {
+                    throw new Error(triResult?.data?.error || 'Tri-LLM failed');
+                }
+            } catch (triError) {
+                log('TRILLM_FAIL', triError.message);
+                // Fallback to the deep single model so the request still completes.
+                response = await base44.integrations.Core.InvokeLLM({
+                    prompt: `${agentInstr}${styleInstr}\n\n${fullContext}\n\nProvide a helpful, grounded response with a clear position.`,
+                    model: MODEL_FULL,
+                    temperature: settings.temperature || 0.7,
+                    file_urls: hasFiles ? file_urls : undefined
+                });
+            }
+
         } else {
-            // ===== FULL PATH: Use QRONAS engine =====
+            // ===== FULL PATH: Use QRONAS engine (moderate-complexity full path) =====
             log('FULL_PATH', 'Using QRONAS debate engine');
             
             // Adaptive rounds based on complexity
@@ -352,7 +390,8 @@ Synthesize these insights into a coherent, helpful response.`;
                 total_time_ms: totalTime,
                 complexity_score: complexity,
                 archetype,
-                path_used: isSimpleQuery ? 'fast' : (isMediumQuery ? 'medium' : 'full'),
+                path_used: debateMethod === 'tri_llm_smas' ? 'tri_llm' : (isSimpleQuery ? 'fast' : (isMediumQuery ? 'medium' : 'full')),
+                debate_method: debateMethod,
                 smas_activated: !isSimpleQuery || forceFullDebate,
                 personas_used: personasUsed,
                 debate_rounds_executed: debateRoundsExecuted,

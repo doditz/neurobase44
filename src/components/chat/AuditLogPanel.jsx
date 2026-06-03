@@ -90,6 +90,11 @@ export default function AuditLogPanel({ metadata }) {
                         NEURONAS Audit Log & Cognitive Metrics
                     </CardTitle>
                     <div className="flex items-center gap-1.5">
+                        {metadata.debate_method === 'tri_llm_smas' && (
+                            <Badge variant="outline" className="text-pink-300 border-pink-600/50 text-[10px] py-0">
+                                <Cpu className="w-2.5 h-2.5 mr-1" />Tri-LLM
+                            </Badge>
+                        )}
                         {metadata.smas_activated && (
                             <Badge variant="outline" className="text-purple-300 border-purple-600/50 text-[10px] py-0">
                                 <Brain className="w-2.5 h-2.5 mr-1" />SMAS
