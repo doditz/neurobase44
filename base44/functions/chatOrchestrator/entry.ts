@@ -13,7 +13,7 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
  */
 
 const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
-const GEMINI_MODEL = 'gemini-2.5-flash-preview-05-20';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 
 /**
@@ -23,7 +23,7 @@ const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models
  * @param {object} params - { prompt, temperature, file_urls, add_context_from_internet, response_json_schema }
  * @returns {Promise<string|object>} Generated text or parsed JSON
  */
-async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls, add_context_from_internet, response_json_schema }) {
+async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls, add_context_from_internet, response_json_schema, return_grounding = false }) {
     if (GOOGLE_AI_API_KEY) {
         try {
             const parts = [{ text: prompt }];
@@ -73,6 +73,16 @@ async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls, add_con
                     console.log('[ChatOrch] Using Google Gemini');
                     if (response_json_schema) {
                         try { return JSON.parse(text); } catch { return text; }
+                    }
+                    // Extract grounding citations (real URLs) from Gemini groundingMetadata.
+                    // Gemini returns sources here, NOT inline in the text — must parse explicitly.
+                    if (return_grounding) {
+                        const gm = data.candidates?.[0]?.groundingMetadata;
+                        const chunks = gm?.groundingChunks || [];
+                        const grounding = chunks
+                            .map(c => c.web ? { url: c.web.uri, title: c.web.title || c.web.uri } : null)
+                            .filter(Boolean);
+                        return { text, grounding };
                     }
                     return text;
                 }
@@ -295,8 +305,54 @@ Closing motif.
 After providing the prompt, briefly explain your creative choices.`
             },
             'smas_debater': {
-                description: "Agent de débat multi-perspectives SMAS",
-                instructions: "You are the SMAS debate coordinator. Facilitate multi-perspective analysis with balanced viewpoints."
+                description: "NEURONAS SMAS Debater v13.1 - Tri-Hemispheric Debate",
+                // Full NEURONAS v13.1 protocol: enforces grounding, mandatory cross-examination
+                // debate (Round 2), a final principled position, and the complete audit log
+                // (D³STIB / hemispheres / BRONAS / quality metrics). This replaces the previous
+                // trivial "balanced viewpoints" instruction that produced neutral summaries.
+                instructions: `You are NEURONAS SMAS Debater v13.1, a tri-hemispheric cognitive debate engine. You MUST NOT produce a neutral "on one hand / on the other hand" summary. You MUST stage a genuine adversarial debate and end with a clear, reasoned position.
+
+## MANDATORY PROCESS
+1. GROUNDING FIRST: If a "Live Web Research" block is present in the context, you MUST cite its real source URLs and prioritize verified facts over assumptions. Flag any unverifiable claim explicitly. Never invent URLs.
+2. TRI-HEMISPHERIC DEBATE (no echo chamber):
+   - LEFT (Analytical): rigorous, evidence-based, quantitative argument.
+   - RIGHT (Creative/Systems): contextual nuance, second-order effects, analogies.
+   - ROUND 2 CROSS-EXAMINATION (REQUIRED): each hemisphere must explicitly challenge at least one claim from another hemisphere (use "@[Left]" / "@[Right]"). Forbidden: monologue, fake consensus, conflict avoidance.
+   - CENTRAL SYNTHESIS: provide a principled resolution — NOT an average. Take a defensible final position with criteria.
+3. BRONAS ETHICAL SCAN: evaluate the 5 directives, flag any harm, bias, or privacy issue (e.g. illegal training data → explicit ethical verdict).
+4. TRANSPARENCY: always expose the reasoning chain.
+
+## MANDATORY OUTPUT STRUCTURE (always include the audit log for complex/ethical/news queries)
+\`\`\`markdown
+# <(^-^)> NEURONAS_AUDIT_LOG v13.1
+════════════════════════════════════════
+## (⌐■_■) D³STIB SEMANTIC FILTER
+- Key Tokens / Tier Active / Computational Savings
+
+## (◕_◕) GROUNDING VALIDATION
+- Factual Verification: VERIFIED (✓) / UNVERIFIED (✗)
+- Sources: real URLs from web research (or N/A)
+- Confidence: 0.0-1.0
+
+## (◕‿◕✿) ↔ (⌐■_■) HEMISPHERIC DEBATE (SMAS V4.0)
+### (⌐■_■) LEFT HEMISPHERE (Analytical)
+### (◕‿◕✿) RIGHT HEMISPHERE (Intuitive)
+### (⚡) ROUND 2: CROSS-EXAMINATION
+- Left @[Right]: explicit challenge
+- Right @[Left]: explicit challenge
+### (ﾉ◕ヮ◕)ﾉ*:･ﾟ✧ CENTRAL SYNTHESIS — final position + GC Score
+
+## (✓/✗) BRONAS ETHICAL SCAN
+| Directive | Status | Score |  (table with Quantum Safety, Bias, Transparency, Cultural, Autonomy)
+S.M.R.C.E. Composite + Final Status
+
+## (📊) QUALITY METRICS — S / M / R / C / E (0.0-1.0)
+════════════════════════════════════════
+\`\`\`
+# <(^-^)> SYNTHESIZED RESPONSE
+{Your final answer with a clear stance, kaomoji headers, and a References section listing the real source URLs.}
+
+ALWAYS respond in the user's language.`
             }
         };
 
@@ -396,28 +452,49 @@ After providing the prompt, briefly explain your creative choices.`
             // Only do web search for non-Suno agents
             logManager.system('=== STEP 2.5: KNOWLEDGE ENRICHMENT ===');
             
-            const factualKeywords = /what is|who is|when did|how many|where is|why did|define|explain|research|study|evidence|source|citation|fact|data|statistics|latest|recent|current|news/i.test(user_message);
-            
-            if (factualKeywords || complexity_score >= 0.6) {
+            // Broadened trigger: factual/news keywords OR any external-claim signals OR moderate complexity.
+            // A conversational news prompt ("I stumbled on some news...") must still trigger grounding.
+            const factualKeywords = /what is|who is|when did|how many|where is|why did|define|explain|research|study|evidence|source|citation|fact|data|statistics|latest|recent|current|news|report|leaked|benchmark|open[- ]?source|model|license|claim|announce|release|today|this morning|just|verify|true|real/i.test(user_message);
+            // Force grounding when settings request it, or for the SMAS debater on any non-trivial prompt.
+            const forceWebSearch = settings.forceWebSearch === true || settings.webSearch === true;
+            const shouldSearch = forceWebSearch || factualKeywords || complexity_score >= 0.4;
+
+            logManager.info('Web search decision', { factualKeywords, forceWebSearch, complexity_score, shouldSearch });
+
+            if (shouldSearch) {
                 try {
                     const searchResult = await invokeLLM(base44, {
-                        prompt: `Research: ${user_message}. Include sources.`,
-                        add_context_from_internet: true
+                        prompt: `Search the web for up-to-date, verifiable information about the following. Report concrete facts with their source URLs:\n\n${user_message}`,
+                        add_context_from_internet: true,
+                        return_grounding: true
                     });
-                    
-                    if (searchResult && searchResult.length > 50) {
-                        webSearchContext = `\n\n## Context:\n${searchResult}\n\n`;
+
+                    // searchResult may be { text, grounding } (Gemini) or a plain string (Base44 fallback)
+                    const searchText = typeof searchResult === 'string' ? searchResult : (searchResult?.text || '');
+                    const grounding = (typeof searchResult === 'object' && Array.isArray(searchResult?.grounding)) ? searchResult.grounding : [];
+
+                    if (searchText && searchText.length > 50) {
+                        webSearchContext = `\n\n## Live Web Research (grounded):\n${searchText}\n\n`;
                         webSearchExecuted = true;
-                        
-                        // Extract URLs
-                        const urls = searchResult.match(/https?:\/\/[^\s\]\)]+/gi) || [];
-                        for (const url of urls.slice(0, 5)) {
-                            citations.push({ url, source: 'Web', verified: true });
+
+                        // 1) Real grounding URLs from Gemini metadata (preferred)
+                        for (const g of grounding.slice(0, 8)) {
+                            citations.push({ url: g.url, source: g.title || 'Web', verified: true });
                         }
-                        logManager.success(`Web search: ${citations.length} sources`);
+                        // 2) Fallback: scrape any inline URLs from the text
+                        if (citations.length === 0) {
+                            const urls = searchText.match(/https?:\/\/[^\s\]\)]+/gi) || [];
+                            for (const url of urls.slice(0, 5)) {
+                                citations.push({ url, source: 'Web', verified: true });
+                            }
+                        }
+                        sourcingConfidence = citations.length > 0 ? 0.85 : 0.4;
+                        logManager.success(`Web search executed: ${citations.length} grounded sources`);
+                    } else {
+                        logManager.warning('Web search returned no usable content');
                     }
                 } catch (e) {
-                    logManager.warning(`Web search skipped: ${e.message}`);
+                    logManager.warning(`Web search failed: ${e.message}`);
                 }
             }
         } else {
@@ -445,17 +522,28 @@ After providing the prompt, briefly explain your creative choices.`
                 else if (archetype === 'ethical') baseD2 = 0.6;
                 
                 d2_activation = Math.min(1, baseD2 + (complexity_score * 0.3));
-                
+
+                // Escalation: ethical keywords or web-grounded news force a FULL debate (min 3 rounds).
+                const ethicalEscalation = /illegal|harm|leaked|privacy|consent|bias|ethic|moral|fair|right|wrong/i.test(user_message);
+                const forceFullDebate = ethicalEscalation || webSearchExecuted || complexity_score >= 0.5;
+
                 // Adjust config based on d2_activation
                 if (d2_activation > 0.7) {
                     dynamicConfig.debate_rounds = Math.min(settings.debateRounds || 3, 4);
                     dynamicConfig.max_personas = Math.min(settings.maxPersonas || 5, 6);
-                } else if (d2_activation < 0.4) {
+                } else if (d2_activation < 0.4 && !forceFullDebate) {
                     dynamicConfig.debate_rounds = 2;
                     dynamicConfig.max_personas = 3;
                 }
-                
-                logManager.success('D2STIM (inline) completed', { d2_activation });
+
+                // Never allow fewer than 3 rounds (Round 2 cross-examination is mandatory) when escalated.
+                if (forceFullDebate) {
+                    dynamicConfig.debate_rounds = Math.max(dynamicConfig.debate_rounds, settings.debateRounds || 3);
+                    dynamicConfig.max_personas = Math.max(dynamicConfig.max_personas, settings.maxPersonas || 5);
+                    logManager.info('Escalation: full debate enforced', { ethicalEscalation, webSearchExecuted });
+                }
+
+                logManager.success('D2STIM (inline) completed', { d2_activation, debate_rounds: dynamicConfig.debate_rounds });
             } catch (e) {
                 logManager.warning(`D2STIM inline error: ${e.message}`);
             }
@@ -535,6 +623,10 @@ After providing the prompt, briefly explain your creative choices.`
         if (smasActivated) {
             logManager.system('=== STEP 5: SYNTHESIZE (QRONAS) ===');
             try {
+                // Invoke the debate engine with the user-token client (SDK forwards auth).
+                // qronasEngine is verified healthy when reached; failures #2/#3 were caused
+                // by this hop being skipped after a fallback. Strict citation + full audit
+                // log are enforced via agent_instructions below.
                 qronasResult = await base44.functions.invoke('qronasEngine', {
                     prompt: full_context,
                     agent_name: agent_name,

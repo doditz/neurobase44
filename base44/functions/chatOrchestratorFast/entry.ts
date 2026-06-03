@@ -12,6 +12,49 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
  * 6. Early response pattern - send partial results fast
  */
 
+const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+/**
+ * Live web search with grounding. Returns { text, citations }.
+ * Prefers Gemini google_search (real source URLs via groundingMetadata),
+ * falls back to Base44 InvokeLLM with add_context_from_internet.
+ */
+async function groundedWebSearch(base44, query) {
+    const prompt = `Search the web for up-to-date, verifiable information about the following. Report concrete facts with their source URLs:\n\n${query}`;
+    if (GOOGLE_AI_API_KEY) {
+        try {
+            const body = {
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
+                tools: [{ google_search: {} }]
+            };
+            const endpoint = `${GEMINI_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_AI_API_KEY}`;
+            const resp = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            });
+            if (resp.ok) {
+                const data = await resp.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+                const citations = chunks
+                    .map(c => c.web ? { url: c.web.uri, source: c.web.title || 'Web', verified: true } : null)
+                    .filter(Boolean)
+                    .slice(0, 8);
+                if (text) return { text, citations };
+            }
+        } catch (_e) { /* fall through */ }
+    }
+    // Fallback
+    const text = await base44.integrations.Core.InvokeLLM({ prompt, add_context_from_internet: true });
+    const urls = (typeof text === 'string' ? text.match(/https?:\/\/[^\s\]\)]+/gi) : null) || [];
+    const citations = urls.slice(0, 5).map(url => ({ url, source: 'Web', verified: true }));
+    return { text: typeof text === 'string' ? text : '', citations };
+}
+
 Deno.serve(async (req) => {
     const startTime = Date.now();
     const logs = [];
@@ -66,7 +109,37 @@ Deno.serve(async (req) => {
 
         // Agent instructions (inline for speed)
         const AGENT_INSTRUCTIONS = {
-            'smas_debater': 'You are SMAS debate coordinator. Provide balanced, multi-perspective analysis.',
+            // Full NEURONAS v13.1 protocol: enforces an adversarial tri-hemispheric debate
+            // (mandatory Round 2 cross-examination + a final reasoned position) AND the complete
+            // transparency audit log (D³STIB / grounding / hemispheres / BRONAS / quality metrics).
+            // This replaces the previous trivial "balanced analysis" instruction that produced
+            // neutral summaries with no opposition, no stance, and no visible reasoning chain.
+            'smas_debater': `You are NEURONAS SMAS Debater v13.1, a tri-hemispheric cognitive debate engine. You MUST NOT produce a neutral "on one hand / on the other hand" summary. Stage a genuine adversarial debate and end with a clear, defensible position.
+
+## MANDATORY PROCESS
+1. GROUNDING: If a "Live Web Research" block is present, cite its REAL source URLs and prioritize verified facts. Flag unverifiable claims explicitly. Never invent URLs.
+2. TRI-HEMISPHERIC DEBATE (no echo chamber):
+   - LEFT (Analytical): evidence-based, rigorous, quantitative.
+   - RIGHT (Creative/Systems): nuance, second-order effects, analogies.
+   - ROUND 2 CROSS-EXAMINATION (REQUIRED): each hemisphere explicitly challenges at least one claim from another (use "@[Left]"/"@[Right]"). Forbidden: monologue, fake consensus.
+   - CENTRAL SYNTHESIS: principled resolution — NOT an average. Take a final position with criteria.
+3. BRONAS ETHICAL SCAN: assess harm, bias, privacy, illegal-data issues with an explicit verdict.
+4. TRANSPARENCY: always expose the reasoning chain via the audit log below.
+
+## MANDATORY OUTPUT STRUCTURE (include the audit log for complex/ethical/news queries)
+# <(^-^)> NEURONAS_AUDIT_LOG v13.1
+## (⌐■_■) D³STIB SEMANTIC FILTER — Key Tokens / Tier / Savings
+## (◕_◕) GROUNDING VALIDATION — Verified (✓/✗) / Sources (real URLs) / Confidence
+## (◕‿◕✿) ↔ (⌐■_■) HEMISPHERIC DEBATE
+### LEFT (Analytical)  ### RIGHT (Intuitive)
+### (⚡) ROUND 2 CROSS-EXAMINATION — Left @[Right] / Right @[Left]
+### (ﾉ◕ヮ◕)ﾉ CENTRAL SYNTHESIS — final position + GC Score
+## (✓/✗) BRONAS ETHICAL SCAN — table (Quantum Safety, Bias, Transparency, Cultural, Autonomy) + S.M.R.C.E. composite
+## (📊) QUALITY METRICS — S / M / R / C / E (0.0-1.0)
+# <(^-^)> SYNTHESIZED RESPONSE
+{final answer with a clear stance + a References section listing the real source URLs}
+
+ALWAYS respond in the user's language.`,
             'suno_prompt_architect': `You are Suno AI 5.0 Prompt Architect.
 OUTPUT FORMAT:
 **[STYLE SECTION]:** [Tag1] [Tag2] ... (min 14 individual tags)
@@ -115,10 +188,37 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
             log('HISTORY', `Loaded ${conversationHistory.length} chars`);
         }
 
+        // ===== LIVE WEB SEARCH (grounding) =====
+        // Previously absent entirely — root cause of "zero sources". Trigger on factual/news
+        // signals or moderate complexity for non-Suno agents.
+        let citations = [];
+        let webSearchContext = '';
+        let webSearchExecuted = false;
+        const factualSignals = /what is|who is|when|how many|where|why|define|explain|research|study|evidence|source|fact|data|statistics|latest|recent|current|news|report|leaked|benchmark|open[- ]?source|model|license|claim|announce|release|today|verify|true|rumor/i.test(user_message);
+        const shouldSearch = !isSuno && (settings.forceWebSearch === true || factualSignals || complexity >= 0.4);
+        if (shouldSearch) {
+            try {
+                const { text, citations: found } = await groundedWebSearch(base44, user_message);
+                if (text && text.length > 50) {
+                    webSearchContext = `## Live Web Research (grounded):\n${text}\n\n`;
+                    citations = found || [];
+                    webSearchExecuted = true;
+                    log('WEBSEARCH', `Executed: ${citations.length} grounded sources`);
+                } else {
+                    log('WEBSEARCH', 'No usable content returned');
+                }
+            } catch (e) {
+                log('WEBSEARCH_FAIL', e.message);
+            }
+        }
+
         // BUILD CONTEXT
         let fullContext = '';
         if (conversationHistory) {
             fullContext += `## Previous Context:\n${conversationHistory}\n\n`;
+        }
+        if (webSearchContext) {
+            fullContext += webSearchContext;
         }
         fullContext += `## Current Request:\n${user_message}`;
 
@@ -128,7 +228,11 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
         let personasUsed = [];
         let debateRoundsExecuted = 0;
 
-        if (isSimpleQuery && !isSuno) {
+        // If web search ran (factual/news/ethical query), force the full debate path so the
+        // grounded facts are actually debated and a position is taken — never a plain summary.
+        const forceFullDebate = webSearchExecuted;
+
+        if (isSimpleQuery && !isSuno && !forceFullDebate) {
             // ===== FAST PATH: Direct LLM call =====
             log('FAST_PATH', 'Using direct LLM (simple query)');
             
@@ -144,7 +248,7 @@ Respond helpfully and concisely.`;
                 file_urls: hasFiles ? file_urls : undefined
             });
 
-        } else if (isMediumQuery && !isSuno) {
+        } else if (isMediumQuery && !isSuno && !forceFullDebate) {
             // ===== MEDIUM PATH: 1 round, 2 personas =====
             log('MEDIUM_PATH', 'Using light debate (1 round, 2 personas)');
             
@@ -246,14 +350,17 @@ Synthesize these insights into a coherent, helpful response.`;
                 complexity_score: complexity,
                 archetype,
                 path_used: isSimpleQuery ? 'fast' : (isMediumQuery ? 'medium' : 'full'),
-                smas_activated: !isSimpleQuery,
+                smas_activated: !isSimpleQuery || forceFullDebate,
                 personas_used: personasUsed,
                 debate_rounds_executed: debateRoundsExecuted,
                 estimated_tokens: Math.ceil((response?.length || 0) / 4),
                 agent_name,
-                conversation_id
+                conversation_id,
+                web_search_executed: webSearchExecuted,
+                citations: citations.map(c => ({ url: c.url, source: c.source }))
             },
             debate_history: debateHistory,
+            citations,
             logs
         });
 
