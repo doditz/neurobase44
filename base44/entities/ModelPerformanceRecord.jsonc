@@ -1,0 +1,105 @@
+{
+  "name": "ModelPerformanceRecord",
+  "type": "object",
+  "properties": {
+    "model_id": {
+      "type": "string",
+      "description": "R\u00e9f\u00e9rence au mod\u00e8le AI test\u00e9"
+    },
+    "model_name": {
+      "type": "string",
+      "description": "Nom du mod\u00e8le (d\u00e9normalis\u00e9 pour requ\u00eates rapides)"
+    },
+    "test_type": {
+      "type": "string",
+      "enum": [
+        "benchmark",
+        "devtest",
+        "gauntlet",
+        "custom"
+      ],
+      "description": "Type de test effectu\u00e9"
+    },
+    "question_id": {
+      "type": "string",
+      "description": "ID de la question test\u00e9e"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Domaine de la question"
+    },
+    "question_type": {
+      "type": "string",
+      "description": "Type de question (standard_benchmark, ethics, etc.)"
+    },
+    "complexity": {
+      "type": "string",
+      "enum": [
+        "simple",
+        "mod\u00e9r\u00e9",
+        "complexe",
+        "extr\u00eame"
+      ],
+      "description": "Niveau de complexit\u00e9"
+    },
+    "component_tested": {
+      "type": "string",
+      "enum": [
+        "D3STIB",
+        "QRONAS",
+        "BRONAS",
+        "SMAS",
+        "GC_HARMONIZER",
+        "FULL_STACK"
+      ],
+      "description": "Composant NEURONAS principal test\u00e9"
+    },
+    "spg_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de Performance Global"
+    },
+    "quality_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de qualit\u00e9 de r\u00e9ponse"
+    },
+    "response_time_ms": {
+      "type": "integer",
+      "description": "Temps de r\u00e9ponse en millisecondes"
+    },
+    "token_count": {
+      "type": "integer",
+      "description": "Nombre de tokens utilis\u00e9s"
+    },
+    "winner": {
+      "type": "string",
+      "enum": [
+        "mode_a",
+        "mode_b",
+        "tie"
+      ],
+      "description": "Mode gagnant si test A/B"
+    },
+    "improvement_percent": {
+      "type": "number",
+      "description": "Pourcentage d'am\u00e9lioration vs baseline"
+    },
+    "detailed_scores": {
+      "type": "object",
+      "description": "Scores d\u00e9taill\u00e9s (semantic_fidelity, reasoning, creativity, etc.)"
+    },
+    "test_metadata": {
+      "type": "object",
+      "description": "M\u00e9tadonn\u00e9es additionnelles du test"
+    }
+  },
+  "required": [
+    "model_id",
+    "model_name",
+    "test_type",
+    "spg_score"
+  ]
+}

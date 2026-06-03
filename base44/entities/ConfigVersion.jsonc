@@ -1,0 +1,75 @@
+{
+  "name": "ConfigVersion",
+  "type": "object",
+  "properties": {
+    "version_tag": {
+      "type": "string",
+      "description": "Semantic version (e.g., v1.2.3)"
+    },
+    "version_type": {
+      "type": "string",
+      "enum": [
+        "parameters",
+        "questions",
+        "strategy",
+        "full_config"
+      ],
+      "description": "What this version tracks"
+    },
+    "description": {
+      "type": "string",
+      "description": "What changed in this version"
+    },
+    "config_snapshot": {
+      "type": "object",
+      "description": "Full configuration at this version"
+    },
+    "parent_version": {
+      "type": "string",
+      "description": "Previous version tag"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Currently active version"
+    },
+    "is_baseline": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marked as baseline for comparison"
+    },
+    "performance_summary": {
+      "type": "object",
+      "description": "Aggregated performance from this version",
+      "properties": {
+        "avg_spg": {
+          "type": "number"
+        },
+        "avg_quality": {
+          "type": "number"
+        },
+        "avg_latency": {
+          "type": "number"
+        },
+        "total_runs": {
+          "type": "number"
+        },
+        "pass_rate": {
+          "type": "number"
+        }
+      }
+    },
+    "changelog": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of changes"
+    }
+  },
+  "required": [
+    "version_tag",
+    "version_type",
+    "config_snapshot"
+  ]
+}

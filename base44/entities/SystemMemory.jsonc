@@ -1,0 +1,98 @@
+{
+  "name": "SystemMemory",
+  "type": "object",
+  "properties": {
+    "memory_key": {
+      "type": "string",
+      "description": "Unique identifier for system memory (e.g., 'neuronas_core_identity')"
+    },
+    "memory_content": {
+      "type": "string",
+      "description": "The system-level knowledge or principle"
+    },
+    "memory_type": {
+      "type": "string",
+      "enum": [
+        "core_identity",
+        "ethical_governance",
+        "technical_capability",
+        "infrastructure_constraint",
+        "mission_statement",
+        "architectural_principle"
+      ],
+      "description": "Type of system memory"
+    },
+    "source_attribution": {
+      "type": "string",
+      "description": "Source of this principle (UNESCO, Asimov, Architecture Team, etc.)"
+    },
+    "tier_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "default": 1,
+      "description": "Importance level: 1=Critical (always loaded), 2=Important, 3=Background"
+    },
+    "d2_modulation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.95,
+      "description": "System attention weight"
+    },
+    "hemisphere": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "central"
+      ],
+      "default": "central"
+    },
+    "pruning_protection": {
+      "type": "boolean",
+      "default": true,
+      "description": "Protected from automatic pruning"
+    },
+    "version": {
+      "type": "string",
+      "description": "Version of this system memory (for tracking updates)"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp"
+    },
+    "context": {
+      "type": "string",
+      "description": "Additional context about this system memory"
+    },
+    "flux_integral_contribution": {
+      "type": "number",
+      "description": "Contribution to the overall flux integral"
+    },
+    "gc_harmonization_weight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Weight for GC Harmonizer integration"
+    }
+  },
+  "required": [
+    "memory_key",
+    "memory_content",
+    "memory_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "name": "BenchmarkQuestion",
+  "type": "object",
+  "properties": {
+    "question_id": {
+      "type": "string",
+      "description": "Identifiant unique de la question (ex: STD-001, ETH-001, CRE-001, NEU-001)"
+    },
+    "source_benchmark": {
+      "type": "string",
+      "description": "Source d'origine (MMLU, GSM8K, ETHICS, NEURONAS Original, etc.)"
+    },
+    "question_text": {
+      "type": "string",
+      "description": "Le texte complet de la question"
+    },
+    "official_benchmark_answer": {
+      "type": "string",
+      "description": "La r\u00e9ponse officielle du benchmark source (si disponible). Null pour questions NEURONAS originales."
+    },
+    "question_type": {
+      "type": "string",
+      "enum": [
+        "standard_benchmark",
+        "ethics_benchmark",
+        "creativity_benchmark",
+        "neuronas_specific",
+        "cultural_context",
+        "technical_deep",
+        "paradox"
+      ],
+      "description": "Type de question"
+    },
+    "facettes_principales": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Facettes cognitives test\u00e9es"
+    },
+    "niveau_complexite": {
+      "type": "string",
+      "enum": [
+        "simple",
+        "mod\u00e9r\u00e9",
+        "complexe",
+        "extr\u00eame"
+      ],
+      "description": "Niveau de complexit\u00e9 attendu"
+    },
+    "hemisphere_dominant": {
+      "type": "string",
+      "enum": [
+        "Left",
+        "Right",
+        "Central",
+        "Balanced"
+      ],
+      "description": "H\u00e9misph\u00e8re NEURONAS dominant sollicit\u00e9"
+    },
+    "ground_truth": {
+      "type": "string",
+      "description": "R\u00e9ponse attendue ou points cl\u00e9s (notre interpr\u00e9tation pour NEURONAS)"
+    },
+    "expected_key_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Points cl\u00e9s attendus dans une bonne r\u00e9ponse"
+    },
+    "priority_ars_criteria": {
+      "type": "object",
+      "properties": {
+        "semantic_fidelity_min": {
+          "type": "number"
+        },
+        "reasoning_score_min": {
+          "type": "number"
+        },
+        "creativity_score_min": {
+          "type": "number"
+        },
+        "ethics_score_min": {
+          "type": "number"
+        },
+        "cultural_authenticity_min": {
+          "type": "number"
+        },
+        "coherence_score_min": {
+          "type": "number"
+        },
+        "depth_score_min": {
+          "type": "number"
+        },
+        "adaptability_score_min": {
+          "type": "number"
+        }
+      },
+      "description": "Crit\u00e8res ARS prioritaires avec seuils minimums"
+    },
+    "why_difficult_for_standard_llm": {
+      "type": "string",
+      "description": "Pourquoi cette question est difficile pour un LLM standard"
+    },
+    "neuronas_capabilities_tested": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Capacit\u00e9s sp\u00e9cifiques de NEURONAS test\u00e9es"
+    },
+    "domain": {
+      "type": "string",
+      "description": "Domaine principal"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "M\u00e9tadonn\u00e9es additionnelles"
+    }
+  },
+  "required": [
+    "question_id",
+    "source_benchmark",
+    "question_text",
+    "question_type",
+    "facettes_principales",
+    "niveau_complexite"
+  ]
+}

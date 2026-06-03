@@ -1,0 +1,63 @@
+{
+  "name": "BronasValidationRules",
+  "type": "object",
+  "properties": {
+    "rule_key": {
+      "type": "string",
+      "description": "Unique identifier for this validation rule (e.g., 'PromptSafetyCheck')"
+    },
+    "rule_name": {
+      "type": "string",
+      "description": "Human-readable name for this rule"
+    },
+    "target_context_field": {
+      "type": "string",
+      "enum": [
+        "current_prompt_text",
+        "raw_llm_output_a",
+        "processed_llm_output_b",
+        "dynamic_llm_settings"
+      ],
+      "description": "Which field to validate"
+    },
+    "validation_logic_json": {
+      "type": "object",
+      "description": "Contains the actual validation rules, regexes, keywords, or schema definitions"
+    },
+    "action_on_failure": {
+      "type": "string",
+      "enum": [
+        "FLAG_AND_CONTINUE",
+        "HALT_AND_REPORT",
+        "REPROCESS_WITH_GUIDANCE"
+      ],
+      "default": "FLAG_AND_CONTINUE",
+      "description": "What to do when validation fails"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ],
+      "default": "medium",
+      "description": "Severity level of this validation rule"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of what this rule validates"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this rule is currently active"
+    }
+  },
+  "required": [
+    "rule_key",
+    "target_context_field",
+    "validation_logic_json"
+  ]
+}

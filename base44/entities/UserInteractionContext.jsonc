@@ -1,0 +1,122 @@
+{
+  "name": "UserInteractionContext",
+  "type": "object",
+  "properties": {
+    "session_id": {
+      "type": "string",
+      "description": "Unique identifier for this test session"
+    },
+    "question_id": {
+      "type": "string",
+      "description": "Reference to the BenchmarkQuestion being tested"
+    },
+    "current_prompt_text": {
+      "type": "string",
+      "description": "The prompt currently being processed"
+    },
+    "processing_stage": {
+      "type": "string",
+      "enum": [
+        "init",
+        "qronas_sim",
+        "bronas_pre_val",
+        "llm_mode_a",
+        "llm_mode_b",
+        "bronas_post_val",
+        "complete",
+        "error"
+      ],
+      "default": "init",
+      "description": "Current stage in the processing pipeline"
+    },
+    "dynamic_llm_settings": {
+      "type": "object",
+      "description": "JSON object holding dynamic parameters determined by QRONAS simulation"
+    },
+    "bronas_pre_validation_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "skipped",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Result of BRONAS pre-validation"
+    },
+    "bronas_post_validation_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "skipped",
+        "pending"
+      ],
+      "default": "pending",
+      "description": "Result of BRONAS post-validation"
+    },
+    "raw_llm_output_a": {
+      "type": "string",
+      "description": "Raw response from Mode A (pure LLM baseline)"
+    },
+    "mode_a_time_ms": {
+      "type": "integer",
+      "description": "Processing time for Mode A in milliseconds"
+    },
+    "mode_a_token_count": {
+      "type": "integer",
+      "description": "Estimated token count for Mode A"
+    },
+    "processed_llm_output_b": {
+      "type": "string",
+      "description": "Processed response from Mode B (Neuronas full stack)"
+    },
+    "mode_b_time_ms": {
+      "type": "integer",
+      "description": "Processing time for Mode B in milliseconds"
+    },
+    "mode_b_token_count": {
+      "type": "integer",
+      "description": "Estimated token count for Mode B"
+    },
+    "ground_truth_c": {
+      "type": "string",
+      "description": "Ground truth from BenchmarkQuestion for comparison"
+    },
+    "expected_key_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Expected key points from BenchmarkQuestion"
+    },
+    "debug_log": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Array of timestamped debug log entries for vvv-debug output"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error message if processing failed"
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp when processing completed"
+    }
+  },
+  "required": [
+    "session_id",
+    "current_prompt_text"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

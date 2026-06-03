@@ -1,0 +1,108 @@
+{
+  "name": "SystemInvariant",
+  "type": "object",
+  "properties": {
+    "invariant_key": {
+      "type": "string",
+      "description": "Unique identifier (e.g., 'HUMAN_DIGNITY_PROTECTION', 'ETHICAL_NEUTRALITY')"
+    },
+    "invariant_type": {
+      "type": "string",
+      "enum": [
+        "ETHICAL_ABSOLUTE",
+        "QUALITY_THRESHOLD",
+        "RESOURCE_CONSTRAINT",
+        "SEMANTIC_COHERENCE"
+      ],
+      "description": "Type of invariant"
+    },
+    "description": {
+      "type": "string",
+      "description": "What this invariant asserts as always true"
+    },
+    "level": {
+      "type": "string",
+      "enum": [
+        "CRITICAL",
+        "HIGH",
+        "MEDIUM",
+        "LOW"
+      ],
+      "default": "CRITICAL",
+      "description": "Severity of violation"
+    },
+    "applies_to_stages": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "USER_INPUT",
+          "INTERMEDIATE_PROCESSING",
+          "FINAL_OUTPUT",
+          "ALL"
+        ]
+      },
+      "description": "Which stages must satisfy this invariant"
+    },
+    "validation_method": {
+      "type": "string",
+      "enum": [
+        "LLM_CONTEXTUAL",
+        "REGEX_PATTERN",
+        "HEURISTIC_SCORING",
+        "HYBRID"
+      ],
+      "description": "How to validate this invariant"
+    },
+    "llm_validation_prompt": {
+      "type": "string",
+      "description": "LLM prompt for contextual validation"
+    },
+    "heuristic_rules": {
+      "type": "object",
+      "description": "JSON rules for heuristic validation"
+    },
+    "violation_response": {
+      "type": "string",
+      "enum": [
+        "HALT_IMMEDIATELY",
+        "REPROCESS_WITH_GUIDANCE",
+        "FLAG_AND_CONTINUE",
+        "DEGRADED_MODE"
+      ],
+      "description": "System response to violation"
+    },
+    "violation_message_template": {
+      "type": "string",
+      "description": "Message to user when invariant is violated"
+    },
+    "priority_order": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Evaluation priority (1=highest)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    },
+    "source_authority": {
+      "type": "string",
+      "description": "Source (UNESCO, Asimov, IEEE Ethics, Prime Directive)"
+    },
+    "immutable": {
+      "type": "boolean",
+      "default": false,
+      "description": "If true, cannot be modified or deactivated"
+    }
+  },
+  "required": [
+    "invariant_key",
+    "invariant_type",
+    "description",
+    "level",
+    "applies_to_stages",
+    "validation_method",
+    "violation_response"
+  ]
+}

@@ -1,0 +1,176 @@
+{
+  "name": "BatchRunProgress",
+  "type": "object",
+  "properties": {
+    "run_id": {
+      "type": "string",
+      "description": "Unique identifier for the batch run"
+    },
+    "started_by": {
+      "type": "string",
+      "description": "User email who started the batch"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "running",
+        "completed",
+        "failed"
+      ],
+      "default": "pending",
+      "description": "Current status of the batch run"
+    },
+    "total_questions": {
+      "type": "integer",
+      "description": "Total number of questions in the batch"
+    },
+    "completed_questions": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of questions completed"
+    },
+    "successful_questions": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of successful tests"
+    },
+    "failed_questions_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of failed tests"
+    },
+    "progress_percentage": {
+      "type": "number",
+      "default": 0,
+      "description": "Progress percentage 0-100"
+    },
+    "current_question_id": {
+      "type": "string",
+      "description": "ID of the question currently being processed"
+    },
+    "current_question_text": {
+      "type": "string",
+      "description": "Text of the question currently being processed"
+    },
+    "current_phase": {
+      "type": "string",
+      "enum": [
+        "init",
+        "mode_a",
+        "mode_b",
+        "evaluation",
+        "saving",
+        "complete"
+      ],
+      "description": "Current phase of the active question"
+    },
+    "current_mode_a_response": {
+      "type": "string",
+      "description": "Current Mode A response being generated"
+    },
+    "current_mode_b_response": {
+      "type": "string",
+      "description": "Current Mode B response being generated"
+    },
+    "current_personas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Currently active personas for Mode B"
+    },
+    "current_debate_rounds": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "round_number": {
+            "type": "integer"
+          },
+          "persona": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "time_ms": {
+            "type": "integer"
+          }
+        }
+      },
+      "description": "Current debate rounds in progress"
+    },
+    "streaming_logs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "level": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "phase": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Real-time streaming logs"
+    },
+    "real_time_stats": {
+      "type": "object",
+      "description": "Real-time statistics during batch execution",
+      "properties": {
+        "running_avg_spg": {
+          "type": "number"
+        },
+        "running_avg_cpu_savings": {
+          "type": "number"
+        },
+        "running_avg_token_savings": {
+          "type": "number"
+        },
+        "current_pass_rate": {
+          "type": "number"
+        },
+        "estimated_time_remaining_ms": {
+          "type": "number"
+        },
+        "median_spg": {
+          "type": "number"
+        }
+      }
+    },
+    "start_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the batch started"
+    },
+    "end_time": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the batch completed"
+    },
+    "benchmark_results_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs of created benchmark results"
+    },
+    "summary_data": {
+      "type": "object",
+      "description": "Summary statistics after completion"
+    }
+  },
+  "required": [
+    "run_id",
+    "status",
+    "total_questions"
+  ]
+}

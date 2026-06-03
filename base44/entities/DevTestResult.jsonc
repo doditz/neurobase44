@@ -1,0 +1,260 @@
+{
+  "name": "DevTestResult",
+  "type": "object",
+  "properties": {
+    "scenario_name": {
+      "type": "string",
+      "description": "Nom du sc\u00e9nario de test de d\u00e9veloppement"
+    },
+    "scenario_category": {
+      "type": "string",
+      "enum": [
+        "creative",
+        "analytical",
+        "ethical",
+        "technical",
+        "cultural",
+        "suno_music",
+        "neuronas_specific",
+        "custom",
+        "standard_test",
+        "ethics_test",
+        "creativity_test",
+        "cultural_context",
+        "technical_deep",
+        "paradox"
+      ],
+      "description": "Cat\u00e9gorie du sc\u00e9nario de test"
+    },
+    "test_prompt": {
+      "type": "string",
+      "description": "Le prompt exact utilis\u00e9 pour le test"
+    },
+    "mode_a_response": {
+      "type": "string",
+      "description": "R\u00e9ponse du LLM seul (sans Neuronas)"
+    },
+    "mode_a_time_ms": {
+      "type": "number",
+      "description": "Temps de r\u00e9ponse pour Mode A en millisecondes"
+    },
+    "mode_a_token_count": {
+      "type": "number",
+      "description": "Nombre de tokens estim\u00e9 pour Mode A"
+    },
+    "mode_b_response": {
+      "type": "string",
+      "description": "R\u00e9ponse finale du LLM avec Neuronas Stack de Validation"
+    },
+    "mode_b_time_ms": {
+      "type": "number",
+      "description": "Temps total de r\u00e9ponse pour Mode B en millisecondes"
+    },
+    "mode_b_token_count": {
+      "type": "number",
+      "description": "Nombre total de tokens estim\u00e9 pour Mode B"
+    },
+    "mode_b_debate_rounds_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "round_number": {
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "response": {
+            "type": "string"
+          },
+          "time_ms": {
+            "type": "number"
+          },
+          "tokens": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Donn\u00e9es compl\u00e8tes pour chaque ronde de d\u00e9bat"
+    },
+    "mode_b_personas_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Liste des personas activ\u00e9es dans Mode B"
+    },
+    "mode_b_dynamic_settings": {
+      "type": "object",
+      "description": "Param\u00e8tres dynamiques d\u00e9termin\u00e9s par D2STIM"
+    },
+    "mode_b_d2_activation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Niveau d'activation D2 utilis\u00e9 dans Mode B"
+    },
+    "mode_b_tri_hemispheric_weights": {
+      "type": "object",
+      "description": "Poids d'\u00e9quilibre tri-h\u00e9misph\u00e9rique"
+    },
+    "mode_b_complexity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de complexit\u00e9 de l'analyse SMARCE"
+    },
+    "mode_b_dominant_hemisphere": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "central"
+      ],
+      "description": "H\u00e9misph\u00e8re dominant d\u00e9tect\u00e9"
+    },
+    "mode_b_temperature": {
+      "type": "number",
+      "description": "Temp\u00e9rature utilis\u00e9e dans Mode B"
+    },
+    "mode_b_debate_rounds": {
+      "type": "integer",
+      "description": "Nombre de rondes de d\u00e9bat ex\u00e9cut\u00e9es dans Mode B"
+    },
+    "mode_b_smas_dynamics": {
+      "type": "object",
+      "description": "Dynamiques SMAS calcul\u00e9es (F_L, F_R, D(t), B(t), G(t), \u03c9(t), \u03a6(t))",
+      "properties": {
+        "final_G_t": {
+          "type": "number",
+          "description": "\u00c9tat global final G(t)"
+        },
+        "final_D_t": {
+          "type": "number",
+          "description": "Modulation dopamine finale D(t)"
+        },
+        "final_omega_t": {
+          "type": "number",
+          "description": "\u00c9quilibre h\u00e9misph\u00e9rique final \u03c9(t)"
+        },
+        "final_Phi_t": {
+          "type": "number",
+          "description": "Influence externe finale \u03a6(t) (grounded validation)"
+        },
+        "dynamics_history": {
+          "type": "array",
+          "description": "Historique des dynamiques par ronde"
+        },
+        "validation_passed": {
+          "type": "boolean",
+          "description": "Si la validation ground\u00e9e a r\u00e9ussi"
+        },
+        "validation_results": {
+          "type": "array",
+          "description": "R\u00e9sultats d\u00e9taill\u00e9s de validation des claims"
+        }
+      }
+    },
+    "quality_scores": {
+      "type": "object",
+      "description": "Scores de comparaison de qualit\u00e9"
+    },
+    "winner": {
+      "type": "string",
+      "enum": [
+        "mode_a",
+        "mode_b",
+        "tie"
+      ],
+      "description": "Quel mode a obtenu les meilleures performances globales"
+    },
+    "performance_improvement": {
+      "type": "number",
+      "description": "Pourcentage d'am\u00e9lioration de Mode B par rapport \u00e0 Mode A"
+    },
+    "cpu_savings_percentage": {
+      "type": "number",
+      "description": "Pourcentage d'\u00e9conomie de temps CPU"
+    },
+    "ram_savings_percentage": {
+      "type": "number",
+      "description": "Pourcentage d'\u00e9conomie de RAM"
+    },
+    "token_savings_percentage": {
+      "type": "number",
+      "description": "Pourcentage d'\u00e9conomie de tokens"
+    },
+    "passed": {
+      "type": "boolean",
+      "description": "Si Mode B a pass\u00e9 les seuils de qualit\u00e9"
+    },
+    "global_score_performance": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de Performance Global (SPG) calcul\u00e9 pour ce test de d\u00e9veloppement"
+    },
+    "spg_breakdown": {
+      "type": "object",
+      "description": "D\u00e9tails du calcul du SPG (quality, efficiency, complexity scores)"
+    },
+    "ground_truth_c": {
+      "type": "string",
+      "description": "V\u00e9rit\u00e9 de r\u00e9f\u00e9rence pour comparaison (Mode C)"
+    },
+    "expected_key_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Points cl\u00e9s attendus de la question de test"
+    },
+    "full_debug_log": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Log de d\u00e9bogage complet et d\u00e9taill\u00e9"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Observations additionnelles"
+    },
+    "grader_rationale": {
+      "type": "string",
+      "description": "Raisonnement du LLM Grader expliquant pourquoi il a choisi le gagnant"
+    },
+    "bronas_pre_val_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "description": "Statut de pr\u00e9-validation BRONAS"
+    },
+    "bronas_post_val_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "description": "Statut de post-validation BRONAS"
+    }
+  },
+  "required": [
+    "scenario_name",
+    "scenario_category",
+    "test_prompt"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

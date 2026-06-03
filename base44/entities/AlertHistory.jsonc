@@ -1,0 +1,62 @@
+{
+  "name": "AlertHistory",
+  "type": "object",
+  "properties": {
+    "alert_threshold_id": {
+      "type": "string",
+      "description": "Reference to the AlertThreshold that triggered this"
+    },
+    "metric_name": {
+      "type": "string",
+      "description": "Name of the metric that triggered"
+    },
+    "metric_value": {
+      "type": "number",
+      "description": "The actual value that triggered the alert"
+    },
+    "threshold_value": {
+      "type": "number",
+      "description": "The threshold that was crossed"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "description": "Severity of the alert"
+    },
+    "strategy_affected": {
+      "type": "string",
+      "description": "Strategy that caused the alert"
+    },
+    "benchmark_id": {
+      "type": "string",
+      "description": "Related benchmark result ID"
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable alert message"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the alert has been acknowledged"
+    },
+    "acknowledged_by": {
+      "type": "string",
+      "description": "Email of user who acknowledged"
+    },
+    "acknowledged_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "metric_name",
+    "metric_value",
+    "severity",
+    "message"
+  ]
+}

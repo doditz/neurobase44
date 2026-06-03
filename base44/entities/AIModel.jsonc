@@ -1,0 +1,47 @@
+{
+  "name": "AIModel",
+  "type": "object",
+  "properties": {
+    "model_name": {
+      "type": "string",
+      "description": "Nom unique du mod\u00e8le (ex: NEURONAS v13.1, GPT-4, Claude-3)"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "Version du mod\u00e8le"
+    },
+    "model_type": {
+      "type": "string",
+      "enum": [
+        "neuronas",
+        "baseline_llm",
+        "external",
+        "custom"
+      ],
+      "default": "neuronas",
+      "description": "Type de mod\u00e8le"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description du mod\u00e8le et de ses caract\u00e9ristiques"
+    },
+    "configuration": {
+      "type": "object",
+      "description": "Configuration sp\u00e9cifique du mod\u00e8le (temp\u00e9rature, param\u00e8tres, etc.)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si le mod\u00e8le est actif pour les tests"
+    },
+    "color": {
+      "type": "string",
+      "default": "#10b981",
+      "description": "Couleur pour les visualisations"
+    }
+  },
+  "required": [
+    "model_name",
+    "model_type"
+  ]
+}

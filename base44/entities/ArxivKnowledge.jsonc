@@ -1,0 +1,80 @@
+{
+  "name": "ArxivKnowledge",
+  "type": "object",
+  "properties": {
+    "section_key": {
+      "type": "string",
+      "description": "Unique identifier for this knowledge section (e.g., 'core_architecture', 'd3stib_algorithm')"
+    },
+    "section_title": {
+      "type": "string",
+      "description": "Title of the knowledge section"
+    },
+    "content": {
+      "type": "string",
+      "description": "Complete content from arXiv paper v13.1"
+    },
+    "section_type": {
+      "type": "string",
+      "enum": [
+        "architecture",
+        "algorithm",
+        "methodology",
+        "results",
+        "philosophy",
+        "constraints",
+        "ethical_framework"
+      ],
+      "description": "Type of knowledge section"
+    },
+    "subsystem": {
+      "type": "string",
+      "enum": [
+        "D3STIB",
+        "QRONAS",
+        "SMAS",
+        "BRONAS",
+        "Motor_Localization",
+        "Dispatcher",
+        "General"
+      ],
+      "description": "Which NEURONAS subsystem this relates to"
+    },
+    "priority": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 5,
+      "description": "Priority for loading (10=critical, 1=reference)"
+    },
+    "version": {
+      "type": "string",
+      "default": "v13.1",
+      "description": "arXiv paper version"
+    },
+    "page_reference": {
+      "type": "string",
+      "description": "Page number(s) in arXiv paper"
+    },
+    "mathematical_formulas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key mathematical formulas from this section"
+    },
+    "key_concepts": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Main concepts covered in this section"
+    }
+  },
+  "required": [
+    "section_key",
+    "content",
+    "section_type",
+    "subsystem"
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "name": "Comment",
+  "type": "object",
+  "properties": {
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "benchmark",
+        "diagnostic",
+        "batch",
+        "debate"
+      ],
+      "description": "Type of entity being commented on"
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID of the target entity"
+    },
+    "content": {
+      "type": "string",
+      "description": "Comment text"
+    },
+    "author_name": {
+      "type": "string",
+      "description": "Name of comment author"
+    },
+    "author_email": {
+      "type": "string",
+      "description": "Email of comment author"
+    },
+    "parent_comment_id": {
+      "type": "string",
+      "description": "ID of parent comment for threading"
+    },
+    "mentions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of mentioned user emails"
+    },
+    "is_resolved": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether comment thread is resolved"
+    }
+  },
+  "required": [
+    "target_type",
+    "target_id",
+    "content"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

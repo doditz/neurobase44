@@ -1,0 +1,76 @@
+{
+  "name": "AlertThreshold",
+  "type": "object",
+  "properties": {
+    "metric_name": {
+      "type": "string",
+      "description": "Name of the metric to monitor (spg, pass_rate, latency_ms, cpu_savings, token_savings)"
+    },
+    "threshold_type": {
+      "type": "string",
+      "enum": [
+        "below",
+        "above",
+        "deviation"
+      ],
+      "description": "Type of threshold comparison"
+    },
+    "threshold_value": {
+      "type": "number",
+      "description": "The threshold value to compare against"
+    },
+    "deviation_percent": {
+      "type": "number",
+      "description": "For deviation type: percentage deviation to trigger alert"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "default": "warning",
+      "description": "Alert severity level"
+    },
+    "notification_type": {
+      "type": "string",
+      "enum": [
+        "toast",
+        "email",
+        "both"
+      ],
+      "default": "toast",
+      "description": "How to notify the user"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this alert is active"
+    },
+    "strategy_filter": {
+      "type": "string",
+      "description": "Optional: only alert for specific strategy"
+    },
+    "cooldown_minutes": {
+      "type": "integer",
+      "default": 15,
+      "description": "Minimum minutes between repeated alerts"
+    },
+    "last_triggered": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time this alert was triggered"
+    },
+    "trigger_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Number of times this alert has been triggered"
+    }
+  },
+  "required": [
+    "metric_name",
+    "threshold_type",
+    "threshold_value"
+  ]
+}

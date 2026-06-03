@@ -1,0 +1,93 @@
+{
+  "name": "Debate",
+  "type": "object",
+  "properties": {
+    "topic": {
+      "type": "string",
+      "description": "The main subject of the debate"
+    },
+    "agent_name": {
+      "type": "string",
+      "enum": [
+        "smas_debater",
+        "suno_prompt_architect",
+        "github_analyzer"
+      ],
+      "description": "Which agent this conversation belongs to"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "The ID of the agent conversation"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "archived",
+        "completed",
+        "continued"
+      ],
+      "default": "active",
+      "description": "Status of the conversation"
+    },
+    "parent_conversation_id": {
+      "type": "string",
+      "description": "ID of the parent conversation if this is a continuation"
+    },
+    "continuation_of_id": {
+      "type": "string",
+      "description": "Reference to the previous Debate record if this is a continuation"
+    },
+    "context_summary": {
+      "type": "string",
+      "description": "Summary of the context transferred from parent conversation"
+    },
+    "estimated_token_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Estimated number of tokens in this conversation segment"
+    },
+    "is_continuation": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this is a continuation of another conversation"
+    },
+    "conversation_chain_root_id": {
+      "type": "string",
+      "description": "Root ID for the entire chain of related conversations"
+    },
+    "debate_metadata": {
+      "type": "object",
+      "description": "Full metadata from chatOrchestrator including thinking_steps, debate_history, personas_used, etc."
+    },
+    "last_complexity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Last detected complexity score"
+    },
+    "last_d2_activation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Last D2 activation level"
+    },
+    "total_messages": {
+      "type": "integer",
+      "default": 0,
+      "description": "Total number of messages in this conversation"
+    }
+  },
+  "required": [
+    "topic",
+    "conversation_id"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

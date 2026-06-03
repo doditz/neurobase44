@@ -1,0 +1,96 @@
+{
+  "name": "SharedWorkspace",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Workspace name"
+    },
+    "description": {
+      "type": "string",
+      "description": "Workspace description"
+    },
+    "workspace_type": {
+      "type": "string",
+      "enum": [
+        "benchmark_analysis",
+        "diagnostic_review",
+        "general"
+      ],
+      "default": "general",
+      "description": "Type of workspace"
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of member emails"
+    },
+    "owner_email": {
+      "type": "string",
+      "description": "Workspace owner email"
+    },
+    "linked_entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "entity_type": {
+            "type": "string"
+          },
+          "entity_id": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Entities linked to this workspace"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether workspace is active"
+    },
+    "settings": {
+      "type": "object",
+      "description": "Workspace-specific settings"
+    }
+  },
+  "required": [
+    "name",
+    "owner_email"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "members": {
+            "$in": [
+              "{{user.email}}"
+            ]
+          }
+        },
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "owner_email": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    }
+  }
+}

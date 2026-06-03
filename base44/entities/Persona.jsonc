@@ -1,0 +1,287 @@
+{
+  "name": "Persona",
+  "type": "object",
+  "properties": {
+    "handle": {
+      "type": "string",
+      "description": "The unique identifier for the persona (e.g., P001, LB001, SUN001)"
+    },
+    "name": {
+      "type": "string",
+      "description": "The name of the persona (e.g., TechnicalAI, CreativeAI, LyricistAI)"
+    },
+    "system": {
+      "type": "string",
+      "enum": [
+        "SMAS",
+        "Suno",
+        "Shared"
+      ],
+      "default": "SMAS",
+      "description": "Which AI system this persona belongs to (SMAS debate, Suno music, or both)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "Core",
+        "Standard",
+        "Advanced",
+        "Experimental",
+        "Adult",
+        "Expert",
+        "Theorist",
+        "Disruptive",
+        "Innovator",
+        "Scientific",
+        "Engineering",
+        "Creative",
+        "Professional",
+        "Specialized"
+      ],
+      "description": "The category classification of the persona"
+    },
+    "hemisphere": {
+      "type": "string",
+      "enum": [
+        "Left",
+        "Right",
+        "Central"
+      ],
+      "description": "Brain hemisphere specialization (Left=Analytical, Right=Creative, Central=Integration)"
+    },
+    "domain": {
+      "type": "string",
+      "description": "The domain or field of expertise"
+    },
+    "capabilities": {
+      "type": "string",
+      "description": "Description of the persona's general capabilities and expertise across all systems"
+    },
+    "default_instructions": {
+      "type": "string",
+      "description": "Default instructions for this persona when no system-specific configuration exists"
+    },
+    "expertise_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Base expertise score (hierarchical) - 0.0 to 1.0"
+    },
+    "contextual_expertise_domains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domain_name": {
+            "type": "string"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "relevance_boost": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 0.5,
+            "default": 0.1
+          }
+        }
+      },
+      "description": "Domains where this persona has exceptional contextual expertise. Relevance boost is added to base expertise_score when keywords match prompt."
+    },
+    "anti_domains": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "domain_name": {
+            "type": "string"
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "relevance_penalty": {
+            "type": "number",
+            "minimum": 0.0,
+            "maximum": 0.5,
+            "default": 0.2
+          }
+        }
+      },
+      "description": "Domains where this persona has low relevance. Penalty is subtracted from expertise_score when keywords match."
+    },
+    "contextual_relevance_multiplier": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2.0,
+      "default": 1.0,
+      "description": "Multiplicateur appliqu\u00e9 \u00e0 l'expertise_score final apr\u00e8s boosts/penalties contextuels. Permet de moduler l'impact contextuel."
+    },
+    "priority_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Priority level for activation (10=Always Active, 1=Rarely Used)"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "Active",
+        "Enabled",
+        "Disabled"
+      ],
+      "default": "Enabled",
+      "description": "Current operational status"
+    },
+    "temperature_range_min": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Default minimum temperature for optimal performance (can be overridden by PersonaConfiguration)"
+    },
+    "temperature_range_max": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Default maximum temperature for optimal performance (can be overridden by PersonaConfiguration)"
+    },
+    "d2_sensitivity": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1,
+      "description": "D2 Modulation sensitivity: -1.0 = D2Pin dominant (high flexibility, creativity), +1.0 = D2Stim dominant (high focus, precision). 0.0 = balanced."
+    },
+    "processing_bias": {
+      "type": "string",
+      "enum": [
+        "Analytical",
+        "Creative",
+        "Integrative",
+        "Disruptive"
+      ],
+      "description": "Default primary processing approach (can be overridden by PersonaConfiguration)"
+    },
+    "ethical_constraints": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "description": "Default level of ethical oversight required (can be overridden by PersonaConfiguration)"
+    },
+    "team_compatibility": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of team configurations this persona can participate in"
+    },
+    "d2_optimal_range_min": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.3,
+      "description": "Minimum d2_activation level at which this persona performs optimally (simulates D2 receptor density)"
+    },
+    "d2_optimal_range_max": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.7,
+      "description": "Maximum d2_activation level at which this persona performs optimally"
+    },
+    "cognitive_archetype": {
+      "type": "string",
+      "enum": [
+        "Explorer",
+        "Synthesizer",
+        "Critic",
+        "Mediator",
+        "Validator"
+      ],
+      "description": "Arch\u00e9type cognitif du persona"
+    },
+    "dominant_cognitive_trait": {
+      "type": "string",
+      "description": "Trait cognitif dominant (divergent thinking, precision logic, emotional resonance, etc.)"
+    },
+    "activation_weight": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.5,
+      "description": "Poids d'activation de base"
+    },
+    "semantic_bias": {
+      "type": "string",
+      "description": "Biais s\u00e9mantique du persona"
+    },
+    "modulation_profile": {
+      "type": "string",
+      "enum": [
+        "D2Stim",
+        "D2Pin",
+        "Balanced"
+      ],
+      "default": "Balanced",
+      "description": "Profil de modulation dopaminergique pr\u00e9f\u00e9r\u00e9"
+    },
+    "response_style": {
+      "type": "string",
+      "description": "Style de r\u00e9ponse caract\u00e9ristique"
+    },
+    "persona_tier_affinity": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Affinit\u00e9 avec les tiers DSTIB (L1, L2, R2, R3/L3)"
+    },
+    "fatigue_factor": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.0,
+      "description": "Facteur de fatigue accumul\u00e9 (usage r\u00e9cent)"
+    },
+    "recent_activation_frequency": {
+      "type": "integer",
+      "default": 0,
+      "description": "Nombre d'activations r\u00e9centes (derni\u00e8re heure)"
+    },
+    "last_activated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Derni\u00e8re activation du persona"
+    }
+  },
+  "required": [
+    "handle",
+    "name",
+    "category",
+    "domain",
+    "expertise_score",
+    "priority_level"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

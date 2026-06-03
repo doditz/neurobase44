@@ -1,0 +1,80 @@
+{
+  "name": "APICostConfig",
+  "type": "object",
+  "properties": {
+    "provider": {
+      "type": "string",
+      "enum": [
+        "openai",
+        "anthropic",
+        "google",
+        "perplexity",
+        "mistral",
+        "meta",
+        "huggingface",
+        "neuronas_internal"
+      ],
+      "description": "Fournisseur de l'API"
+    },
+    "model_name": {
+      "type": "string",
+      "description": "Nom du mod\u00e8le (ex: gpt-4o, claude-3.5-sonnet, gemini-1.5-pro)"
+    },
+    "cost_per_1k_input_tokens": {
+      "type": "number",
+      "description": "Co\u00fbt par 1000 tokens d'entr\u00e9e en USD"
+    },
+    "cost_per_1k_output_tokens": {
+      "type": "number",
+      "description": "Co\u00fbt par 1000 tokens de sortie en USD"
+    },
+    "cost_per_1k_tokens_avg": {
+      "type": "number",
+      "description": "Co\u00fbt moyen par 1000 tokens (si pas de distinction input/output)"
+    },
+    "effective_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date d'entr\u00e9e en vigueur de ce tarif"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si cette configuration de prix est actuellement active"
+    },
+    "context_window": {
+      "type": "integer",
+      "description": "Taille maximale du contexte en tokens"
+    },
+    "avg_response_time_ms": {
+      "type": "integer",
+      "description": "Temps de r\u00e9ponse moyen en millisecondes"
+    },
+    "tier_restrictions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "free",
+          "starter",
+          "pro",
+          "enterprise"
+        ]
+      },
+      "description": "Tiers de plan autoris\u00e9s \u00e0 utiliser ce mod\u00e8le"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes additionnelles sur ce tarif"
+    },
+    "source_url": {
+      "type": "string",
+      "description": "URL de la source officielle du tarif"
+    }
+  },
+  "required": [
+    "provider",
+    "model_name",
+    "effective_date"
+  ]
+}

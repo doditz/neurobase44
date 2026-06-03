@@ -1,0 +1,78 @@
+{
+  "name": "ToneAnalysis",
+  "type": "object",
+  "properties": {
+    "text": {
+      "type": "string",
+      "description": "Original text analyzed"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Associated conversation ID"
+    },
+    "detected_tones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "tone": {
+            "type": "string"
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "explanation": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Detected tones with confidence scores"
+    },
+    "is_sarcastic": {
+      "type": "boolean",
+      "description": "Whether sarcasm was detected"
+    },
+    "sarcasm_confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Confidence score for sarcasm"
+    },
+    "nuances": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Detected nuances (humor, irony, understatement, etc.)"
+    },
+    "implied_meaning": {
+      "type": "string",
+      "description": "AI interpretation of implied meaning"
+    },
+    "meta_commentary": {
+      "type": "string",
+      "description": "AI meta-commentary on the tone"
+    },
+    "sensitivity_level": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "default": "medium",
+      "description": "Sensitivity level used for detection"
+    }
+  },
+  "required": [
+    "text"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

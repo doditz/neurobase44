@@ -1,0 +1,137 @@
+{
+  "name": "UnifiedLog",
+  "type": "object",
+  "properties": {
+    "log_id": {
+      "type": "string",
+      "description": "Unique identifier (auto-generated UUID)"
+    },
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "benchmark",
+        "devtest",
+        "auto_tune",
+        "realtime_tuner",
+        "chat",
+        "gauntlet",
+        "pipeline_test",
+        "system_diagnostic",
+        "alert",
+        "parameter_change"
+      ],
+      "description": "Origin module/function"
+    },
+    "source_id": {
+      "type": "string",
+      "description": "Reference ID (benchmark_id, session_id, etc.)"
+    },
+    "execution_context": {
+      "type": "string",
+      "description": "Page or function that triggered execution"
+    },
+    "config_version": {
+      "type": "string",
+      "description": "Version tag of configuration used (e.g., v1.0.0)"
+    },
+    "question_version": {
+      "type": "string",
+      "description": "Version of question/prompt dataset"
+    },
+    "strategy_name": {
+      "type": "string",
+      "description": "Optimization strategy used"
+    },
+    "parameters_snapshot": {
+      "type": "object",
+      "description": "Snapshot of all parameters at execution time"
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Key metrics from execution",
+      "properties": {
+        "spg": {
+          "type": "number"
+        },
+        "quality": {
+          "type": "number"
+        },
+        "latency_ms": {
+          "type": "number"
+        },
+        "tokens": {
+          "type": "number"
+        },
+        "efficiency": {
+          "type": "number"
+        },
+        "pass_rate": {
+          "type": "number"
+        },
+        "improvement_percent": {
+          "type": "number"
+        }
+      }
+    },
+    "result_summary": {
+      "type": "string",
+      "description": "Human-readable summary"
+    },
+    "winner": {
+      "type": "string",
+      "enum": [
+        "mode_a",
+        "mode_b",
+        "tie",
+        "n/a"
+      ],
+      "default": "n/a"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "success",
+        "partial",
+        "failed",
+        "timeout"
+      ],
+      "default": "success"
+    },
+    "is_pinned": {
+      "type": "boolean",
+      "default": false,
+      "description": "Starred/pinned as reference point"
+    },
+    "pin_label": {
+      "type": "string",
+      "description": "Custom label for pinned result"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Custom tags for filtering"
+    },
+    "detailed_logs": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Full execution log entries"
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Error details if failed"
+    },
+    "execution_duration_ms": {
+      "type": "number",
+      "description": "Total execution time"
+    }
+  },
+  "required": [
+    "source_type",
+    "execution_context",
+    "metrics"
+  ]
+}

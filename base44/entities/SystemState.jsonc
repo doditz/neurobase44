@@ -1,0 +1,47 @@
+{
+  "name": "SystemState",
+  "type": "object",
+  "properties": {
+    "state_key": {
+      "type": "string",
+      "enum": [
+        "benchmark_mode_active",
+        "auto_optimization_mode_active"
+      ],
+      "description": "Cl\u00e9 d'\u00e9tat du syst\u00e8me pour \u00e9viter les conflits"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ce mode est actuellement actif"
+    },
+    "started_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quand ce mode a \u00e9t\u00e9 d\u00e9marr\u00e9"
+    },
+    "started_by": {
+      "type": "string",
+      "description": "Email de l'utilisateur qui a d\u00e9marr\u00e9 ce mode"
+    },
+    "current_operation": {
+      "type": "string",
+      "description": "Description de l'op\u00e9ration en cours"
+    },
+    "progress_percentage": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100,
+      "default": 0,
+      "description": "Progression actuelle (0-100)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "M\u00e9tadonn\u00e9es additionnelles sur l'\u00e9tat"
+    }
+  },
+  "required": [
+    "state_key",
+    "is_active"
+  ]
+}

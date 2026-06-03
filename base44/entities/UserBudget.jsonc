@@ -1,0 +1,101 @@
+{
+  "name": "UserBudget",
+  "type": "object",
+  "properties": {
+    "daily_token_limit": {
+      "type": "integer",
+      "default": 500000,
+      "description": "Limite quotidienne de tokens (Pro: 500k)"
+    },
+    "monthly_token_limit": {
+      "type": "integer",
+      "default": 10000000,
+      "description": "Limite mensuelle de tokens (Pro: 10M)"
+    },
+    "backend_monthly_limit": {
+      "type": "integer",
+      "default": 20000000,
+      "description": "Limite mensuelle backend tokens (Pro: 20M)"
+    },
+    "tokens_used_today": {
+      "type": "integer",
+      "default": 0,
+      "description": "Tokens utilis\u00e9s aujourd'hui"
+    },
+    "tokens_used_month": {
+      "type": "integer",
+      "default": 0,
+      "description": "Tokens utilis\u00e9s ce mois-ci"
+    },
+    "backend_tokens_used_month": {
+      "type": "integer",
+      "default": 0,
+      "description": "Backend tokens utilis\u00e9s ce mois-ci"
+    },
+    "last_reset_date": {
+      "type": "string",
+      "format": "date",
+      "description": "Date du dernier reset quotidien"
+    },
+    "last_monthly_reset": {
+      "type": "string",
+      "format": "date",
+      "description": "Date du dernier reset mensuel"
+    },
+    "alert_threshold_percentage": {
+      "type": "number",
+      "default": 0.8,
+      "description": "Seuil d'alerte en pourcentage"
+    },
+    "auto_optimize_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activer l'optimisation automatique"
+    },
+    "preferred_mode": {
+      "type": "string",
+      "enum": [
+        "eco",
+        "balanced",
+        "premium"
+      ],
+      "default": "premium",
+      "description": "Mode pr\u00e9f\u00e9r\u00e9 (Pro: premium par d\u00e9faut)"
+    },
+    "budget_alerts_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Activer les alertes de budget"
+    },
+    "cost_per_1k_tokens": {
+      "type": "number",
+      "default": 0.02,
+      "description": "Co\u00fbt estim\u00e9 par 1000 tokens en USD"
+    },
+    "perplexity_searches_month": {
+      "type": "integer",
+      "default": 0,
+      "description": "Nombre de recherches Perplexity ce mois-ci"
+    },
+    "plan_tier": {
+      "type": "string",
+      "enum": [
+        "free",
+        "starter",
+        "pro",
+        "enterprise"
+      ],
+      "default": "pro",
+      "description": "Tier du plan d'abonnement"
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

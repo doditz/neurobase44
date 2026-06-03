@@ -1,0 +1,68 @@
+{
+  "name": "ValidationMetrics",
+  "type": "object",
+  "properties": {
+    "metric_name": {
+      "type": "string",
+      "description": "Nom de la m\u00e9trique (GC_Score_Mean, Debate_Convergence_Rate, etc.)"
+    },
+    "metric_category": {
+      "type": "string",
+      "enum": [
+        "gc_harmonizer",
+        "smas_debate",
+        "d2_modulation",
+        "qronas",
+        "bronas_ethical",
+        "performance"
+      ],
+      "description": "Cat\u00e9gorie de m\u00e9trique"
+    },
+    "target_value": {
+      "type": "number",
+      "description": "Valeur cible ou seuil attendu"
+    },
+    "observed_value": {
+      "type": "number",
+      "description": "Valeur observ\u00e9e dans les tests"
+    },
+    "threshold_min": {
+      "type": "number",
+      "description": "Seuil minimum acceptable"
+    },
+    "threshold_max": {
+      "type": "number",
+      "description": "Seuil maximum acceptable"
+    },
+    "unit": {
+      "type": "string",
+      "description": "Unit\u00e9 de mesure (%, ms, ratio, etc.)"
+    },
+    "source_method": {
+      "type": "string",
+      "description": "M\u00e9thode de calcul ou source de donn\u00e9es"
+    },
+    "is_passing": {
+      "type": "boolean",
+      "description": "Si la m\u00e9trique respecte les seuils"
+    },
+    "measurement_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date de mesure"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "ID de conversation associ\u00e9e (si applicable)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Donn\u00e9es additionnelles de contexte"
+    }
+  },
+  "required": [
+    "metric_name",
+    "metric_category",
+    "observed_value"
+  ]
+}

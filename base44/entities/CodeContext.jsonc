@@ -1,0 +1,103 @@
+{
+  "name": "CodeContext",
+  "type": "object",
+  "properties": {
+    "repository_name": {
+      "type": "string",
+      "description": "Repository name"
+    },
+    "file_path": {
+      "type": "string",
+      "description": "Path to the code file"
+    },
+    "file_content": {
+      "type": "string",
+      "description": "Content of the code file"
+    },
+    "language": {
+      "type": "string",
+      "description": "Programming language of the file"
+    },
+    "issue_number": {
+      "type": "integer",
+      "description": "Associated GitHub issue number (optional)"
+    },
+    "pull_request_number": {
+      "type": "integer",
+      "description": "Associated GitHub pull request number (optional)"
+    },
+    "context_type": {
+      "type": "string",
+      "enum": [
+        "file",
+        "issue",
+        "pull_request",
+        "snippet"
+      ],
+      "description": "Type of code context"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description of the code context or issue"
+    }
+  },
+  "required": [
+    "repository_name",
+    "context_type"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "update": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "delete": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

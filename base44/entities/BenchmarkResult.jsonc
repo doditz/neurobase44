@@ -1,0 +1,226 @@
+{
+  "name": "BenchmarkResult",
+  "type": "object",
+  "properties": {
+    "scenario_name": {
+      "type": "string",
+      "description": "Name of the test scenario"
+    },
+    "scenario_category": {
+      "type": "string",
+      "enum": [
+        "creative",
+        "analytical",
+        "ethical",
+        "technical",
+        "cultural",
+        "suno_music",
+        "neuronas_specific",
+        "custom",
+        "standard_benchmark",
+        "ethics_benchmark",
+        "creativity_benchmark",
+        "cultural_context",
+        "technical_deep",
+        "paradox"
+      ],
+      "description": "Category of the test scenario"
+    },
+    "test_prompt": {
+      "type": "string",
+      "description": "The exact prompt used for testing"
+    },
+    "mode_a_response": {
+      "type": "string",
+      "description": "Response from LLM alone (no Neuronas)"
+    },
+    "mode_a_time_ms": {
+      "type": "number",
+      "description": "Response time for Mode A in milliseconds"
+    },
+    "mode_a_token_count": {
+      "type": "number",
+      "description": "Estimated token count for Mode A"
+    },
+    "mode_b_response": {
+      "type": "string",
+      "description": "Final response from LLM with Neuronas Validation Stack"
+    },
+    "mode_b_time_ms": {
+      "type": "number",
+      "description": "Total response time for Mode B in milliseconds"
+    },
+    "mode_b_token_count": {
+      "type": "number",
+      "description": "Total estimated token count for Mode B"
+    },
+    "mode_b_debate_rounds_data": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "round_number": {
+            "type": "integer"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "response": {
+            "type": "string"
+          },
+          "time_ms": {
+            "type": "number"
+          },
+          "tokens": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Full verbose data for each debate round"
+    },
+    "mode_b_personas_used": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of personas activated in Mode B"
+    },
+    "mode_b_dynamic_settings": {
+      "type": "object",
+      "description": "Dynamic settings determined by D2STIM"
+    },
+    "mode_b_d2_activation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "D2 activation level used in Mode B"
+    },
+    "mode_b_tri_hemispheric_weights": {
+      "type": "object",
+      "description": "Tri-hemispheric balance weights"
+    },
+    "mode_b_complexity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Complexity score from SMARCE analysis"
+    },
+    "mode_b_dominant_hemisphere": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "central"
+      ],
+      "description": "Dominant hemisphere detected"
+    },
+    "mode_b_temperature": {
+      "type": "number",
+      "description": "Temperature used in Mode B"
+    },
+    "mode_b_debate_rounds": {
+      "type": "integer",
+      "description": "Number of debate rounds executed in Mode B"
+    },
+    "quality_scores": {
+      "type": "object",
+      "description": "Quality comparison scores"
+    },
+    "winner": {
+      "type": "string",
+      "enum": [
+        "mode_a",
+        "mode_b",
+        "tie"
+      ],
+      "description": "Which mode performed better overall"
+    },
+    "performance_improvement": {
+      "type": "number",
+      "description": "Percentage improvement of Mode B over Mode A"
+    },
+    "cpu_savings_percentage": {
+      "type": "number",
+      "description": "CPU time savings percentage"
+    },
+    "ram_savings_percentage": {
+      "type": "number",
+      "description": "RAM savings percentage"
+    },
+    "token_savings_percentage": {
+      "type": "number",
+      "description": "Token savings percentage"
+    },
+    "passed": {
+      "type": "boolean",
+      "description": "Whether Mode B passed quality thresholds"
+    },
+    "global_score_performance": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de Performance Global (SPG) calcul\u00e9 pour ce benchmark"
+    },
+    "spg_breakdown": {
+      "type": "object",
+      "description": "D\u00e9tails du calcul du SPG (quality, efficiency, complexity scores)"
+    },
+    "ground_truth_c": {
+      "type": "string",
+      "description": "Ground truth for comparison (Mode C)"
+    },
+    "expected_key_points": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Expected key points from benchmark question"
+    },
+    "full_debug_log": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Complete verbose debug log"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Additional observations"
+    },
+    "grader_rationale": {
+      "type": "string",
+      "description": "Raisonnement du LLM Grader expliquant pourquoi il a choisi le gagnant"
+    },
+    "bronas_pre_val_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "description": "BRONAS pre-validation status"
+    },
+    "bronas_post_val_status": {
+      "type": "string",
+      "enum": [
+        "passed",
+        "failed",
+        "skipped"
+      ],
+      "description": "BRONAS post-validation status"
+    }
+  },
+  "required": [
+    "scenario_name",
+    "scenario_category",
+    "test_prompt"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

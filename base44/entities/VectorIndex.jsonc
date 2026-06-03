@@ -1,0 +1,70 @@
+{
+  "name": "VectorIndex",
+  "type": "object",
+  "properties": {
+    "memory_id": {
+      "type": "string",
+      "description": "ID de la m\u00e9moire index\u00e9e"
+    },
+    "embedding_vector": {
+      "type": "string",
+      "description": "Vecteur d'embedding (JSON array stock\u00e9 en string)"
+    },
+    "embedding_dimension": {
+      "type": "integer",
+      "default": 384,
+      "description": "Dimension du vecteur"
+    },
+    "memory_tier": {
+      "type": "string",
+      "enum": [
+        "L1",
+        "L2",
+        "L3",
+        "R1",
+        "R2",
+        "R3",
+        "GC"
+      ],
+      "description": "Tier m\u00e9moire source"
+    },
+    "hemisphere": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "central"
+      ],
+      "description": "H\u00e9misph\u00e8re source"
+    },
+    "semantic_cluster": {
+      "type": "string",
+      "description": "Cluster s\u00e9mantique (LSH hash)"
+    },
+    "access_frequency": {
+      "type": "integer",
+      "default": 0,
+      "description": "Fr\u00e9quence d'acc\u00e8s (pour prioriser le cache)"
+    },
+    "last_accessed": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Dernier acc\u00e8s"
+    },
+    "connected_pathways_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Nombre de pathways connect\u00e9s"
+    },
+    "indexing_timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quand l'index a \u00e9t\u00e9 cr\u00e9\u00e9"
+    }
+  },
+  "required": [
+    "memory_id",
+    "embedding_vector",
+    "embedding_dimension"
+  ]
+}

@@ -1,0 +1,137 @@
+{
+  "name": "PerformanceBaseline",
+  "type": "object",
+  "properties": {
+    "metric_name": {
+      "type": "string",
+      "description": "Nom de la m\u00e9trique"
+    },
+    "metric_category": {
+      "type": "string",
+      "enum": [
+        "performance",
+        "resource_usage",
+        "error_rate",
+        "latency",
+        "throughput",
+        "quality",
+        "cost"
+      ],
+      "description": "Cat\u00e9gorie"
+    },
+    "baseline_period_start": {
+      "type": "string",
+      "format": "date-time",
+      "description": "D\u00e9but de la p\u00e9riode de baseline"
+    },
+    "baseline_period_end": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fin de la p\u00e9riode de baseline"
+    },
+    "sample_count": {
+      "type": "integer",
+      "description": "Nombre d'\u00e9chantillons collect\u00e9s"
+    },
+    "mean_value": {
+      "type": "number",
+      "description": "Moyenne"
+    },
+    "median_value": {
+      "type": "number",
+      "description": "M\u00e9diane"
+    },
+    "std_deviation": {
+      "type": "number",
+      "description": "\u00c9cart-type"
+    },
+    "min_value": {
+      "type": "number",
+      "description": "Valeur minimale"
+    },
+    "max_value": {
+      "type": "number",
+      "description": "Valeur maximale"
+    },
+    "percentile_95": {
+      "type": "number",
+      "description": "95\u00e8me percentile"
+    },
+    "percentile_99": {
+      "type": "number",
+      "description": "99\u00e8me percentile"
+    },
+    "pattern_detected": {
+      "type": "string",
+      "enum": [
+        "stable",
+        "trending_up",
+        "trending_down",
+        "cyclic",
+        "volatile",
+        "unknown"
+      ],
+      "description": "Pattern temporel d\u00e9tect\u00e9"
+    },
+    "hourly_patterns": {
+      "type": "object",
+      "description": "Patterns par heure de la journ\u00e9e"
+    },
+    "daily_patterns": {
+      "type": "object",
+      "description": "Patterns par jour de la semaine"
+    },
+    "seasonal_factors": {
+      "type": "object",
+      "description": "Facteurs saisonniers identifi\u00e9s"
+    },
+    "threshold_upper": {
+      "type": "number",
+      "description": "Seuil sup\u00e9rieur d'alerte (mean + 3*std)"
+    },
+    "threshold_lower": {
+      "type": "number",
+      "description": "Seuil inf\u00e9rieur d'alerte (mean - 3*std)"
+    },
+    "confidence_interval_95": {
+      "type": "object",
+      "properties": {
+        "lower": {
+          "type": "number"
+        },
+        "upper": {
+          "type": "number"
+        }
+      },
+      "description": "Intervalle de confiance 95%"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si cette baseline est active"
+    },
+    "model_version": {
+      "type": "string",
+      "description": "Version du mod\u00e8le de baseline"
+    },
+    "last_updated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Derni\u00e8re mise \u00e0 jour"
+    },
+    "auto_update_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Mise \u00e0 jour automatique activ\u00e9e"
+    }
+  },
+  "required": [
+    "metric_name",
+    "metric_category",
+    "baseline_period_start",
+    "baseline_period_end",
+    "sample_count",
+    "mean_value",
+    "std_deviation"
+  ]
+}

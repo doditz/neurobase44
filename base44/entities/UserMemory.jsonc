@@ -1,0 +1,197 @@
+{
+  "name": "UserMemory",
+  "type": "object",
+  "properties": {
+    "memory_key": {
+      "type": "string",
+      "description": "Unique identifier for this memory"
+    },
+    "memory_content": {
+      "type": "string",
+      "description": "The actual content/fact to remember"
+    },
+    "memory_type": {
+      "type": "string",
+      "enum": [
+        "preference",
+        "fact",
+        "project",
+        "context",
+        "instruction",
+        "feedback_positive",
+        "feedback_negative",
+        "learning_point",
+        "analytical_pattern",
+        "creative_insight",
+        "ethical_precedent",
+        "gc_harmonized_summary",
+        "debate_summary",
+        "validation_log"
+      ],
+      "description": "Type of memory for categorization"
+    },
+    "tier_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 3,
+      "default": 1,
+      "description": "Memory tier: 1=Immediate (L1/R1), 2=Session (L2/R2), 3=Long-term (L3/R3)"
+    },
+    "hemisphere": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "central"
+      ],
+      "default": "central",
+      "description": "Which hemisphere: left=analytical, right=creative, central=GC harmonizer"
+    },
+    "d2_modulation": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.5,
+      "description": "Dopaminergic attention weight (0.0=low priority, 1.0=critical)"
+    },
+    "omega_t": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Hemispheric balance at creation (0.0=creative, 1.0=analytical)"
+    },
+    "flux_integral": {
+      "type": "number",
+      "description": "Contextual history vector integration score"
+    },
+    "access_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Synaptic strengthening counter"
+    },
+    "last_accessed": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last access timestamp"
+    },
+    "context": {
+      "type": "string",
+      "description": "Additional context about when/why saved"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Source conversation ID"
+    },
+    "outcome_type": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "neutral",
+        "learning_point",
+        "pattern_recognized"
+      ],
+      "description": "Outcome classification"
+    },
+    "feedback_score": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1,
+      "description": "Feedback score: 1.0=optimal, 0.0=neutral, -1.0=failure"
+    },
+    "associated_context_snapshot": {
+      "type": "string",
+      "description": "JSON snapshot of interaction context"
+    },
+    "pruning_protection": {
+      "type": "boolean",
+      "default": false,
+      "description": "Protected from automatic pruning"
+    },
+    "decay_factor": {
+      "type": "number",
+      "minimum": 0.9,
+      "maximum": 1,
+      "default": 0.995,
+      "description": "Memory decay rate per access cycle"
+    },
+    "embedding_vector": {
+      "type": "string",
+      "description": "Simulated embedding for semantic search (JSON array)"
+    },
+    "compression_type": {
+      "type": "string",
+      "enum": [
+        "none",
+        "gzip",
+        "lzma"
+      ],
+      "default": "none",
+      "description": "Simulated compression: none(L1/R1), gzip(L2/R2), lzma(L3/R3)"
+    },
+    "importance_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "QuAC/QDAC importance score for tier routing"
+    },
+    "semantic_hash": {
+      "type": "string",
+      "description": "LSH hash for semantic clustering"
+    },
+    "gc_integration_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "GC Harmonizer integration score"
+    },
+    "source_database_tier": {
+      "type": "string",
+      "enum": [
+        "L1",
+        "L2",
+        "L3",
+        "R1",
+        "R2",
+        "R3",
+        "GC"
+      ],
+      "description": "Simulated source database tier"
+    },
+    "push_pull_direction": {
+      "type": "string",
+      "enum": [
+        "push",
+        "pull",
+        "neutral"
+      ],
+      "default": "neutral",
+      "description": "Memory transfer direction"
+    },
+    "push_pull_priority": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "default": 5,
+      "description": "Priority for tier promotion/demotion"
+    }
+  },
+  "required": [
+    "memory_key",
+    "memory_content"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

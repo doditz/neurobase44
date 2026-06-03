@@ -1,0 +1,49 @@
+{
+  "name": "PerplexitySearch",
+  "type": "object",
+  "properties": {
+    "query": {
+      "type": "string",
+      "description": "The search query sent to Perplexity"
+    },
+    "answer": {
+      "type": "string",
+      "description": "The answer returned by Perplexity"
+    },
+    "citations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of source URLs cited in the answer"
+    },
+    "model": {
+      "type": "string",
+      "description": "Perplexity model used (e.g., llama-3.1-sonar-large-128k-online)"
+    },
+    "tokens_used": {
+      "type": "integer",
+      "description": "Total tokens consumed by this search"
+    },
+    "conversation_id": {
+      "type": "string",
+      "description": "Associated conversation ID (if any)"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata (prompt_tokens, completion_tokens, etc.)"
+    }
+  },
+  "required": [
+    "query",
+    "answer"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

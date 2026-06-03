@@ -1,0 +1,102 @@
+{
+  "name": "OptimizationStrategy",
+  "type": "object",
+  "properties": {
+    "strategy_name": {
+      "type": "string",
+      "description": "Nom de la strat\u00e9gie d'optimisation (ex: 'TACO_RL', 'PromptWizard', 'NanoSurge')"
+    },
+    "strategy_type": {
+      "type": "string",
+      "enum": [
+        "compression",
+        "batch_processing",
+        "model_cascading",
+        "rag_optimization",
+        "skeleton_of_thought",
+        "context_aware",
+        "responsibility_tuning",
+        "hybrid"
+      ],
+      "description": "Type principal de la strat\u00e9gie"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description d\u00e9taill\u00e9e de la strat\u00e9gie"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "community_proven",
+        "neuronas_original",
+        "research_paper",
+        "dev_mode_instructions"
+      ],
+      "description": "Source de la strat\u00e9gie"
+    },
+    "target_metrics": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "M\u00e9triques SPG cibl\u00e9es par cette strat\u00e9gie (ex: ['mode_b_token_count', 'mode_b_time_ms'])"
+    },
+    "associated_tunable_params": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Noms des TunableParameter utilis\u00e9s par cette strat\u00e9gie"
+    },
+    "activation_conditions": {
+      "type": "object",
+      "description": "Conditions JSON pour activer cette strat\u00e9gie (ex: {spg_below: 0.7, cost_above: 0.5})"
+    },
+    "expected_improvement_range": {
+      "type": "string",
+      "description": "Plage d'am\u00e9lioration attendue (ex: '8%-189%' pour TACO_RL)"
+    },
+    "cost_impact": {
+      "type": "string",
+      "enum": [
+        "reduces_cost",
+        "neutral",
+        "increases_cost_slightly",
+        "increases_cost_significantly"
+      ],
+      "description": "Impact sur les co\u00fbts"
+    },
+    "quality_impact": {
+      "type": "string",
+      "enum": [
+        "improves_quality",
+        "maintains_quality",
+        "slight_quality_tradeoff",
+        "significant_quality_tradeoff"
+      ],
+      "description": "Impact sur la qualit\u00e9"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si cette strat\u00e9gie est actuellement active"
+    },
+    "priority_level": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 5,
+      "description": "Priorit\u00e9 d'activation (10=prioritaire)"
+    },
+    "implementation_notes": {
+      "type": "string",
+      "description": "Notes techniques sur l'impl\u00e9mentation"
+    }
+  },
+  "required": [
+    "strategy_name",
+    "strategy_type",
+    "description",
+    "source"
+  ]
+}

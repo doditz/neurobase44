@@ -1,0 +1,214 @@
+{
+  "name": "DSTIBConfig",
+  "type": "object",
+  "properties": {
+    "config_name": {
+      "type": "string",
+      "description": "Nom de la configuration DSTIB"
+    },
+    "input_entropy_thresholds": {
+      "type": "object",
+      "properties": {
+        "low_entropy": {
+          "type": "number",
+          "default": 0.3
+        },
+        "medium_entropy": {
+          "type": "number",
+          "default": 0.6
+        },
+        "high_entropy": {
+          "type": "number",
+          "default": 0.9
+        }
+      },
+      "description": "Seuils d'entropie pour classification de complexit\u00e9"
+    },
+    "query_type_weighting": {
+      "type": "object",
+      "description": "Table de poids par type de requ\u00eate et tier s\u00e9mantique",
+      "properties": {
+        "factual_L1": {
+          "type": "object",
+          "properties": {
+            "omega_target": {
+              "type": "number",
+              "default": 0.9
+            },
+            "d2_profile": {
+              "type": "string",
+              "enum": [
+                "D2Stim",
+                "D2Pin",
+                "Balanced"
+              ],
+              "default": "D2Stim"
+            },
+            "routing_layer": {
+              "type": "string",
+              "default": "Fast"
+            }
+          }
+        },
+        "analytical_L2": {
+          "type": "object",
+          "properties": {
+            "omega_target": {
+              "type": "number",
+              "default": 0.8
+            },
+            "d2_profile": {
+              "type": "string",
+              "enum": [
+                "D2Stim",
+                "D2Pin",
+                "Balanced"
+              ],
+              "default": "D2Stim"
+            },
+            "routing_layer": {
+              "type": "string",
+              "default": "Moderate"
+            }
+          }
+        },
+        "creative_R2": {
+          "type": "object",
+          "properties": {
+            "omega_target": {
+              "type": "number",
+              "default": 0.2
+            },
+            "d2_profile": {
+              "type": "string",
+              "enum": [
+                "D2Stim",
+                "D2Pin",
+                "Balanced"
+              ],
+              "default": "D2Pin"
+            },
+            "routing_layer": {
+              "type": "string",
+              "default": "Deep"
+            }
+          }
+        },
+        "synthesis_R3_L3": {
+          "type": "object",
+          "properties": {
+            "omega_target": {
+              "type": "number",
+              "default": 0.5
+            },
+            "d2_profile": {
+              "type": "string",
+              "enum": [
+                "D2Stim",
+                "D2Pin",
+                "Balanced"
+              ],
+              "default": "Balanced"
+            },
+            "routing_layer": {
+              "type": "string",
+              "default": "Deep"
+            }
+          }
+        }
+      }
+    },
+    "semantic_tier_keywords": {
+      "type": "object",
+      "description": "Mots-cl\u00e9s pour d\u00e9tection automatique des tiers s\u00e9mantiques",
+      "properties": {
+        "L1_literal": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "fact",
+            "data",
+            "calculate",
+            "define",
+            "what is",
+            "list"
+          ]
+        },
+        "L2_analytical": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "analyze",
+            "compare",
+            "logic",
+            "proof",
+            "evidence",
+            "why"
+          ]
+        },
+        "R2_creative": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "imagine",
+            "create",
+            "story",
+            "metaphor",
+            "art",
+            "feel"
+          ]
+        },
+        "R3_L3_synthesis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "synthesize",
+            "integrate",
+            "balance",
+            "ethical",
+            "should",
+            "philosophy"
+          ]
+        }
+      }
+    },
+    "hebden_density_weights": {
+      "type": "object",
+      "description": "Poids de densit\u00e9 s\u00e9mantique par tier (Hebden Layering)",
+      "properties": {
+        "L1_literal": {
+          "type": "number",
+          "default": 0.2
+        },
+        "L2_analytical": {
+          "type": "number",
+          "default": 0.5
+        },
+        "R2_creative": {
+          "type": "number",
+          "default": 0.7
+        },
+        "R3_L3_synthesis": {
+          "type": "number",
+          "default": 1.0
+        }
+      }
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si cette configuration est active"
+    }
+  },
+  "required": [
+    "config_name"
+  ]
+}

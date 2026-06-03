@@ -1,0 +1,75 @@
+{
+  "name": "MemoryPathway",
+  "type": "object",
+  "properties": {
+    "source_memory_id": {
+      "type": "string",
+      "description": "ID de la m\u00e9moire source"
+    },
+    "target_memory_id": {
+      "type": "string",
+      "description": "ID de la m\u00e9moire cible"
+    },
+    "pathway_type": {
+      "type": "string",
+      "enum": [
+        "semantic_similarity",
+        "temporal_sequence",
+        "causal_link",
+        "conceptual_bridge",
+        "hemispheric_cross"
+      ],
+      "description": "Type de connexion entre m\u00e9moires"
+    },
+    "similarity_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de similarit\u00e9 vectorielle (cosine similarity)"
+    },
+    "activation_count": {
+      "type": "integer",
+      "default": 0,
+      "description": "Nombre de fois que ce pathway a \u00e9t\u00e9 utilis\u00e9 (Hebbian learning)"
+    },
+    "pathway_strength": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "default": 0.5,
+      "description": "Force du pathway (augmente avec usage, d\u00e9cro\u00eet sans)"
+    },
+    "last_activated": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Derni\u00e8re activation du pathway"
+    },
+    "embedding_distance": {
+      "type": "number",
+      "description": "Distance euclidienne dans l'espace vectoriel"
+    },
+    "tier_bridge": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ce pathway traverse des tiers m\u00e9moire (L1\u2192L2, R2\u2192R3)"
+    },
+    "hemisphere_bridge": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si ce pathway traverse des h\u00e9misph\u00e8res (L\u2192R)"
+    },
+    "decay_rate": {
+      "type": "number",
+      "minimum": 0.9,
+      "maximum": 1,
+      "default": 0.995,
+      "description": "Taux de d\u00e9croissance de la force sans usage"
+    }
+  },
+  "required": [
+    "source_memory_id",
+    "target_memory_id",
+    "pathway_type",
+    "similarity_score"
+  ]
+}

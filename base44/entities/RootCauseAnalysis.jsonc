@@ -1,0 +1,204 @@
+{
+  "name": "RootCauseAnalysis",
+  "type": "object",
+  "properties": {
+    "incident_id": {
+      "type": "string",
+      "description": "ID unique de l'incident analys\u00e9"
+    },
+    "incident_type": {
+      "type": "string",
+      "enum": [
+        "system_health_degraded",
+        "performance_drop",
+        "batch_stuck",
+        "high_error_rate",
+        "resource_exhaustion",
+        "anomaly_detected"
+      ],
+      "description": "Type d'incident"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ],
+      "description": "S\u00e9v\u00e9rit\u00e9 de l'incident"
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quand l'incident a \u00e9t\u00e9 d\u00e9tect\u00e9"
+    },
+    "analysis_completed_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Quand l'analyse RCA a \u00e9t\u00e9 compl\u00e9t\u00e9e"
+    },
+    "root_cause_summary": {
+      "type": "string",
+      "description": "R\u00e9sum\u00e9 concis de la cause racine identifi\u00e9e"
+    },
+    "root_cause_category": {
+      "type": "string",
+      "enum": [
+        "configuration_issue",
+        "code_bug",
+        "resource_constraint",
+        "external_dependency",
+        "data_corruption",
+        "cascading_failure",
+        "human_error",
+        "unknown"
+      ],
+      "description": "Cat\u00e9gorie de la cause racine"
+    },
+    "confidence_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score de confiance de l'analyse (0-1)"
+    },
+    "evidence_chain": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string"
+          },
+          "event_type": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "relevance_score": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "Cha\u00eene d'\u00e9v\u00e9nements menant \u00e0 l'incident"
+    },
+    "affected_components": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Composants affect\u00e9s"
+    },
+    "metric_changes": {
+      "type": "object",
+      "description": "Changements de m\u00e9triques observ\u00e9s"
+    },
+    "log_patterns": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Patterns identifi\u00e9s dans les logs"
+    },
+    "remediation_steps": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "step_number": {
+            "type": "integer"
+          },
+          "action": {
+            "type": "string"
+          },
+          "priority": {
+            "type": "string"
+          },
+          "estimated_time": {
+            "type": "string"
+          },
+          "requires_manual_intervention": {
+            "type": "boolean"
+          }
+        }
+      },
+      "description": "\u00c9tapes de rem\u00e9diation recommand\u00e9es"
+    },
+    "code_changes_suggested": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "file_path": {
+            "type": "string"
+          },
+          "change_description": {
+            "type": "string"
+          },
+          "code_snippet": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Changements de code sugg\u00e9r\u00e9s"
+    },
+    "configuration_changes_suggested": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "parameter": {
+            "type": "string"
+          },
+          "current_value": {
+            "type": "string"
+          },
+          "suggested_value": {
+            "type": "string"
+          },
+          "reasoning": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Changements de configuration sugg\u00e9r\u00e9s"
+    },
+    "similar_incidents_history": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "IDs d'incidents similaires pass\u00e9s"
+    },
+    "prevention_recommendations": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Recommandations pour pr\u00e9venir la r\u00e9currence"
+    },
+    "full_analysis_report": {
+      "type": "string",
+      "description": "Rapport complet d'analyse"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "analyzing",
+        "completed",
+        "remediation_applied",
+        "verified",
+        "closed"
+      ],
+      "default": "analyzing",
+      "description": "Statut de l'analyse"
+    }
+  },
+  "required": [
+    "incident_id",
+    "incident_type",
+    "severity",
+    "detected_at"
+  ]
+}

@@ -1,0 +1,83 @@
+{
+  "name": "GitHubIntegration",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "User ID who connected the GitHub account"
+    },
+    "integration_type": {
+      "type": "string",
+      "enum": [
+        "app",
+        "personal_token"
+      ],
+      "default": "personal_token",
+      "description": "Type of GitHub integration"
+    },
+    "installation_id": {
+      "type": "string",
+      "description": "GitHub App installation ID (for app integration)"
+    },
+    "repository_name": {
+      "type": "string",
+      "description": "Connected repository name (owner/repo format)"
+    },
+    "repository_url": {
+      "type": "string",
+      "description": "Full repository URL"
+    },
+    "access_token_encrypted": {
+      "type": "string",
+      "description": "Encrypted GitHub access token or personal access token"
+    },
+    "is_private": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the repository is private"
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of permissions granted"
+    },
+    "last_sync": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last time data was synced with GitHub"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether the integration is active"
+    }
+  },
+  "required": [
+    "user_id",
+    "repository_name",
+    "integration_type"
+  ],
+  "rls": {
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "read": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_id": "{{user.id}}"
+    },
+    "delete": {
+      "user_id": "{{user.id}}"
+    },
+    "write": {
+      "user_id": "{{user.id}}"
+    }
+  }
+}

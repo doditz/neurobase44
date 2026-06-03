@@ -1,0 +1,199 @@
+{
+  "name": "SPGConfiguration",
+  "type": "object",
+  "properties": {
+    "config_version": {
+      "type": "string",
+      "description": "Version de cette configuration SPG (ex: 'v1.0.0')"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si cette configuration est actuellement active"
+    },
+    "quality_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric_name": {
+            "type": "string"
+          },
+          "source_field": {
+            "type": "string",
+            "description": "Champ dans BenchmarkResult"
+          },
+          "normalization_method": {
+            "type": "string",
+            "enum": [
+              "minmax",
+              "log",
+              "inverse",
+              "sigmoid",
+              "none"
+            ]
+          },
+          "normalization_bounds": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "metric_name",
+          "source_field",
+          "weight"
+        ]
+      },
+      "description": "M\u00e9triques de qualit\u00e9 contribuant au SPG"
+    },
+    "efficiency_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric_name": {
+            "type": "string"
+          },
+          "source_field": {
+            "type": "string"
+          },
+          "normalization_method": {
+            "type": "string",
+            "enum": [
+              "minmax",
+              "log",
+              "inverse",
+              "sigmoid",
+              "none"
+            ]
+          },
+          "normalization_bounds": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          },
+          "weight": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "invert": {
+            "type": "boolean",
+            "default": true,
+            "description": "Inverser pour que minimisation = r\u00e9compense"
+          }
+        },
+        "required": [
+          "metric_name",
+          "source_field",
+          "weight"
+        ]
+      },
+      "description": "M\u00e9triques d'efficacit\u00e9 (temps, tokens) contribuant au SPG"
+    },
+    "complexity_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric_name": {
+            "type": "string"
+          },
+          "source_field": {
+            "type": "string"
+          },
+          "normalization_method": {
+            "type": "string",
+            "enum": [
+              "minmax",
+              "log",
+              "inverse",
+              "sigmoid",
+              "none"
+            ]
+          },
+          "normalization_bounds": {
+            "type": "object",
+            "properties": {
+              "min": {
+                "type": "number"
+              },
+              "max": {
+                "type": "number"
+              }
+            }
+          },
+          "weight": {
+            "type": "number"
+          },
+          "penalty_threshold": {
+            "type": "number",
+            "description": "Seuil au-del\u00e0 duquel p\u00e9nalit\u00e9 s'applique"
+          }
+        },
+        "required": [
+          "metric_name",
+          "source_field",
+          "weight"
+        ]
+      },
+      "description": "M\u00e9triques de complexit\u00e9/autres (peuvent avoir poids n\u00e9gatif)"
+    },
+    "category_weights": {
+      "type": "object",
+      "properties": {
+        "quality": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.5
+        },
+        "efficiency": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0.4
+        },
+        "complexity": {
+          "type": "number",
+          "minimum": -1,
+          "maximum": 1,
+          "default": 0.1
+        }
+      },
+      "description": "Poids globaux pour chaque cat\u00e9gorie de m\u00e9triques"
+    },
+    "spg_formula_description": {
+      "type": "string",
+      "description": "Description textuelle de la formule SPG pour documentation"
+    },
+    "notes": {
+      "type": "string",
+      "description": "Notes sur cette configuration"
+    }
+  },
+  "required": [
+    "config_version",
+    "quality_metrics",
+    "efficiency_metrics",
+    "category_weights"
+  ]
+}

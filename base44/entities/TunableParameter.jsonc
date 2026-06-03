@@ -1,0 +1,96 @@
+{
+  "name": "TunableParameter",
+  "type": "object",
+  "properties": {
+    "parameter_name": {
+      "type": "string",
+      "description": "Nom du param\u00e8tre ajustable (ex: 'temperature', 'maxPersonas', 'd2Modulation')"
+    },
+    "parameter_category": {
+      "type": "string",
+      "enum": [
+        "llm_config",
+        "debate_config",
+        "persona_selection",
+        "d2_system",
+        "other"
+      ],
+      "description": "Cat\u00e9gorie du param\u00e8tre"
+    },
+    "current_value": {
+      "type": "number",
+      "description": "Valeur actuelle du param\u00e8tre"
+    },
+    "default_value": {
+      "type": "number",
+      "description": "Valeur par d\u00e9faut initiale"
+    },
+    "min_bound": {
+      "type": "number",
+      "description": "Limite inf\u00e9rieure autoris\u00e9e"
+    },
+    "max_bound": {
+      "type": "number",
+      "description": "Limite sup\u00e9rieure autoris\u00e9e"
+    },
+    "adjustment_step": {
+      "type": "number",
+      "description": "Pas d'ajustement recommand\u00e9 pour ce param\u00e8tre"
+    },
+    "is_continuous": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si le param\u00e8tre est continu (true) ou discret (false)"
+    },
+    "discrete_values": {
+      "type": "array",
+      "items": {
+        "type": "number"
+      },
+      "description": "Valeurs discr\u00e8tes autoris\u00e9es si is_continuous = false"
+    },
+    "impact_on_quality": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Impact estim\u00e9 sur la qualit\u00e9"
+    },
+    "impact_on_cost": {
+      "type": "string",
+      "enum": [
+        "high",
+        "medium",
+        "low",
+        "unknown"
+      ],
+      "default": "unknown",
+      "description": "Impact estim\u00e9 sur le co\u00fbt computationnel"
+    },
+    "last_adjusted": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Date de la derni\u00e8re modification"
+    },
+    "is_locked": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si le param\u00e8tre est verrouill\u00e9 (non ajustable)"
+    },
+    "description": {
+      "type": "string",
+      "description": "Description du r\u00f4le de ce param\u00e8tre"
+    }
+  },
+  "required": [
+    "parameter_name",
+    "parameter_category",
+    "current_value",
+    "min_bound",
+    "max_bound"
+  ]
+}

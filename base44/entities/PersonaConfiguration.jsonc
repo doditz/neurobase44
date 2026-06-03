@@ -1,0 +1,120 @@
+{
+  "name": "PersonaConfiguration",
+  "type": "object",
+  "properties": {
+    "persona_id": {
+      "type": "string",
+      "description": "Reference to the parent Persona entity ID"
+    },
+    "system": {
+      "type": "string",
+      "enum": [
+        "SMAS",
+        "Suno",
+        "Shared"
+      ],
+      "description": "Which AI system this configuration applies to"
+    },
+    "instructions_for_system": {
+      "type": "string",
+      "description": "Detailed system-specific instructions for this persona, including technical nuances and best practices for this context"
+    },
+    "capabilities_contextual": {
+      "type": "string",
+      "description": "Description of the persona's capabilities specifically within this system context"
+    },
+    "temperature_range_min": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "System-specific minimum temperature (overrides Persona default if provided)"
+    },
+    "temperature_range_max": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "System-specific maximum temperature (overrides Persona default if provided)"
+    },
+    "d2_sensitivity": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1,
+      "description": "System-specific D2 Modulation sensitivity (overrides Persona default if provided)"
+    },
+    "processing_bias": {
+      "type": "string",
+      "enum": [
+        "Analytical",
+        "Creative",
+        "Integrative",
+        "Disruptive"
+      ],
+      "description": "System-specific processing approach (overrides Persona default if provided)"
+    },
+    "ethical_constraints": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "description": "System-specific ethical oversight level (overrides Persona default if provided)"
+    },
+    "activation_keywords": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Keywords or patterns that should trigger activation of this persona in this system"
+    },
+    "specialized_output_format": {
+      "type": "string",
+      "description": "Expected output format for this persona in this system (e.g., 'Suno tags in English', 'JSON schema', 'Markdown')"
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "input": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Example inputs and outputs demonstrating this persona's behavior in this system"
+    },
+    "priority_override": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "description": "System-specific priority level (overrides Persona default if provided)"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether this configuration is currently active"
+    }
+  },
+  "required": [
+    "persona_id",
+    "system",
+    "instructions_for_system"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

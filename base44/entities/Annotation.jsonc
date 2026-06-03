@@ -1,0 +1,78 @@
+{
+  "name": "Annotation",
+  "type": "object",
+  "properties": {
+    "target_type": {
+      "type": "string",
+      "enum": [
+        "benchmark",
+        "diagnostic",
+        "debate_message"
+      ],
+      "description": "Type of entity being annotated"
+    },
+    "target_id": {
+      "type": "string",
+      "description": "ID of target entity"
+    },
+    "annotation_text": {
+      "type": "string",
+      "description": "Annotation content"
+    },
+    "highlight_text": {
+      "type": "string",
+      "description": "Text being highlighted/annotated"
+    },
+    "position": {
+      "type": "object",
+      "description": "Position data for UI highlighting"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Categorical tags (issue, insight, question, etc.)"
+    },
+    "color": {
+      "type": "string",
+      "default": "yellow",
+      "description": "Highlight color"
+    },
+    "visibility": {
+      "type": "string",
+      "enum": [
+        "public",
+        "private",
+        "team"
+      ],
+      "default": "team",
+      "description": "Who can see this annotation"
+    }
+  },
+  "required": [
+    "target_type",
+    "target_id",
+    "annotation_text"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by": "{{user.email}}"
+        },
+        {
+          "visibility": "public"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "name": "AnomalyDetection",
+  "type": "object",
+  "properties": {
+    "metric_name": {
+      "type": "string",
+      "description": "Nom de la m\u00e9trique surveill\u00e9e"
+    },
+    "metric_category": {
+      "type": "string",
+      "enum": [
+        "performance",
+        "resource_usage",
+        "error_rate",
+        "latency",
+        "throughput",
+        "quality",
+        "cost"
+      ],
+      "description": "Cat\u00e9gorie de m\u00e9trique"
+    },
+    "detected_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Timestamp de d\u00e9tection"
+    },
+    "current_value": {
+      "type": "number",
+      "description": "Valeur actuelle de la m\u00e9trique"
+    },
+    "expected_value": {
+      "type": "number",
+      "description": "Valeur attendue bas\u00e9e sur la baseline"
+    },
+    "deviation_percentage": {
+      "type": "number",
+      "description": "Pourcentage de d\u00e9viation"
+    },
+    "z_score": {
+      "type": "number",
+      "description": "Z-score statistique"
+    },
+    "anomaly_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score d'anomalie (0=normal, 1=anomalie forte)"
+    },
+    "anomaly_type": {
+      "type": "string",
+      "enum": [
+        "spike",
+        "drop",
+        "gradual_increase",
+        "gradual_decrease",
+        "oscillation",
+        "flatline",
+        "pattern_change"
+      ],
+      "description": "Type d'anomalie d\u00e9tect\u00e9e"
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "info",
+        "warning",
+        "critical"
+      ],
+      "description": "S\u00e9v\u00e9rit\u00e9 de l'anomalie"
+    },
+    "detection_method": {
+      "type": "string",
+      "enum": [
+        "statistical",
+        "ml_model",
+        "threshold",
+        "pattern_recognition",
+        "ensemble"
+      ],
+      "description": "M\u00e9thode de d\u00e9tection utilis\u00e9e"
+    },
+    "baseline_period": {
+      "type": "string",
+      "description": "P\u00e9riode utilis\u00e9e pour la baseline (ex: 7d, 30d)"
+    },
+    "context": {
+      "type": "object",
+      "description": "Contexte additionnel (heure, jour, charge, etc.)"
+    },
+    "correlated_metrics": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "metric_name": {
+            "type": "string"
+          },
+          "correlation_score": {
+            "type": "number"
+          }
+        }
+      },
+      "description": "M\u00e9triques corr\u00e9l\u00e9es d\u00e9tect\u00e9es"
+    },
+    "is_false_positive": {
+      "type": "boolean",
+      "default": false,
+      "description": "Marqu\u00e9 comme faux positif"
+    },
+    "acknowledged": {
+      "type": "boolean",
+      "default": false,
+      "description": "Anomalie reconnue par un admin"
+    },
+    "linked_rca_id": {
+      "type": "string",
+      "description": "ID de l'analyse RCA associ\u00e9e"
+    },
+    "auto_resolved": {
+      "type": "boolean",
+      "default": false,
+      "description": "R\u00e9solu automatiquement"
+    },
+    "resolution_notes": {
+      "type": "string",
+      "description": "Notes sur la r\u00e9solution"
+    }
+  },
+  "required": [
+    "metric_name",
+    "metric_category",
+    "detected_at",
+    "current_value",
+    "anomaly_score",
+    "anomaly_type"
+  ]
+}

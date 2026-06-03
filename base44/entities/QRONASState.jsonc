@@ -1,0 +1,125 @@
+{
+  "name": "QRONASState",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID de la conversation associ\u00e9e"
+    },
+    "round_number": {
+      "type": "integer",
+      "default": 0,
+      "description": "Num\u00e9ro de ronde actuel du d\u00e9bat"
+    },
+    "active_personas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Personas actifs dans ce cycle QRONAS"
+    },
+    "left_hemisphere_output": {
+      "type": "string",
+      "description": "Output du chemin analytique (Left)"
+    },
+    "right_hemisphere_output": {
+      "type": "string",
+      "description": "Output du chemin cr\u00e9atif (Right)"
+    },
+    "gc_harmonized_output": {
+      "type": "string",
+      "description": "Output harmonis\u00e9 du Genius Central"
+    },
+    "gc_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score GC calcul\u00e9 pour ce cycle"
+    },
+    "synergy_factor": {
+      "type": "number",
+      "description": "Facteur de synergie inter-h\u00e9misph\u00e9rique"
+    },
+    "entropy_divergence": {
+      "type": "number",
+      "description": "Divergence d'entropie entre LB et RB"
+    },
+    "debate_convergence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Taux de convergence du d\u00e9bat"
+    },
+    "ethical_checkpoint_status": {
+      "type": "object",
+      "properties": {
+        "human_rights": {
+          "type": "boolean"
+        },
+        "diversity_fairness": {
+          "type": "boolean"
+        },
+        "sustainability_transparency": {
+          "type": "boolean"
+        }
+      },
+      "description": "Statut des checkpoints \u00e9thiques UNESCO"
+    },
+    "bronas_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Score BRONAS (S.M.R.C.E.) global"
+    },
+    "smrce_breakdown": {
+      "type": "object",
+      "properties": {
+        "sensory": {
+          "type": "number"
+        },
+        "memory": {
+          "type": "number"
+        },
+        "reasoning": {
+          "type": "number"
+        },
+        "coherence": {
+          "type": "number"
+        },
+        "ethics": {
+          "type": "number"
+        }
+      },
+      "description": "D\u00e9tail des scores S.M.R.C.E."
+    },
+    "validation_verdict": {
+      "type": "string",
+      "enum": [
+        "validated",
+        "flagged",
+        "refinement_suggested",
+        "rejected"
+      ],
+      "description": "Verdict de validation cognitif"
+    },
+    "omega_t": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Balance h\u00e9misph\u00e9rique au moment du cycle"
+    },
+    "dopamine_t": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Niveau dopaminergique au moment du cycle"
+    },
+    "flux_integral": {
+      "type": "number",
+      "description": "Int\u00e9grale de flux contextuel"
+    }
+  },
+  "required": [
+    "conversation_id"
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "User",
+  "type": "object",
+  "properties": {
+    "preferred_name": {
+      "type": "string",
+      "description": "How the user prefers to be called (e.g., 'Doditz', 'l'alchemiste architecte')"
+    },
+    "bio": {
+      "type": "string",
+      "description": "User's bio or description"
+    },
+    "preferences": {
+      "type": "object",
+      "description": "User preferences and settings",
+      "properties": {
+        "language": {
+          "type": "string"
+        },
+        "theme": {
+          "type": "string"
+        },
+        "notification_settings": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "required": []
+}

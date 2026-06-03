@@ -1,0 +1,103 @@
+{
+  "name": "BRONASRules",
+  "type": "object",
+  "properties": {
+    "rule_name": {
+      "type": "string",
+      "description": "Nom de la r\u00e8gle BRONAS"
+    },
+    "rule_category": {
+      "type": "string",
+      "enum": [
+        "smrce_threshold",
+        "unesco_principle",
+        "constraint_enforcement",
+        "persona_activation",
+        "modulation_boundary"
+      ],
+      "description": "Cat\u00e9gorie de r\u00e8gle"
+    },
+    "smrce_weights": {
+      "type": "object",
+      "properties": {
+        "sensory_weight": {
+          "type": "number",
+          "default": 0.2
+        },
+        "memory_weight": {
+          "type": "number",
+          "default": 0.2
+        },
+        "reasoning_weight": {
+          "type": "number",
+          "default": 0.25
+        },
+        "coherence_weight": {
+          "type": "number",
+          "default": 0.15
+        },
+        "ethics_weight": {
+          "type": "number",
+          "default": 0.2
+        }
+      },
+      "description": "Poids pour calcul BRONAS Score"
+    },
+    "decision_gates": {
+      "type": "object",
+      "properties": {
+        "proceed_threshold": {
+          "type": "number",
+          "default": 0.8
+        },
+        "correction_threshold": {
+          "type": "number",
+          "default": 0.6
+        },
+        "reject_threshold": {
+          "type": "number",
+          "default": 0.6
+        }
+      },
+      "description": "Seuils de d\u00e9cision BRONAS"
+    },
+    "unesco_principles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [
+        "human_rights_dignity",
+        "peaceful_just_societies",
+        "diversity_inclusiveness",
+        "fairness_non_discrimination",
+        "sustainability",
+        "transparency_explainability"
+      ],
+      "description": "Principes UNESCO \u00e0 valider"
+    },
+    "enforcement_level": {
+      "type": "string",
+      "enum": [
+        "mandatory",
+        "recommended",
+        "optional"
+      ],
+      "default": "mandatory",
+      "description": "Niveau d'application de la r\u00e8gle"
+    },
+    "rule_logic": {
+      "type": "string",
+      "description": "Logic formelle (deontic/temporal) de la r\u00e8gle"
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true,
+      "description": "Si la r\u00e8gle est active"
+    }
+  },
+  "required": [
+    "rule_name",
+    "rule_category"
+  ]
+}

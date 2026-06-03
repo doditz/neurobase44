@@ -1,0 +1,88 @@
+{
+  "name": "Team",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Team name"
+    },
+    "purpose": {
+      "type": "string",
+      "description": "Purpose and function of the team"
+    },
+    "composition": {
+      "type": "string",
+      "description": "Description of team composition"
+    },
+    "activation_trigger": {
+      "type": "string",
+      "description": "When this team should be activated"
+    },
+    "members": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of persona handles that are members of this team"
+    },
+    "expertise": {
+      "type": "string",
+      "description": "Areas of expertise"
+    },
+    "ethical_constraints": {
+      "type": "string",
+      "enum": [
+        "Low",
+        "Medium",
+        "High"
+      ],
+      "description": "Level of ethical oversight required"
+    },
+    "temperature_range_min": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Minimum temperature for team"
+    },
+    "temperature_range_max": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Maximum temperature for team"
+    },
+    "d2_sensitivity": {
+      "type": "number",
+      "minimum": -1,
+      "maximum": 1,
+      "description": "D2 modulation sensitivity"
+    },
+    "processing_style": {
+      "type": "string",
+      "enum": [
+        "Analytical",
+        "Creative",
+        "Integrative",
+        "Balanced"
+      ],
+      "description": "Primary processing approach"
+    }
+  },
+  "required": [
+    "name",
+    "purpose"
+  ],
+  "rls": {
+    "create": {
+      "created_by": "{{user.email}}"
+    },
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "update": {
+      "created_by": "{{user.email}}"
+    },
+    "delete": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

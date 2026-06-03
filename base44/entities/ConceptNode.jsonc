@@ -1,0 +1,81 @@
+{
+  "name": "ConceptNode",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "Associated conversation ID"
+    },
+    "round_number": {
+      "type": "integer",
+      "description": "Debate round where this concept was active"
+    },
+    "concept_name": {
+      "type": "string",
+      "description": "Human-readable concept name (e.g., 'Ethical Reasoning', 'Creative Ideation')"
+    },
+    "concept_type": {
+      "type": "string",
+      "enum": [
+        "sensory",
+        "memory",
+        "reasoning",
+        "coherence",
+        "ethics",
+        "cultural",
+        "technical",
+        "creative"
+      ],
+      "description": "Type of cognitive concept"
+    },
+    "activation_strength": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "How strongly this concept was activated (0.0-1.0)"
+    },
+    "contributing_personas": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of persona names that contributed to this concept"
+    },
+    "ars_contribution": {
+      "type": "number",
+      "description": "How much this concept contributed to the overall ARS score"
+    },
+    "decision_influence": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "How much this concept influenced the final decision"
+    },
+    "evidence_snippets": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Key phrases/evidence from debate showing this concept in action"
+    },
+    "is_bottleneck": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether this was identified as a critical concept node"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "concept_name",
+    "concept_type",
+    "activation_strength"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "name": "ResourceUsage",
+  "type": "object",
+  "properties": {
+    "conversation_id": {
+      "type": "string",
+      "description": "ID de la conversation associ\u00e9e"
+    },
+    "agent_name": {
+      "type": "string",
+      "enum": [
+        "smas_debater",
+        "suno_prompt_architect",
+        "qronas_dispatcher"
+      ],
+      "description": "Nom de l'agent utilis\u00e9"
+    },
+    "operation_type": {
+      "type": "string",
+      "enum": [
+        "complexity_analysis",
+        "debate_round",
+        "validation_loop",
+        "synthesis",
+        "simple_query"
+      ],
+      "description": "Type d'op\u00e9ration effectu\u00e9e"
+    },
+    "tokens_used_estimated": {
+      "type": "integer",
+      "description": "Nombre de tokens utilis\u00e9s (estimation)"
+    },
+    "llm_calls_count": {
+      "type": "integer",
+      "description": "Nombre d'appels LLM effectu\u00e9s"
+    },
+    "processing_time_ms": {
+      "type": "integer",
+      "description": "Temps de traitement en millisecondes"
+    },
+    "cost_estimated": {
+      "type": "number",
+      "description": "Co\u00fbt estim\u00e9 en dollars USD"
+    },
+    "complexity_score": {
+      "type": "number",
+      "minimum": 0.0,
+      "maximum": 1.0,
+      "description": "Score de complexit\u00e9 d\u00e9tect\u00e9"
+    },
+    "personas_activated": {
+      "type": "integer",
+      "description": "Nombre de personas activ\u00e9es"
+    },
+    "debate_rounds": {
+      "type": "integer",
+      "description": "Nombre de rondes de d\u00e9bat effectu\u00e9es"
+    },
+    "mode_used": {
+      "type": "string",
+      "enum": [
+        "eco",
+        "balanced",
+        "premium",
+        "custom"
+      ],
+      "description": "Mode utilis\u00e9 pour cette op\u00e9ration"
+    },
+    "optimization_applied": {
+      "type": "boolean",
+      "default": false,
+      "description": "Si des optimisations ont \u00e9t\u00e9 appliqu\u00e9es"
+    },
+    "user_prompt_length": {
+      "type": "integer",
+      "description": "Longueur du prompt utilisateur en caract\u00e8res"
+    }
+  },
+  "required": [
+    "conversation_id",
+    "agent_name",
+    "operation_type",
+    "tokens_used_estimated",
+    "llm_calls_count"
+  ],
+  "rls": {
+    "read": {
+      "created_by": "{{user.email}}"
+    },
+    "write": {
+      "created_by": "{{user.email}}"
+    }
+  }
+}
