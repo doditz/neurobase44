@@ -12,47 +12,44 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
  * 6. Early response pattern - send partial results fast
  */
 
-const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+/**
+ * MODEL SELECTION — routed exclusively through the user's PAID Base44 subscription.
+ * NO direct provider API keys. NO OpenAI/GPT.
+ *
+ * | Path                 | Model              | Rationale                                  |
+ * |----------------------|--------------------|--------------------------------------------|
+ * | Full debate (QRONAS) | claude_opus_4_8    | Deepest reasoning for complex/ethical/news |
+ * | Medium debate        | claude_sonnet_4_6  | Strong but lighter for moderate queries    |
+ * | Simple / fast path   | gemini_3_flash     | Fast & cheap for low-complexity queries    |
+ * | Web grounding search | gemini_3_flash     | Only model here supporting web grounding   |
+ *
+ * Opus 4.8 costs more integration credits — used only for the full debate path.
+ */
+const MODEL_FULL = 'claude_opus_4_8';   // most debates → deepest model
+const MODEL_MEDIUM = 'claude_sonnet_4_6';
+const MODEL_SIMPLE = 'gemini_3_flash';  // low complexity → lighter, faster model
+const MODEL_SEARCH = 'gemini_3_flash';  // grounding requires a web-search-capable model
 
 /**
- * Live web search with grounding. Returns { text, citations }.
- * Prefers Gemini google_search (real source URLs via groundingMetadata),
- * falls back to Base44 InvokeLLM with add_context_from_internet.
+ * Live web search with grounding via the Base44 built-in model (paid sub).
+ * Uses gemini_3_flash + add_context_from_internet; citations scraped from inline URLs.
+ * Returns { text, citations }.
  */
 async function groundedWebSearch(base44, query) {
     const prompt = `Search the web for up-to-date, verifiable information about the following. Report concrete facts with their source URLs:\n\n${query}`;
-    if (GOOGLE_AI_API_KEY) {
-        try {
-            const body = {
-                contents: [{ parts: [{ text: prompt }] }],
-                generationConfig: { temperature: 0.3, maxOutputTokens: 2048 },
-                tools: [{ google_search: {} }]
-            };
-            const endpoint = `${GEMINI_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_AI_API_KEY}`;
-            const resp = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body)
-            });
-            if (resp.ok) {
-                const data = await resp.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                const chunks = data.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
-                const citations = chunks
-                    .map(c => c.web ? { url: c.web.uri, source: c.web.title || 'Web', verified: true } : null)
-                    .filter(Boolean)
-                    .slice(0, 8);
-                if (text) return { text, citations };
-            }
-        } catch (_e) { /* fall through */ }
-    }
-    // Fallback
-    const text = await base44.integrations.Core.InvokeLLM({ prompt, add_context_from_internet: true });
-    const urls = (typeof text === 'string' ? text.match(/https?:\/\/[^\s\]\)]+/gi) : null) || [];
-    const citations = urls.slice(0, 5).map(url => ({ url, source: 'Web', verified: true }));
-    return { text: typeof text === 'string' ? text : '', citations };
+    const result = await base44.integrations.Core.InvokeLLM({
+        prompt,
+        model: MODEL_SEARCH,
+        add_context_from_internet: true
+    });
+    const text = typeof result === 'string' ? result : (result?.text || '');
+    const urls = text.match(/https?:\/\/[^\s\]\)]+/gi) || [];
+    const seen = new Set();
+    const citations = urls
+        .filter(u => !seen.has(u) && seen.add(u))
+        .slice(0, 8)
+        .map(url => ({ url, source: 'Web', verified: true }));
+    return { text, citations };
 }
 
 Deno.serve(async (req) => {
@@ -66,7 +63,7 @@ Deno.serve(async (req) => {
     };
 
     try {
-        log('START', '=== FAST ORCHESTRATOR v13.0 ===');
+        log('START', '=== FAST ORCHESTRATOR v14.0 (Opus 4.8 deep / Gemini3 light) ===');
         
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
@@ -244,6 +241,7 @@ Respond helpfully and concisely.`;
 
             response = await base44.integrations.Core.InvokeLLM({
                 prompt,
+                model: MODEL_SIMPLE,
                 temperature: settings.temperature || 0.7,
                 file_urls: hasFiles ? file_urls : undefined
             });
@@ -270,6 +268,7 @@ Respond in 100 words max.`;
                 try {
                     const r = await base44.integrations.Core.InvokeLLM({ 
                         prompt, 
+                        model: MODEL_MEDIUM,
                         temperature: settings.temperature || 0.7 
                     });
                     return { persona: p.name, response: r };
@@ -293,6 +292,7 @@ Synthesize these insights into a coherent, helpful response.`;
 
             response = await base44.integrations.Core.InvokeLLM({
                 prompt: synthPrompt,
+                model: MODEL_MEDIUM,
                 temperature: settings.temperature || 0.7
             });
 
@@ -314,6 +314,7 @@ Synthesize these insights into a coherent, helpful response.`;
                     max_paths: adaptivePersonas,
                     debate_rounds: adaptiveRounds,
                     temperature: settings.temperature || 0.7,
+                    model: MODEL_FULL,
                     file_urls: hasFiles ? file_urls : undefined,
                     conversation_history: conversationHistory
                 });
@@ -330,9 +331,10 @@ Synthesize these insights into a coherent, helpful response.`;
             } catch (qronasError) {
                 log('QRONAS_FAIL', qronasError.message);
                 
-                // Fallback to direct LLM
+                // Fallback to direct LLM (still the deep model for the full path)
                 response = await base44.integrations.Core.InvokeLLM({
                     prompt: `${agentInstr}${styleInstr}\n\n${fullContext}\n\nProvide a helpful response.`,
+                    model: MODEL_FULL,
                     temperature: settings.temperature || 0.7,
                     file_urls: hasFiles ? file_urls : undefined
                 });

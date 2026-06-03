@@ -1,77 +1,29 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.20';
 
 /**
- * QRONAS Engine v8.0 - Google AI Compatible
- * - Google Gemini as primary LLM provider
- * - Base44 InvokeLLM as fallback
- * - Direct DB access for personas
- * - Parallel LLM calls
- * - Inline dynamics calculations
- * 
+ * QRONAS Engine v9.0 - Base44-native (paid subscription) ONLY
+ * - Uses the Base44 built-in LLM exclusively (no direct provider API keys, no GPT)
+ * - Model is selectable per request (defaults to claude_opus_4_8 for deep debate)
+ * - Direct DB access for personas, parallel LLM calls, inline dynamics
+ *
  * CHANGELOG:
- * v8.0 - Added Google AI integration with fallback
- * v7.0 - Optimized for speed
+ * v9.0 - Removed direct Google Gemini API. All inference via Core.InvokeLLM.
+ *        Added `model` request param (default claude_opus_4_8). Opus 4.8 costs more
+ *        integration credits — used for the deep debate path driven by the orchestrator.
+ * v8.0 - (deprecated) Direct Google AI integration with fallback
  */
 
-const GOOGLE_AI_API_KEY = Deno.env.get('GOOGLE_AI_API_KEY');
-const GEMINI_MODEL = 'gemini-2.0-flash';
-const GEMINI_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Default debate model: latest Claude Opus 4.8 (deepest reasoning), via paid Base44 sub.
+const DEFAULT_MODEL = 'claude_opus_4_8';
 
 /**
- * LLM Provider abstraction - tries Google Gemini first, falls back to Base44.
+ * LLM call via the Base44 built-in model (paid sub). No API keys, no GPT.
  * @param {object} base44 - Base44 SDK instance
- * @param {object} params - { prompt, temperature, file_urls }
+ * @param {object} params - { prompt, temperature, file_urls, model }
  * @returns {Promise<string>} Generated text
  */
-async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls }) {
-    // Try Google Gemini first if API key is configured
-    if (GOOGLE_AI_API_KEY) {
-        try {
-            const parts = [{ text: prompt }];
-            
-            // Add vision parts if file_urls provided
-            if (file_urls && file_urls.length > 0) {
-                for (const url of file_urls) {
-                    try {
-                        const response = await fetch(url);
-                        const buffer = await response.arrayBuffer();
-                        const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-                        const contentType = response.headers.get('content-type') || 'image/jpeg';
-                        parts.push({ inline_data: { mime_type: contentType, data: base64 } });
-                    } catch (e) {
-                        console.warn(`[QRONAS] Vision fetch failed: ${e.message}`);
-                    }
-                }
-            }
-
-            const requestBody = {
-                contents: [{ parts }],
-                generationConfig: { temperature, maxOutputTokens: 4096 }
-            };
-
-            const endpoint = `${GEMINI_BASE_URL}/${GEMINI_MODEL}:generateContent?key=${GOOGLE_AI_API_KEY}`;
-            const response = await fetch(endpoint, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (text) {
-                    console.log('[QRONAS] Using Google Gemini');
-                    return text;
-                }
-            }
-            console.warn(`[QRONAS] Gemini failed (${response.status}), falling back to Base44`);
-        } catch (e) {
-            console.warn(`[QRONAS] Gemini error: ${e.message}, falling back to Base44`);
-        }
-    }
-
-    // Fallback to Base44 InvokeLLM
-    const llmParams = { prompt, temperature };
+async function invokeLLM(base44, { prompt, temperature = 0.7, file_urls, model = DEFAULT_MODEL }) {
+    const llmParams = { prompt, temperature, model };
     if (file_urls?.length > 0) llmParams.file_urls = file_urls;
     return await base44.integrations.Core.InvokeLLM(llmParams);
 }
@@ -102,7 +54,8 @@ Deno.serve(async (req) => {
             debate_rounds = 2,
             temperature = 0.7,
             file_urls = [],
-            conversation_history = ''
+            conversation_history = '',
+            model = DEFAULT_MODEL
         } = requestData;
         
         // Log if we have conversation history for context
@@ -197,7 +150,7 @@ ${debateHistory.length > 0 ? `## Previous contributions:\n${debateHistory.slice(
 Provide your perspective in ${150 - round * 30} words. Round ${round + 1}.`;
 
                 try {
-                    const llmParams = { prompt: personaPrompt, temperature };
+                    const llmParams = { prompt: personaPrompt, temperature, model };
                     if (file_urls?.length > 0 && round === 0) {
                         llmParams.file_urls = file_urls;
                     }
@@ -289,7 +242,8 @@ Respond directly with the final output (no meta-commentary).`;
 
         const synthesis = await invokeLLM(base44, {
             prompt: synthesisPrompt,
-            temperature: isSunoAgent ? 0.8 : temperature * 0.9
+            temperature: isSunoAgent ? 0.8 : temperature * 0.9,
+            model
         });
 
         log('SUCCESS', `Synthesis complete: ${synthesis.length} chars`);
