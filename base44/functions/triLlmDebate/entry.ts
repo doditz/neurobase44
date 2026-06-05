@@ -1,48 +1,43 @@
 import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
- * TRI-LLM SMAS DEBATE ENGINE v1.0 — Base44-native (paid subscription) ONLY
+ * TRI-LLM SMAS DEBATE ENGINE v2.0 — 213-PERSONA + SMRCE, CLAUDE-ONLY
  * ----------------------------------------------------------------------------
  * Used for HIGH-COMPLEXITY tasks (NEURONAS complexity level 4 & 5).
  *
- * THREE-PHASE MULTI-MODEL PROTOCOL:
- *   Phase 1 — INDEPENDENT PRE-DEBATE:
- *     Each of the 3 distinct LLMs (Opus 4.8, Sonnet 4.6, Gemini 3 Flash) runs
- *     its OWN internal tri-hemispheric debate and converges to a single draft.
- *     The models do NOT see each other in this phase (independence preserved).
+ * v2.0 REWRITE (per enforced policy):
+ *   - The debate is now driven by the USER'S 213-PERSONA LIBRARY (Persona entity)
+ *     selected by `personaTeamOptimizer` (ARS / SMRCE-weighted), NOT a fixed
+ *     3-model panel.
+ *   - SMRCE metrics (`smarceScorer`) drive complexity, archetype, hemisphere and
+ *     the dynamic team size / temperature.
+ *   - Model routing is LOCKED to the configured Claude subscription:
+ *       deep convergence → claude_opus_4_8 ; persona turns → claude_sonnet_4_6.
+ *     NO Gemini. NO external/paid API. NO automatic model switching.
  *
- *   Phase 2 — CROSS-MODEL ADVERSARIAL DEBATE:
- *     Each model receives the OTHER two models' converged drafts and must
- *     critique/challenge them, defend or revise its own position, and surface
- *     contradictions or blind spots. This is the multi-POV confrontation.
- *
- *   Phase 3 — GROUNDED CONVERGED SYNTHESIS:
- *     A final synthesis pass fuses the three post-cross-examination positions
- *     into the single most plausible / truthful, grounded, multi-POV outcome.
- *
- * All inference is routed exclusively through the user's PAID Base44 sub via
- * Core.InvokeLLM. NO direct provider API keys. NO GPT.
+ * THREE-PHASE PERSONA PROTOCOL:
+ *   Phase 1 — INDEPENDENT PERSONA DRAFTS: each selected persona reasons
+ *             independently in its own voice/domain (parallel).
+ *   Phase 2 — CROSS-EXAMINATION: each persona challenges other personas' drafts
+ *             (anti-echo, mandatory).
+ *   Phase 3 — GROUNDED CONVERGED SYNTHESIS on the deepest configured model.
  *
  * CHANGELOG:
- *   v1.0 — Initial tri-LLM 3-phase debate for complexity levels 4 & 5.
+ *   v2.0 — Replaced fixed 3-model panel with the 213-persona ARS/SMRCE engine;
+ *          locked all routing to Claude; removed Gemini.
+ *   v1.0 — Initial tri-LLM 3-phase debate (deprecated).
  *
- * EXPERT TIP: This runs 3 models across 2 debate phases + 1 synthesis = up to
- * 7 LLM calls. It costs significantly more integration credits and latency.
- * It is gated by the orchestrator to complexity >= 0.6 (L4/L5) only.
- *
- * PITFALL: If a model errors, its draft is marked unavailable and the protocol
- * degrades gracefully to the remaining models (never throws the whole request).
+ * PITFALL: If a persona turn errors, its draft is marked unavailable and the
+ * protocol degrades gracefully to the remaining personas (never throws).
  */
 
-// The three distinct models forming the multi-POV panel (all via paid Base44 sub).
-const PANEL = [
-    { id: 'opus',   model: 'claude_opus_4_8',   label: 'Opus 4.8 (deep reasoning)' },
-    { id: 'sonnet', model: 'claude_sonnet_4_6', label: 'Sonnet 4.6 (balanced analysis)' },
-    { id: 'gemini', model: 'gemini_3_flash',    label: 'Gemini 3 Flash (broad/grounded)' }
-];
+// LOCKED model routing — Claude subscription ONLY. No Gemini, no external API.
+const MODEL_PERSONA = 'claude_sonnet_4_6';  // persona debate turns
+const MODEL_SYNTH = 'claude_opus_4_8';      // deepest model for final convergence
 
 /**
- * Single LLM call via the Base44 built-in model. No API keys, no GPT.
+ * Single LLM call — LOCKED to the configured Claude models via Core.InvokeLLM.
+ * No API keys, no GPT, no Gemini. The `model` MUST be one of the locked tiers.
  * @returns {Promise<string>} generated text (empty string on failure-safe paths)
  */
 async function invokeLLM(base44, { prompt, model, temperature = 0.7, file_urls }) {
@@ -71,8 +66,9 @@ Deno.serve(async (req) => {
 
         const requestData = await req.json();
         const {
-            prompt,                       // full context (incl. grounded web research + history)
+            prompt,                       // full context (incl. history)
             agent_instructions = '',
+            agent_name = 'smas_debater',
             temperature = 0.7,
             file_urls = [],
             complexity_level = 4          // 4 or 5 (informational)
@@ -86,43 +82,93 @@ Deno.serve(async (req) => {
             ? `## AGENT INSTRUCTIONS (MUST FOLLOW)\n${agent_instructions}\n\n---\n\n`
             : '';
 
-        // ===== PHASE 1: INDEPENDENT PRE-DEBATE (per model, in parallel) =====
-        log('PHASE1', `Independent pre-debate across ${PANEL.length} models (L${complexity_level})`);
+        // ===== STEP 0: SMRCE SCORING (real metrics drive the debate) =====
+        // Uses the existing smarceScorer (archetype, complexity, hemisphere, S.M.R.C.E.).
+        let smrce = {
+            archetype_detected: 'analytical',
+            complexity_score: complexity_level >= 5 ? 0.85 : 0.65,
+            dominant_hemisphere: 'central',
+            smrce_breakdown: null
+        };
+        try {
+            const smrceRes = await base44.functions.invoke('smarceScorer', { user_message: prompt });
+            if (smrceRes?.data?.success) {
+                smrce = smrceRes.data;
+                log('SMRCE', `archetype=${smrce.archetype_detected} complexity=${smrce.complexity_score} hemi=${smrce.dominant_hemisphere}`);
+            }
+        } catch (e) {
+            log('SMRCE_FAIL', `falling back to defaults: ${e.message}`);
+        }
 
-        const phase1Prompt = (label) => `${sysHeader}## TASK (full grounded context)
+        // Dynamic team size from SMRCE complexity (L4 ≈ 4 personas, L5 ≈ 6).
+        const maxPersonas = Math.min(6, Math.max(3, Math.ceil(3 + smrce.complexity_score * 3)));
+
+        // ===== STEP 1: SELECT TEAM FROM THE 213-PERSONA LIBRARY (ARS/SMRCE) =====
+        log('TEAM', `Selecting up to ${maxPersonas} personas via personaTeamOptimizer`);
+        let personas = [];
+        try {
+            const teamRes = await base44.functions.invoke('personaTeamOptimizer', {
+                prompt,
+                agent_name,
+                archetype: smrce.archetype_detected,
+                complexity_score: smrce.complexity_score,
+                hemisphere: smrce.dominant_hemisphere,
+                max_personas: maxPersonas,
+                system: 'SMAS'
+            });
+            if (teamRes?.data?.success && Array.isArray(teamRes.data.team)) {
+                personas = teamRes.data.team;
+                log('TEAM_OK', `${personas.length} personas: ${personas.map(p => p.name).join(', ')}`);
+            }
+        } catch (e) {
+            log('TEAM_FAIL', e.message);
+        }
+
+        if (personas.length === 0) {
+            throw new Error('No personas available from the 213-persona library (personaTeamOptimizer returned none).');
+        }
+
+        // ===== PHASE 1: INDEPENDENT PERSONA DRAFTS (parallel) =====
+        log('PHASE1', `Independent drafts across ${personas.length} personas (L${complexity_level})`);
+
+        const phase1 = await Promise.all(personas.map(async (p, idx) => {
+            const persona = {
+                id: p.handle || `P${idx}`,
+                label: `${p.name} (${p.domain || p.category || 'SMAS'})`,
+                instructions: p.default_instructions || 'Provide your expert perspective.'
+            };
+            const p1Prompt = `${sysHeader}## TASK (full context)
 ${prompt}
 
-## YOUR ROLE: Independent reasoning model "${label}"
-Run your OWN internal tri-hemispheric debate (Analytical vs. Creative/Systems),
-cross-examine your own claims, then converge to a SINGLE well-reasoned draft.
-- Prioritize verifiable, grounded facts from the context. Flag unverifiable claims.
-- Take a clear, defensible position (no neutral fence-sitting).
-- This is an INDEPENDENT pass: do not assume any other model's output.
-Output your converged draft (~250 words).`;
+## YOUR ROLE: ${persona.label}
+${persona.instructions}
 
-        const phase1 = await Promise.all(PANEL.map(async (m) => {
+Reason independently in your own voice and domain. Take a clear, defensible
+position (no neutral fence-sitting). Flag any unverifiable claims.
+This is an INDEPENDENT pass: do not assume other personas' output.
+Output your draft (~220 words).`;
             try {
                 const draft = await invokeLLM(base44, {
-                    prompt: phase1Prompt(m.label),
-                    model: m.model,
+                    prompt: p1Prompt,
+                    model: MODEL_PERSONA,
                     temperature,
                     file_urls
                 });
-                log('P1_OK', `${m.id}: ${draft.length} chars`);
-                return { ...m, draft, ok: true };
+                log('P1_OK', `${persona.id}: ${draft.length} chars`);
+                return { ...persona, draft, ok: true };
             } catch (e) {
-                log('P1_FAIL', `${m.id}: ${e.message}`);
-                return { ...m, draft: '', ok: false };
+                log('P1_FAIL', `${persona.id}: ${e.message}`);
+                return { ...persona, draft: '', ok: false };
             }
         }));
 
         const available = phase1.filter(p => p.ok && p.draft.length > 20);
         if (available.length === 0) {
-            throw new Error('All panel models failed in Phase 1');
+            throw new Error('All personas failed in Phase 1');
         }
 
-        // ===== PHASE 2: CROSS-MODEL ADVERSARIAL DEBATE (per model, in parallel) =====
-        log('PHASE2', `Cross-model debate among ${available.length} surviving drafts`);
+        // ===== PHASE 2: CROSS-EXAMINATION (anti-echo, parallel) =====
+        log('PHASE2', `Cross-examination among ${available.length} persona drafts`);
 
         const phase2 = await Promise.all(available.map(async (m) => {
             const others = available
@@ -136,56 +182,54 @@ ${prompt}
 ## YOUR PRIOR DRAFT (${m.label}):
 ${m.draft}
 
-## COMPETING DRAFTS FROM OTHER MODELS:
+## COMPETING DRAFTS FROM OTHER PERSONAS:
 ${others}
 
-## YOUR JOB (cross-examination round)
-1. Explicitly CHALLENGE at least one claim from each competing draft (cite which model).
-2. Identify agreements, contradictions, and blind spots across the drafts.
-3. Defend OR revise your own position based on the strongest grounded evidence.
-4. Conclude with your FINAL position after considering all viewpoints (~220 words).`;
+## YOUR JOB (cross-examination — anti-echo, REQUIRED)
+1. Explicitly CHALLENGE at least one claim from another persona (cite which one).
+2. Identify agreements, contradictions, and blind spots.
+3. Defend OR revise your own position based on the strongest evidence.
+4. Conclude with your FINAL position after considering all viewpoints (~200 words).`;
 
             try {
                 const revised = await invokeLLM(base44, {
                     prompt: p2Prompt,
-                    model: m.model,
+                    model: MODEL_PERSONA,
                     temperature: temperature * 0.9
                 });
                 log('P2_OK', `${m.id}: ${revised.length} chars`);
                 return { ...m, revised, ok: true };
             } catch (e) {
                 log('P2_FAIL', `${m.id}: ${e.message}`);
-                // Fall back to the Phase 1 draft so this POV is not lost.
                 return { ...m, revised: m.draft, ok: false };
             }
         }));
 
-        // ===== PHASE 3: GROUNDED CONVERGED SYNTHESIS =====
-        log('PHASE3', 'Final grounded multi-POV synthesis');
+        // ===== PHASE 3: GROUNDED CONVERGED SYNTHESIS (deepest Claude model) =====
+        log('PHASE3', 'Final converged synthesis (Opus 4.8)');
 
         const synthInputs = phase2
             .map(m => `### Final position — ${m.label}:\n${m.revised}`)
             .join('\n\n');
 
-        // Synthesis uses the deepest model for the final convergence.
-        const synthPrompt = `${sysHeader}## ORIGINAL TASK (full grounded context)
+        const synthPrompt = `${sysHeader}## ORIGINAL TASK (full context)
 ${prompt}
 
-## THREE MODELS' FINAL POSITIONS (after cross-examination)
+## PERSONA FINAL POSITIONS (after cross-examination)
 ${synthInputs}
 
 ## YOUR TASK — FINAL CONVERGED SYNTHESIS
-Produce the SINGLE most plausible, truthful, and GROUNDED multi-POV outcome by:
-1. Weighing the three positions by evidence quality and logical rigor (not by vote count).
-2. Preserving genuine multi-perspective nuance where the models legitimately diverge.
-3. Resolving contradictions in favor of the best-grounded claim; flag remaining uncertainty.
-4. Following the AGENT INSTRUCTIONS output structure precisely (audit log + final stance + real source URLs).
+Produce the SINGLE most plausible and well-reasoned multi-perspective outcome by:
+1. Weighing positions by evidence quality and logical rigor (not by vote count).
+2. Preserving genuine multi-perspective nuance where personas legitimately diverge.
+3. Resolving contradictions in favor of the best-supported claim; flag remaining uncertainty.
+4. Following the AGENT INSTRUCTIONS output structure precisely (audit log + final stance).
 
 Deliver the final answer directly.`;
 
         const synthesis = await invokeLLM(base44, {
             prompt: synthPrompt,
-            model: PANEL[0].model,           // Opus 4.8 for final convergence
+            model: MODEL_SYNTH,              // Opus 4.8 for final convergence
             temperature: temperature * 0.85
         });
 
@@ -193,17 +237,22 @@ Deliver the final answer directly.`;
 
         // Build a debate transcript compatible with the chat audit-log UI.
         const debate_history = [
-            ...phase1.map(m => ({ round: 1, persona: `[P1] ${m.label}`, response: m.draft || '(model unavailable)' })),
-            ...phase2.map(m => ({ round: 2, persona: `[P2] ${m.label}`, response: m.revised || '(model unavailable)' }))
+            ...phase1.map(m => ({ round: 1, persona: `[P1] ${m.label}`, response: m.draft || '(persona unavailable)' })),
+            ...phase2.map(m => ({ round: 2, persona: `[P2] ${m.label}`, response: m.revised || '(persona unavailable)' }))
         ];
 
         return Response.json({
             success: true,
             synthesis,
-            method: 'tri_llm_smas',
-            models_used: PANEL.map(p => p.label),
-            models_succeeded: available.map(p => p.label),
-            personas_used: PANEL.map(p => p.label),
+            method: 'persona_smrce_smas',
+            personas_used: personas.map(p => p.name),
+            personas_succeeded: available.map(p => p.label),
+            smrce: {
+                archetype: smrce.archetype_detected,
+                complexity_score: smrce.complexity_score,
+                dominant_hemisphere: smrce.dominant_hemisphere,
+                smrce_breakdown: smrce.smrce_breakdown || null
+            },
             debate_rounds: 2,
             debate_history,
             logs

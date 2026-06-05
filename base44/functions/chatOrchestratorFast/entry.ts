@@ -13,44 +13,24 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
  */
 
 /**
- * MODEL SELECTION — routed exclusively through the user's PAID Base44 subscription.
- * NO direct provider API keys. NO OpenAI/GPT.
+ * MODEL SELECTION — LOCKED to the user's PAID Base44 (Claude) subscription ONLY.
+ * NO direct provider API keys. NO OpenAI/GPT. NO Gemini. NO external/paid APIs.
+ * NO automatic fallback to any non-configured model — enforced without exception.
  *
  * | Path                 | Model              | Rationale                                  |
  * |----------------------|--------------------|--------------------------------------------|
  * | Full debate (QRONAS) | claude_opus_4_8    | Deepest reasoning for complex/ethical/news |
  * | Medium debate        | claude_sonnet_4_6  | Strong but lighter for moderate queries    |
- * | Simple / fast path   | gemini_3_flash     | Fast & cheap for low-complexity queries    |
- * | Web grounding search | gemini_3_flash     | Only model here supporting web grounding   |
+ * | Simple / fast path   | claude_sonnet_4_6  | Light Claude tier (NO Gemini)              |
  *
  * Opus 4.8 costs more integration credits — used only for the full debate path.
+ *
+ * NOTE: Web grounding (add_context_from_internet) is DISABLED by policy because
+ * the platform only supports it on Gemini models, which are forbidden here.
  */
 const MODEL_FULL = 'claude_opus_4_8';   // most debates → deepest model
 const MODEL_MEDIUM = 'claude_sonnet_4_6';
-const MODEL_SIMPLE = 'gemini_3_flash';  // low complexity → lighter, faster model
-const MODEL_SEARCH = 'gemini_3_flash';  // grounding requires a web-search-capable model
-
-/**
- * Live web search with grounding via the Base44 built-in model (paid sub).
- * Uses gemini_3_flash + add_context_from_internet; citations scraped from inline URLs.
- * Returns { text, citations }.
- */
-async function groundedWebSearch(base44, query) {
-    const prompt = `Search the web for up-to-date, verifiable information about the following. Report concrete facts with their source URLs:\n\n${query}`;
-    const result = await base44.integrations.Core.InvokeLLM({
-        prompt,
-        model: MODEL_SEARCH,
-        add_context_from_internet: true
-    });
-    const text = typeof result === 'string' ? result : (result?.text || '');
-    const urls = text.match(/https?:\/\/[^\s\]\)]+/gi) || [];
-    const seen = new Set();
-    const citations = urls
-        .filter(u => !seen.has(u) && seen.add(u))
-        .slice(0, 8)
-        .map(url => ({ url, source: 'Web', verified: true }));
-    return { text, citations };
-}
+const MODEL_SIMPLE = 'claude_sonnet_4_6';  // LOCKED to Claude — no Gemini fast tier
 
 Deno.serve(async (req) => {
     const startTime = Date.now();
@@ -185,30 +165,13 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
             log('HISTORY', `Loaded ${conversationHistory.length} chars`);
         }
 
-        // ===== LIVE WEB SEARCH (grounding) =====
-        // Previously absent entirely — root cause of "zero sources". Trigger on factual/news
-        // signals or moderate complexity for non-Suno agents.
-        let citations = [];
-        let webSearchContext = '';
-        let webSearchExecuted = false;
-        // MANDATORY: web search is now forced for EVERY non-Suno task (enforced policy).
-        // Suno (music prompt builder) is excluded — grounding/debate are irrelevant there.
-        const shouldSearch = !isSuno;
-        if (shouldSearch) {
-            try {
-                const { text, citations: found } = await groundedWebSearch(base44, user_message);
-                if (text && text.length > 50) {
-                    webSearchContext = `## Live Web Research (grounded):\n${text}\n\n`;
-                    citations = found || [];
-                    webSearchExecuted = true;
-                    log('WEBSEARCH', `Executed: ${citations.length} grounded sources`);
-                } else {
-                    log('WEBSEARCH', 'No usable content returned');
-                }
-            } catch (e) {
-                log('WEBSEARCH_FAIL', e.message);
-            }
-        }
+        // ===== WEB GROUNDING DISABLED BY POLICY =====
+        // Grounding requires a Gemini model (add_context_from_internet is Gemini-only on
+        // the platform). Per the enforced "Claude-only / no external API" policy, web
+        // grounding is disabled. The debate runs purely on the configured Claude models.
+        const citations = [];
+        const webSearchContext = '';
+        const webSearchExecuted = false;
 
         // BUILD CONTEXT
         let fullContext = '';
@@ -309,6 +272,7 @@ Synthesize these insights into a coherent, helpful response.`;
                 const triResult = await base44.functions.invoke('triLlmDebate', {
                     prompt: fullContext,
                     agent_instructions: agentInstr + styleInstr,
+                    agent_name,
                     temperature: settings.temperature || 0.7,
                     file_urls: hasFiles ? file_urls : undefined,
                     complexity_level: complexityLevel
