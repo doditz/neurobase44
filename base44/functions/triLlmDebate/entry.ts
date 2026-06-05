@@ -59,7 +59,7 @@ Deno.serve(async (req) => {
     };
 
     try {
-        log('START', '=== TRI-LLM SMAS DEBATE v1.0 ===');
+        log('START', '=== TRI-LLM SMAS DEBATE v2.1 (canonical ARS policy + D2STIM) ===');
 
         const base44 = createClientFromRequest(req);
         const user = await base44.auth.me();
@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
             agent_name = 'smas_debater',
             temperature = 0.7,
             file_urls = [],
-            complexity_level = 4          // 4 or 5 (informational)
+            complexity_level = 4,         // 4 or 5 (informational)
+            smas_policy = null            // canonical ARS policy from neuronasSmasSpec
         } = requestData;
 
         if (!prompt?.trim()) {
@@ -103,8 +104,16 @@ Deno.serve(async (req) => {
             log('SMRCE_FAIL', `falling back to defaults: ${e.message}`);
         }
 
-        // Dynamic team size from SMRCE complexity (L4 ≈ 4 personas, L5 ≈ 6).
-        const maxPersonas = Math.min(6, Math.max(3, Math.ceil(3 + smrce.complexity_score * 3)));
+        // ===== CANONICAL team/round counts (smas_run_debate.py:173-192) =====
+        // Prefer the ARS policy passed from the orchestrator; fall back to SMRCE.
+        const arsTotal = smas_policy?.ars_total ?? smrce.complexity_score;
+        const maxPersonas = smas_policy?.persona_count
+            ?? Math.min(10, Math.max(3, Math.ceil(3 + arsTotal * 7)));
+        const canonicalRounds = smas_policy?.round_count
+            ?? (arsTotal < 0.65 ? 5 : (arsTotal < 0.85 ? 7 : 10));
+        const omegaT = smas_policy?.omega_t ?? 0.5;
+        const minDivergence = smas_policy?.anti_echo?.min_divergence ?? 0.35;
+        log('POLICY', `ARS=${arsTotal} personas=${maxPersonas} rounds=${canonicalRounds} omega_t=${omegaT} minDiv=${minDivergence}`);
 
         // ===== STEP 1: SELECT TEAM FROM THE 213-PERSONA LIBRARY (ARS/SMRCE) =====
         log('TEAM', `Selecting up to ${maxPersonas} personas via personaTeamOptimizer`);
@@ -131,14 +140,38 @@ Deno.serve(async (req) => {
             throw new Error('No personas available from the 213-persona library (personaTeamOptimizer returned none).');
         }
 
+        // ===== D2STIM per-hemisphere temperature deltas (G7) =====
+        // Fetch once per hemisphere type; apply to each persona's temperature so
+        // analytical personas run cooler (focus) and creative ones warmer (divergence).
+        const d2Cache = {};
+        const getD2Delta = async (queryType) => {
+            if (d2Cache[queryType] !== undefined) return d2Cache[queryType];
+            let delta = 0;
+            try {
+                const r = await base44.functions.invoke('neuronasSmasSpec', { mode: 'd2stim', query_type: queryType, complexity: arsTotal });
+                if (r?.data?.success) delta = r.data.temp_delta || 0;
+            } catch (_e) { /* neutral on failure */ }
+            d2Cache[queryType] = delta;
+            return delta;
+        };
+
         // ===== PHASE 1: INDEPENDENT PERSONA DRAFTS (parallel) =====
         log('PHASE1', `Independent drafts across ${personas.length} personas (L${complexity_level})`);
 
         const phase1 = await Promise.all(personas.map(async (p, idx) => {
+            // G6: normalize hemisphere to lowercase before mapping to D2 query type.
+            const hemi = (p.hemisphere || 'central').toLowerCase();
+            const d2QueryType = hemi === 'left' ? 'analytical' : hemi === 'right' ? 'creative' : 'factual';
+            const d2Delta = await getD2Delta(d2QueryType);
+            // Persona temp = midpoint of its range (smas_dispatcher _temp) + D2 delta, clamped.
+            const tr = (p.temperature_range_min != null && p.temperature_range_max != null)
+                ? (p.temperature_range_min + p.temperature_range_max) / 2 : temperature;
+            const personaTemp = Math.max(0.1, Math.min(1.5, tr + d2Delta));
             const persona = {
                 id: p.handle || `P${idx}`,
                 label: `${p.name} (${p.domain || p.category || 'SMAS'})`,
-                instructions: p.default_instructions || 'Provide your expert perspective.'
+                instructions: p.default_instructions || 'Provide your expert perspective.',
+                temp: personaTemp
             };
             const p1Prompt = `${sysHeader}## TASK (full context)
 ${prompt}
@@ -154,7 +187,7 @@ Output your draft (~220 words).`;
                 const draft = await invokeLLM(base44, {
                     prompt: p1Prompt,
                     model: MODEL_PERSONA,
-                    temperature,
+                    temperature: persona.temp,   // D2STIM-modulated per-persona temp (G7)
                     file_urls
                 });
                 log('P1_OK', `${persona.id}: ${draft.length} chars`);
@@ -188,11 +221,14 @@ ${m.draft}
 ## COMPETING DRAFTS FROM OTHER PERSONAS:
 ${others}
 
-## YOUR JOB (cross-examination — anti-echo, REQUIRED)
+## YOUR JOB (cross-examination — anti-echo, REQUIRED; min_divergence=${minDivergence})
 1. Explicitly CHALLENGE at least one claim from another persona (cite which one).
-2. Identify agreements, contradictions, and blind spots.
-3. Defend OR revise your own position based on the strongest evidence.
-4. Conclude with your FINAL position after considering all viewpoints (~200 words).`;
+2. Maintain genuine divergence: do NOT collapse into agreement. If perspectives
+   converge below ${minDivergence} divergence, surface a MINORITY REPORT — the
+   strongest counter-position even if you are the only one holding it.
+3. Identify agreements, contradictions, and blind spots.
+4. Defend OR revise your own position based on the strongest evidence.
+5. Conclude with your FINAL position after considering all viewpoints (~200 words).`;
 
             try {
                 const revised = await invokeLLM(base44, {
@@ -256,7 +292,15 @@ Deliver the final answer directly.`;
                 dominant_hemisphere: smrce.dominant_hemisphere,
                 smrce_breakdown: smrce.smrce_breakdown || null
             },
-            debate_rounds: 2,
+            // Canonical policy echoed back for the audit log / UI.
+            smas_policy: {
+                ars_total: arsTotal,
+                persona_count: maxPersonas,
+                canonical_round_count: canonicalRounds,
+                omega_t: omegaT,
+                min_divergence: minDivergence
+            },
+            debate_rounds: 2,            // physical LLM phases (draft + cross-exam)
             debate_history,
             logs
         });

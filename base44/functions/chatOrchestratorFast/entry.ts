@@ -149,18 +149,29 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
             return '';
         })();
 
-        // INLINE COMPLEXITY ANALYSIS (no external call)
-        const hasComplexTerms = /algorithm|neural|quantum|philosophy|ethics|architecture|framework|integration|optimization|synthesis/i.test(user_message);
-        const hasQuestions = (user_message.match(/\?/g) || []).length;
-        const complexity = Math.min(1, (wordCount / 100) + (hasComplexTerms ? 0.25 : 0) + (hasQuestions * 0.08));
-        
-        // Determine archetype inline
+        // ===== CANONICAL ARS COMPLEXITY (neuronasSmasSpec — G2/G8) =====
+        // Replaces inline regex with the production ars_score() (keyword×0.25 per
+        // dimension + length_boost) and ARS-derived omega_t. Drives persona/round
+        // counts and slot allocation exactly as the Python service layer does.
+        let complexity = 0.5;
         let archetype = 'balanced';
-        if (/create|imagine|design|art|music|story|creative/i.test(user_message)) archetype = 'creative';
-        else if (/analyze|calculate|logic|data|evidence|prove/i.test(user_message)) archetype = 'analytical';
-        else if (/ethics|moral|fair|right|wrong|should/i.test(user_message)) archetype = 'ethical';
+        let smasPolicy = null;
+        try {
+            const polRes = await base44.functions.invoke('neuronasSmasSpec', { mode: 'policy', query: user_message });
+            if (polRes?.data?.success) {
+                smasPolicy = polRes.data;
+                complexity = smasPolicy.ars_total;
+                // Archetype from ARS dimensions (R/E dominant → analytical/ethical, S → creative).
+                const a = smasPolicy.ars;
+                if (a.E >= a.R && a.E >= a.S && a.E > 0.05) archetype = 'ethical';
+                else if (a.S > a.R) archetype = 'creative';
+                else if (a.R > 0) archetype = 'analytical';
+            }
+        } catch (e) {
+            log('ARS_FAIL', `falling back to neutral complexity: ${e.message}`);
+        }
 
-        log('ASSESSED', `Complexity: ${complexity.toFixed(2)}, Archetype: ${archetype}`);
+        log('ASSESSED', `ARS total: ${complexity.toFixed(2)}, tier: ${smasPolicy?.complexity_tier || 'n/a'}, omega_t: ${smasPolicy?.omega_t ?? 'n/a'}, archetype: ${archetype}`);
 
         // Get conversation history (already loading in parallel)
         conversationHistory = await historyPromise;
@@ -306,7 +317,9 @@ Synthesize these insights into a coherent, helpful response.`;
                     agent_name,
                     temperature: settings.temperature || 0.7,
                     file_urls: hasFiles ? file_urls : undefined,
-                    complexity_level: complexityLevel
+                    complexity_level: complexityLevel,
+                    // Canonical SMAS policy (ARS-derived) — drives persona/round counts.
+                    smas_policy: smasPolicy
                 });
 
                 if (triResult?.data?.success) {
