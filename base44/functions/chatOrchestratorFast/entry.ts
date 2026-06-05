@@ -14,26 +14,28 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * MODEL SELECTION — Base44 INTERNAL models only (included with subscription).
- * NO external PAID API keys (no direct Gemini API key, no Perplexity key).
- * Base44's internal Gemini 3.1 Pro IS permitted — it is Google's search-engine
- * model and is the correct, optimal choice for WEB GROUNDING.
+ * STRICT POLICY: NO external PAID API keys for grounding (no Perplexity, no
+ * direct Gemini key). DEBATE/synthesis run on internal Claude tiers; WEB
+ * GROUNDING uses a FREE, KEYLESS DuckDuckGo search via NPM (duck-duck-scrape).
  *
- * | Path                  | Model              | Rationale                                   |
- * |-----------------------|--------------------|---------------------------------------------|
- * | Web grounding         | gemini_3_1_pro     | Google internal model — search/grounding    |
- * | Simple / fast path    | claude_sonnet_4_6  | Light tier for low-complexity queries       |
- * | Medium debate         | claude_opus_4_6    | Moderate-complexity reasoning               |
- * | High/extreme (full)   | claude_opus_4_8    | Deepest reasoning + Gemini 3.1 Pro grounding|
+ * | Path                | Model / Tool         | Rationale                              |
+ * |---------------------|----------------------|----------------------------------------|
+ * | Web grounding       | duck-duck-scrape NPM | Free, keyless DuckDuckGo HTTP search    |
+ * | Simple / fast path  | claude_sonnet_4_6    | Light tier for low-complexity queries  |
+ * | Medium debate       | claude_opus_4_6      | Moderate-complexity reasoning          |
+ * | High/extreme (full) | claude_opus_4_8      | Deepest reasoning                      |
  *
  * Opus tiers cost more integration credits — reserved for medium/full paths.
- *
- * Web grounding is ENABLED via the internal Gemini 3.1 Pro model
- * (add_context_from_internet runs on Gemini, which is internal & permitted).
+ * Grounding incurs ZERO API cost (DuckDuckGo public endpoints, no key).
  */
 const MODEL_FULL = 'claude_opus_4_8';      // high/extreme complexity → deepest model
 const MODEL_MEDIUM = 'claude_opus_4_6';    // moderate complexity
 const MODEL_SIMPLE = 'claude_sonnet_4_6';  // fast / low-complexity tier
-const MODEL_GROUNDING = 'gemini_3_1_pro';  // internal Google model for web grounding
+
+// WEB GROUNDING — FREE, KEYLESS DuckDuckGo search via NPM (no paid API, no
+// external key). Per policy: NO Perplexity, NO paid grounding. duck-duck-scrape
+// hits DuckDuckGo's public endpoints and returns real result URLs + snippets.
+import { search as ddgSearch, SafeSearchType } from 'npm:duck-duck-scrape@2.2.7';
 
 Deno.serve(async (req) => {
     const startTime = Date.now();
@@ -179,11 +181,12 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
             log('HISTORY', `Loaded ${conversationHistory.length} chars`);
         }
 
-        // ===== WEB GROUNDING via INTERNAL Gemini 3.1 Pro =====
-        // Grounding uses Base44's internal Gemini 3.1 Pro (Google's search-engine model).
-        // This is NOT an external paid API — it's included with the subscription, and is
-        // the optimal model for web grounding. The DEBATE/synthesis stays on Claude tiers.
-        // We only ground when grounding is enabled AND the query is non-trivial/factual.
+        // ===== WEB GROUNDING via FREE DuckDuckGo search (NPM, no key, no paid API) =====
+        // Grounding is a literal web search — it finds result URLs or it doesn't.
+        // We use duck-duck-scrape (DuckDuckGo public endpoints) so there is ZERO
+        // external/paid API involved. It returns fast and cannot hang like an
+        // open-ended LLM completion. A 12s seatbelt cap guarantees the debate
+        // proceeds even if DuckDuckGo is momentarily slow.
         let citations = [];
         let webSearchContext = '';
         let webSearchExecuted = false;
@@ -196,29 +199,25 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
 
         if (needsGrounding) {
             try {
-                // HARD TIMEOUT: grounding is best-effort and must NEVER block the
-                // debate. The internal grounding model has been observed hanging
-                // ~100s; race it against a 20s timeout so the pipeline always
-                // proceeds. On timeout we simply skip grounding (debate continues).
-                const GROUNDING_TIMEOUT_MS = 20000;
-                const groundingCall = base44.integrations.Core.InvokeLLM({
-                    prompt: `Search the web and return concise, factual, up-to-date information with real source URLs for this query:\n\n"${user_message}"\n\nProvide key verified facts followed by a "Sources:" list of real URLs.`,
-                    model: MODEL_GROUNDING,
-                    add_context_from_internet: true
-                });
-                const grounded = await Promise.race([
-                    groundingCall,
-                    new Promise((_, reject) =>
-                        setTimeout(() => reject(new Error(`grounding timeout >${GROUNDING_TIMEOUT_MS}ms`)), GROUNDING_TIMEOUT_MS)
-                    )
+                const GROUNDING_TIMEOUT_MS = 12000;
+                const ddg = await Promise.race([
+                    ddgSearch(user_message, { safeSearch: SafeSearchType.MODERATE }),
+                    new Promise((resolve) => setTimeout(() => resolve(null), GROUNDING_TIMEOUT_MS))
                 ]);
-                if (grounded && typeof grounded === 'string' && grounded.trim()) {
-                    webSearchContext = `## Live Web Research (grounded via internal Gemini 3.1 Pro):\n${grounded}\n\n`;
+                const results = (ddg && !ddg.noResults && Array.isArray(ddg.results)) ? ddg.results.slice(0, 6) : [];
+                if (results.length > 0) {
+                    // Strip HTML tags from DDG snippets and build a compact research block.
+                    const block = results.map((r, i) => {
+                        const title = (r.title || '').replace(/<[^>]+>/g, '');
+                        const snippet = (r.description || '').replace(/<[^>]+>/g, '');
+                        return `${i + 1}. ${title}\n   ${snippet}\n   Source: ${r.url}`;
+                    }).join('\n\n');
+                    webSearchContext = `## Live Web Research (free DuckDuckGo search):\n${block}\n\n`;
                     webSearchExecuted = true;
-                    // Extract URLs as lightweight citations for the audit log.
-                    const urls = grounded.match(/https?:\/\/[^\s)>\]]+/g) || [];
-                    citations = [...new Set(urls)].slice(0, 12).map(u => ({ url: u, source: 'gemini_3_1_pro_grounding' }));
-                    log('GROUNDED', `Web grounding OK (${citations.length} sources)`);
+                    citations = results.map(r => ({ url: r.url, source: 'duckduckgo_search' }));
+                    log('GROUNDED', `Web grounding OK via DuckDuckGo (${citations.length} sources)`);
+                } else {
+                    log('GROUNDING_SKIP', `no DuckDuckGo results within ${GROUNDING_TIMEOUT_MS}ms — debating without grounding`);
                 }
             } catch (gErr) {
                 // Grounding is best-effort — never block the debate if it fails.
