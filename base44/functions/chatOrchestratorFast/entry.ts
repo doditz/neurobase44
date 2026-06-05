@@ -37,6 +37,45 @@ const MODEL_SIMPLE = 'claude_sonnet_4_6';  // fast / low-complexity tier
 // hits DuckDuckGo's public endpoints and returns real result URLs + snippets.
 import { search as ddgSearch, SafeSearchType } from 'npm:duck-duck-scrape@2.2.7';
 
+/**
+ * fetchReadableText — opens a result URL and extracts its main readable text.
+ * Free + keyless (plain Deno fetch). Strips scripts/styles/tags and collapses
+ * whitespace. Hard-capped time + size so one slow page can never block the
+ * debate. Returns '' on any failure (grounding is best-effort).
+ *
+ * PITFALL: many pages are JS-rendered SPAs with little server HTML; we accept
+ * whatever static text is present rather than running a headless browser.
+ */
+async function fetchReadableText(url, { timeoutMs = 6000, maxChars = 4000 } = {}) {
+    try {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        const res = await fetch(url, {
+            signal: ctrl.signal,
+            redirect: 'follow',
+            headers: { 'User-Agent': 'Mozilla/5.0 (compatible; NeuronasBot/1.0)' }
+        });
+        clearTimeout(timer);
+        const ctype = res.headers.get('content-type') || '';
+        if (!res.ok || !ctype.includes('text/html')) return '';
+        let html = await res.text();
+        // Drop non-content blocks before tag-stripping.
+        html = html
+            .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+            .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+            .replace(/<noscript[\s\S]*?<\/noscript>/gi, ' ')
+            .replace(/<!--[\s\S]*?-->/g, ' ');
+        const text = html
+            .replace(/<[^>]+>/g, ' ')   // strip remaining tags
+            .replace(/&[a-z]+;/gi, ' ') // crude entity strip
+            .replace(/\s+/g, ' ')
+            .trim();
+        return text.slice(0, maxChars);
+    } catch (_e) {
+        return '';
+    }
+}
+
 Deno.serve(async (req) => {
     const startTime = Date.now();
     const logs = [];
@@ -181,12 +220,12 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
             log('HISTORY', `Loaded ${conversationHistory.length} chars`);
         }
 
-        // ===== WEB GROUNDING via FREE DuckDuckGo search (NPM, no key, no paid API) =====
-        // Grounding is a literal web search — it finds result URLs or it doesn't.
-        // We use duck-duck-scrape (DuckDuckGo public endpoints) so there is ZERO
-        // external/paid API involved. It returns fast and cannot hang like an
-        // open-ended LLM completion. A 12s seatbelt cap guarantees the debate
-        // proceeds even if DuckDuckGo is momentarily slow.
+        // ===== WEB GROUNDING via FREE DuckDuckGo search + page reading (NPM, no key) =====
+        // A search that only reads snippets is useless — so we SKIP sponsored/ad
+        // (bang) entries, take the top ORGANIC result URLs, then actually FETCH
+        // and READ each page's text (fetchReadableText) and feed that real
+        // content into the debate. Zero external/paid API. Every network step is
+        // time-capped so the debate can never hang.
         let citations = [];
         let webSearchContext = '';
         let webSearchExecuted = false;
@@ -199,25 +238,52 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
 
         if (needsGrounding) {
             try {
-                const GROUNDING_TIMEOUT_MS = 12000;
+                const SEARCH_TIMEOUT_MS = 10000;
                 const ddg = await Promise.race([
                     ddgSearch(user_message, { safeSearch: SafeSearchType.MODERATE }),
-                    new Promise((resolve) => setTimeout(() => resolve(null), GROUNDING_TIMEOUT_MS))
+                    new Promise((resolve) => setTimeout(() => resolve(null), SEARCH_TIMEOUT_MS))
                 ]);
-                const results = (ddg && !ddg.noResults && Array.isArray(ddg.results)) ? ddg.results.slice(0, 6) : [];
-                if (results.length > 0) {
-                    // Strip HTML tags from DDG snippets and build a compact research block.
-                    const block = results.map((r, i) => {
-                        const title = (r.title || '').replace(/<[^>]+>/g, '');
-                        const snippet = (r.description || '').replace(/<[^>]+>/g, '');
-                        return `${i + 1}. ${title}\n   ${snippet}\n   Source: ${r.url}`;
-                    }).join('\n\n');
-                    webSearchContext = `## Live Web Research (free DuckDuckGo search):\n${block}\n\n`;
-                    webSearchExecuted = true;
-                    citations = results.map(r => ({ url: r.url, source: 'duckduckgo_search' }));
-                    log('GROUNDED', `Web grounding OK via DuckDuckGo (${citations.length} sources)`);
+
+                // Keep ONLY real organic results: drop ad/bang/sponsored entries and
+                // anything without a usable http(s) URL.
+                const organic = (ddg && !ddg.noResults && Array.isArray(ddg.results))
+                    ? ddg.results.filter(r =>
+                        r && !r.bang && typeof r.url === 'string' && /^https?:\/\//i.test(r.url))
+                    : [];
+
+                // Read the top 3 organic pages in parallel (each independently capped).
+                const top = organic.slice(0, 3);
+                if (top.length > 0) {
+                    log('GROUNDING_READ', `Reading ${top.length} organic URLs (ads skipped): ${top.map(r => r.url).join(', ')}`);
+                    const pages = await Promise.all(top.map(async (r) => {
+                        const body = await fetchReadableText(r.url);
+                        return { ...r, body };
+                    }));
+
+                    const usable = pages.filter(p => p.body && p.body.length > 200);
+                    if (usable.length > 0) {
+                        const block = usable.map((p, i) => {
+                            const title = (p.title || '').replace(/<[^>]+>/g, '');
+                            return `### Source ${i + 1}: ${title}\nURL: ${p.url}\nContent:\n${p.body}`;
+                        }).join('\n\n');
+                        webSearchContext = `## Live Web Research (free DuckDuckGo + page reading, ads excluded):\n${block}\n\n`;
+                        webSearchExecuted = true;
+                        citations = usable.map(p => ({ url: p.url, source: 'duckduckgo_page_read' }));
+                        log('GROUNDED', `Read ${usable.length} pages OK`);
+                    } else {
+                        // Pages unreadable (SPAs/blocked) — fall back to organic snippets.
+                        const block = top.map((r, i) => {
+                            const title = (r.title || '').replace(/<[^>]+>/g, '');
+                            const snippet = (r.description || '').replace(/<[^>]+>/g, '');
+                            return `${i + 1}. ${title}\n   ${snippet}\n   Source: ${r.url}`;
+                        }).join('\n\n');
+                        webSearchContext = `## Live Web Research (DuckDuckGo organic snippets, ads excluded):\n${block}\n\n`;
+                        webSearchExecuted = true;
+                        citations = top.map(r => ({ url: r.url, source: 'duckduckgo_snippet' }));
+                        log('GROUNDED', `Pages unreadable — used ${top.length} organic snippets`);
+                    }
                 } else {
-                    log('GROUNDING_SKIP', `no DuckDuckGo results within ${GROUNDING_TIMEOUT_MS}ms — debating without grounding`);
+                    log('GROUNDING_SKIP', `no organic DuckDuckGo results — debating without grounding`);
                 }
             } catch (gErr) {
                 // Grounding is best-effort — never block the debate if it fails.
