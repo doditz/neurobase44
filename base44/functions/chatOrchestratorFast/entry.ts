@@ -1,4 +1,4 @@
-import { createClientFromRequest } from 'npm:@base44/sdk@0.8.4';
+import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
 
 /**
  * CHAT ORCHESTRATOR FAST v13.0 - Optimized for Speed & Fluidity
@@ -196,11 +196,22 @@ RULES: Individual tags only, max 120 chars/tag, NO artist names.`
 
         if (needsGrounding) {
             try {
-                const grounded = await base44.integrations.Core.InvokeLLM({
+                // HARD TIMEOUT: grounding is best-effort and must NEVER block the
+                // debate. The internal grounding model has been observed hanging
+                // ~100s; race it against a 20s timeout so the pipeline always
+                // proceeds. On timeout we simply skip grounding (debate continues).
+                const GROUNDING_TIMEOUT_MS = 20000;
+                const groundingCall = base44.integrations.Core.InvokeLLM({
                     prompt: `Search the web and return concise, factual, up-to-date information with real source URLs for this query:\n\n"${user_message}"\n\nProvide key verified facts followed by a "Sources:" list of real URLs.`,
                     model: MODEL_GROUNDING,
                     add_context_from_internet: true
                 });
+                const grounded = await Promise.race([
+                    groundingCall,
+                    new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error(`grounding timeout >${GROUNDING_TIMEOUT_MS}ms`)), GROUNDING_TIMEOUT_MS)
+                    )
+                ]);
                 if (grounded && typeof grounded === 'string' && grounded.trim()) {
                     webSearchContext = `## Live Web Research (grounded via internal Gemini 3.1 Pro):\n${grounded}\n\n`;
                     webSearchExecuted = true;
