@@ -280,9 +280,39 @@ Deliver the final answer directly.`;
             ...phase2.map(m => ({ round: 2, persona: `[P2] ${m.label}`, response: m.revised || '(persona unavailable)' }))
         ];
 
+        // ===== MULTI-OUTPUT CHUNKING (token-aware, never mid-turn) =====
+        // The full transcript can exceed a single output window. debateChunker
+        // GREEDILY packs as many rounds/turns as fit per output (min output
+        // count — NOT one round per output) and appends a user-facing
+        // "say go/continue/k" handoff to the tail of every non-final chunk.
+        // Non-breaking: synthesis & debate_history are still returned as before.
+        let output_chunks = [synthesis];
+        let chunk_meta = { total_chunks: 1, cut_strategy: 'single', handoff_line: '' };
+        try {
+            const chunkRes = await base44.functions.invoke('debateChunker', {
+                synthesis,
+                debate_history,
+                max_output_tokens: requestData.max_output_tokens || 8000,
+                verbose: maxPersonas >= 6 || canonicalRounds >= 7
+            });
+            if (chunkRes?.data?.success) {
+                output_chunks = chunkRes.data.chunks;
+                chunk_meta = {
+                    total_chunks: chunkRes.data.total_chunks,
+                    cut_strategy: chunkRes.data.cut_strategy,
+                    handoff_line: chunkRes.data.handoff_line
+                };
+                log('CHUNKED', `${chunk_meta.total_chunks} output(s) via ${chunk_meta.cut_strategy} cuts`);
+            }
+        } catch (e) {
+            log('CHUNK_FAIL', `single-output fallback: ${e.message}`);
+        }
+
         return Response.json({
             success: true,
             synthesis,
+            output_chunks,
+            chunk_meta,
             method: 'persona_smrce_smas',
             personas_used: personas.map(p => p.name),
             personas_succeeded: available.map(p => p.label),
