@@ -5,15 +5,17 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * ----------------------------------------------------------------------------
  * Used for HIGH-COMPLEXITY tasks (NEURONAS complexity level 4 & 5).
  *
- * v2.0 REWRITE (per enforced policy):
- *   - The debate is now driven by the USER'S 213-PERSONA LIBRARY (Persona entity)
+ * v2.1 (per enforced policy — Base44 INTERNAL models only, no external paid API):
+ *   - The debate is driven by the USER'S 213-PERSONA LIBRARY (Persona entity)
  *     selected by `personaTeamOptimizer` (ARS / SMRCE-weighted), NOT a fixed
  *     3-model panel.
  *   - SMRCE metrics (`smarceScorer`) drive complexity, archetype, hemisphere and
  *     the dynamic team size / temperature.
- *   - Model routing is LOCKED to the configured Claude subscription:
- *       deep convergence → claude_opus_4_8 ; persona turns → claude_sonnet_4_6.
- *     NO Gemini. NO external/paid API. NO automatic model switching.
+ *   - triLlmDebate serves the HIGH/EXTREME complexity tier. Model routing:
+ *       deep convergence (synthesis) → claude_opus_4_8 ;
+ *       persona debate turns        → claude_opus_4_6.
+ *     These are Base44 INTERNAL models (no external paid API key). Internal
+ *     Gemini 3.1 Pro is reserved for web grounding upstream in the orchestrator.
  *
  * THREE-PHASE PERSONA PROTOCOL:
  *   Phase 1 — INDEPENDENT PERSONA DRAFTS: each selected persona reasons
@@ -31,9 +33,10 @@ import { createClientFromRequest } from 'npm:@base44/sdk@0.8.31';
  * protocol degrades gracefully to the remaining personas (never throws).
  */
 
-// LOCKED model routing — Claude subscription ONLY. No Gemini, no external API.
-const MODEL_PERSONA = 'claude_sonnet_4_6';  // persona debate turns
-const MODEL_SYNTH = 'claude_opus_4_8';      // deepest model for final convergence
+// Base44 INTERNAL model routing — no external paid API key.
+// triLlmDebate = HIGH/EXTREME tier: Opus 4.6 persona turns, Opus 4.8 synthesis.
+const MODEL_PERSONA = 'claude_opus_4_6';  // persona debate turns (medium-deep tier)
+const MODEL_SYNTH = 'claude_opus_4_8';    // deepest model for final convergence
 
 /**
  * Single LLM call — LOCKED to the configured Claude models via Core.InvokeLLM.
