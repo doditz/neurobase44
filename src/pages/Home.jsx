@@ -7,7 +7,8 @@ import { homeTranslations } from "@/components/home/translations";
 const getInitialLang = () => {
   const saved = localStorage.getItem("home_lang");
   if (saved === "en" || saved === "fr") return saved;
-  return navigator.language?.startsWith("fr") ? "fr" : "en";
+  return "fr"; // Loi 101 : le français est la langue d'affichage par défaut
+
 };
 
 export default function Home() {
