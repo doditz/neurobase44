@@ -20,6 +20,15 @@
     <meta name="ClaudeBot" content="index, follow" />
     <meta name="PerplexityBot" content="index, follow" />
 
+    <!-- Contexte lisible sans exécution de JavaScript (agents LLM) -->
+    <meta
+      name="llm:context"
+      content="Cognitronic OS / NEURONAS v13.1 — moteur de synthèse multi-agents structurée (SMAS). Flux machine : <script id='llm-rss-feed' type='application/llm+json'> présent dans le <body>, statique au chargement puis mis à jour à chaque navigation SPA."
+    />
+    <meta name="llm:feed" content="#llm-rss-feed" />
+    <meta name="llm:feed-type" content="application/llm+json" />
+    <meta name="llm:default-language" content="fr-CA" />
+
     <meta property="og:type" content="website" />
     <meta property="og:locale" content="fr_CA" />
     <meta property="og:locale:alternate" content="en_CA" />
@@ -54,6 +63,75 @@
   </head>
   <body>
     <div id="root"></div>
+
+    <!--
+      Flux LLM statique (SSR-less baseline).
+      Lisible en `view-source:` sans exécuter le JS. Le composant React <LlmFeed />
+      réutilise ce même noeud (#llm-rss-feed) et le régénère à chaque navigation SPA
+      en y ajoutant l'état courant (`channel`) et les paramètres d'URL.
+    -->
+    <script type="application/llm+json" id="llm-rss-feed" aria-hidden="true" style="display: none">
+      {
+        "version": "1.0",
+        "source": "static-html-baseline",
+        "channel": {
+          "app": "Cognitronic OS — NEURONAS v13.1",
+          "language": "fr-CA",
+          "current_path": "/",
+          "current_view": "home",
+          "current_view_description": "Page d'accueil bilingue : présentation du moteur SMAS et navigation vers les modules.",
+          "available_actions": [{ "method": "GET", "name": "view", "description": "Consulter la page d'accueil" }]
+        },
+        "navigation": {
+          "how_to_navigate": "Application SPA React (react-router). Suivre les chemins de `available_routes`. Après exécution du JS, ce même noeud est régénéré à chaque navigation avec l'état courant.",
+          "home_path": "/",
+          "language_switch": "Sélecteur FR/EN sur la page d'accueil (français par défaut, loi 101)."
+        },
+        "available_routes": [
+          { "path": "/", "view": "home", "description": "Accueil bilingue, présentation du moteur SMAS.", "access": "public", "methods": ["GET"] },
+          { "path": "/Chat", "view": "Chat", "description": "Chat cognitif SMAS : débat de personas, ancrage web, validation éthique.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/Suno", "view": "Suno", "description": "Architecte de prompts musicaux Suno AI.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/Personas", "view": "Personas", "description": "Registre des personas cognitroniques (filtres, édition).", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/SunoPersonas", "view": "SunoPersonas", "description": "Personas spécialisées pour la génération musicale.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/PerplexityHistory", "view": "PerplexityHistory", "description": "Historique des recherches web ancrées.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/MemoryExplorer", "view": "MemoryExplorer", "description": "Exploration des voies mémoire et paliers sémantiques.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/MemoryVisualization", "view": "MemoryVisualization", "description": "Visualisation du graphe mémoire.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/Benchmark", "view": "Benchmark", "description": "Bancs d'essai comparatifs LLM seul vs pile NEURONAS.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/BenchmarkAnalytics", "view": "BenchmarkAnalytics", "description": "Analytique des bancs d'essai.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/ValidationDashboard", "view": "ValidationDashboard", "description": "Tableau de bord de validation cognitive et éthique.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/DevTest", "view": "DevTest", "description": "Laboratoire de tests de développement.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/DevTestAnalytics", "view": "DevTestAnalytics", "description": "Analytique des tests de développement.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/DynamicGradingTest", "view": "DynamicGradingTest", "description": "Évaluateur LLM dynamique.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/NeuronasGauntlet", "view": "NeuronasGauntlet", "description": "Séquence de tests de performance protocole D2.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/VectorRoutingTest", "view": "VectorRoutingTest", "description": "Test du routage par similarité vectorielle.", "access": "authenticated", "methods": ["POST"] },
+          { "path": "/GitHub", "view": "GitHub", "description": "Intégration GitHub : contexte de dépôt et historique de commits.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/ResourceMonitoring", "view": "ResourceMonitoring", "description": "Surveillance CPU / RAM / tokens.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/SelfOptimizationDashboard", "view": "SelfOptimizationDashboard", "description": "Tableau de bord d'auto-optimisation.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/PerformanceTracker", "view": "PerformanceTracker", "description": "Suivi de performance par modèle.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/OptimizationMetricsDashboard", "view": "OptimizationMetricsDashboard", "description": "Centre des métriques d'optimisation.", "access": "authenticated", "methods": ["GET"] },
+          { "path": "/CollaborativeWorkspace", "view": "CollaborativeWorkspace", "description": "Espace collaboratif : commentaires et annotations.", "access": "authenticated", "methods": ["GET", "POST", "DELETE"] },
+          { "path": "/Profile", "view": "Profile", "description": "Profil utilisateur et préférences.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/HuggingFaceSettings", "view": "HuggingFaceSettings", "description": "Configuration de l'intégration Hugging Face.", "access": "authenticated", "methods": ["GET", "POST"] },
+          { "path": "/DatasetManager", "view": "DatasetManager", "description": "Gestionnaire central des jeux de données.", "access": "admin", "methods": ["GET", "POST", "DELETE"] },
+          { "path": "/DevTestDatasetBuilder", "view": "DevTestDatasetBuilder", "description": "Constructeur du jeu de données de tests dev.", "access": "admin", "methods": ["GET", "POST", "DELETE"] },
+          { "path": "/BenchmarkDatasetBuilder", "view": "BenchmarkDatasetBuilder", "description": "Constructeur du jeu de données de bancs d'essai.", "access": "admin", "methods": ["GET", "POST", "DELETE"] },
+          { "path": "/DevTestRunner", "view": "DevTestRunner", "description": "Exécuteur de tests dev unitaires ou par lot.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/BenchmarkRunner", "view": "BenchmarkRunner", "description": "Exécuteur de bancs d'essai A/B.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/BenchmarkTestRunner", "view": "BenchmarkTestRunner", "description": "Exécuteur de tests de banc d'essai détaillés.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/SystemPipelineTest", "view": "SystemPipelineTest", "description": "Test d'intégrité du pipeline complet.", "access": "admin", "methods": ["POST"] },
+          { "path": "/Phase3JerkFilterTest", "view": "Phase3JerkFilterTest", "description": "Test du filtre de secousse sémantique.", "access": "admin", "methods": ["POST"] },
+          { "path": "/Phase4EnhancedSMASTest", "view": "Phase4EnhancedSMASTest", "description": "Test du moteur SMAS enrichi.", "access": "admin", "methods": ["POST"] },
+          { "path": "/SMASUpgradeTest", "view": "SMASUpgradeTest", "description": "Test de non-régression des mises à niveau SMAS.", "access": "admin", "methods": ["POST"] },
+          { "path": "/AutoOptimization", "view": "AutoOptimization", "description": "Boucle d'auto-optimisation des paramètres.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/AutoOptimizationTest", "view": "AutoOptimizationTest", "description": "Test du routeur sémantique DSTIB.", "access": "admin", "methods": ["POST"] },
+          { "path": "/SystemHealth", "view": "SystemHealth", "description": "État de santé du système.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/SystemMetrics", "view": "SystemMetrics", "description": "Métriques système agrégées.", "access": "admin", "methods": ["GET"] },
+          { "path": "/SystemDiagnostic", "view": "SystemDiagnostic", "description": "Diagnostic complet et réparation assistée.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/RootCauseAnalysis", "view": "RootCauseAnalysis", "description": "Analyse de cause racine assistée par IA.", "access": "admin", "methods": ["GET", "POST"] },
+          { "path": "/SystemDocumentation", "view": "SystemDocumentation", "description": "Documentation technique NEURONAS.", "access": "admin", "methods": ["GET"] }
+        ]
+      }
+    </script>
     <!-- Fallback content for agents and crawlers that do not execute JavaScript -->
     <noscript>
       <main lang="fr">
