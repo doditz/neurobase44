@@ -26,8 +26,17 @@ function buildFeed(pathname) {
       current_path: pathname,
       current_view: currentKey || "home",
       current_view_description: current.description,
+      current_view_access: current.access ?? "authenticated",
       query_params: params,
       available_actions: current.actions
+    },
+    // --- guide de navigation destiné aux agents LLM ---
+    navigation: {
+      how_to_navigate:
+        "Application SPA : suivre les chemins de `available_routes` (react-router). Ce flux est régénéré à chaque navigation, sans rechargement.",
+      route_count: routeKeys.length,
+      home_path: "/",
+      language_switch: "Sélecteur FR/EN sur la page d'accueil (français par défaut, loi 101)."
     },
     // --- items : toutes les routes navigables ---
     available_routes: routeKeys.map((key) => {
@@ -36,6 +45,8 @@ function buildFeed(pathname) {
         path: `/${key}`,
         view: key || "home",
         description: manifest.description,
+        access: manifest.access ?? "authenticated",
+        is_current: key === currentKey,
         actions: manifest.actions
       };
     })

@@ -99,6 +99,151 @@ export const llmRouteManifest = {
       { method: "POST", name: "add_comment", description: "Ajouter un commentaire ou une annotation" },
       { method: "DELETE", name: "delete_comment", description: "Supprimer un commentaire" }
     ]
+  },
+  Home: {
+    description: "Alias de la page d'accueil bilingue.",
+    actions: [{ method: "GET", name: "view", description: "Consulter la page d'accueil" }]
+  },
+  index: {
+    description: "Route d'index technique (redirection interne).",
+    actions: [{ method: "GET", name: "view", description: "Consulter l'index" }]
+  },
+  HuggingFaceSettings: {
+    description: "Configuration de l'intégration Hugging Face (embeddings, analyse sémantique).",
+    actions: [
+      { method: "GET", name: "view", description: "Consulter la configuration" },
+      { method: "POST", name: "update_settings", description: "Mettre à jour la configuration" }
+    ]
+  },
+
+  // --- Datasets (accès administrateur) ---
+  DatasetManager: {
+    description: "Gestionnaire central des jeux de données de test et de banc d'essai.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_datasets", description: "Lister les jeux de données" },
+      { method: "POST", name: "import_dataset", description: "Importer ou peupler un jeu de données" },
+      { method: "DELETE", name: "delete_dataset", description: "Supprimer des enregistrements" }
+    ]
+  },
+  DevTestDatasetBuilder: {
+    description: "Constructeur du jeu de données des tests de développement.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_questions", description: "Lister les questions" },
+      { method: "POST", name: "create_question", description: "Créer une question de test" },
+      { method: "DELETE", name: "delete_question", description: "Supprimer une question" }
+    ]
+  },
+  BenchmarkDatasetBuilder: {
+    description: "Constructeur du jeu de données des bancs d'essai.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_questions", description: "Lister les questions de banc d'essai" },
+      { method: "POST", name: "create_question", description: "Créer une question de banc d'essai" },
+      { method: "DELETE", name: "delete_question", description: "Supprimer une question" }
+    ]
+  },
+
+  // --- Exécuteurs de tests (accès administrateur) ---
+  DevTestRunner: {
+    description: "Exécuteur de tests de développement, unitaires ou par lot.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_results", description: "Consulter les résultats" },
+      { method: "POST", name: "run_test", description: "Lancer un test ou un lot de tests" }
+    ]
+  },
+  BenchmarkRunner: {
+    description: "Exécuteur de bancs d'essai A/B.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_results", description: "Consulter les résultats" },
+      { method: "POST", name: "run_benchmark", description: "Lancer un banc d'essai" }
+    ]
+  },
+  BenchmarkTestRunner: {
+    description: "Exécuteur de tests de banc d'essai avec journalisation détaillée.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_results", description: "Consulter les résultats" },
+      { method: "POST", name: "run_test", description: "Lancer un test unitaire ou par lot" }
+    ]
+  },
+
+  // --- Tests avancés du moteur (accès administrateur) ---
+  SystemPipelineTest: {
+    description: "Test d'intégrité du pipeline complet NEURONAS.",
+    access: "admin",
+    actions: [{ method: "POST", name: "run_pipeline_test", description: "Lancer le test de pipeline" }]
+  },
+  Phase3JerkFilterTest: {
+    description: "Test du filtre de secousse sémantique (dérivée troisième, phase 3).",
+    access: "admin",
+    actions: [{ method: "POST", name: "run_test", description: "Lancer le test du filtre de secousse" }]
+  },
+  Phase4EnhancedSMASTest: {
+    description: "Test du moteur SMAS enrichi (phase 4).",
+    access: "admin",
+    actions: [{ method: "POST", name: "run_test", description: "Lancer le test SMAS phase 4" }]
+  },
+  SMASUpgradeTest: {
+    description: "Test de non-régression des mises à niveau SMAS.",
+    access: "admin",
+    actions: [{ method: "POST", name: "run_test", description: "Lancer le test de mise à niveau" }]
+  },
+  VectorRoutingTest: {
+    description: "Test du routage par similarité vectorielle.",
+    actions: [{ method: "POST", name: "run_test", description: "Lancer le test de routage vectoriel" }]
+  },
+  AutoOptimizationTest: {
+    description: "Test du routeur sémantique DSTIB et de l'auto-optimisation.",
+    access: "admin",
+    actions: [{ method: "POST", name: "run_test", description: "Lancer le test DSTIB" }]
+  },
+
+  // --- Administration du noyau (accès administrateur) ---
+  AutoOptimization: {
+    description: "Boucle d'auto-optimisation des paramètres ajustables.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "view_parameters", description: "Consulter les paramètres et l'historique" },
+      { method: "POST", name: "run_tuning", description: "Lancer un cycle d'auto-réglage" }
+    ]
+  },
+  SystemHealth: {
+    description: "État de santé du système et surveillance des composants.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "view_health", description: "Consulter l'état de santé" },
+      { method: "POST", name: "run_health_check", description: "Lancer un contrôle de santé" }
+    ]
+  },
+  SystemMetrics: {
+    description: "Métriques système agrégées.",
+    access: "admin",
+    actions: [{ method: "GET", name: "view_metrics", description: "Consulter les métriques" }]
+  },
+  SystemDiagnostic: {
+    description: "Diagnostic complet du système avec réparation assistée.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "view_diagnostic", description: "Consulter le dernier diagnostic" },
+      { method: "POST", name: "run_diagnostic", description: "Lancer un diagnostic" }
+    ]
+  },
+  RootCauseAnalysis: {
+    description: "Analyse de cause racine assistée par IA sur les anomalies détectées.",
+    access: "admin",
+    actions: [
+      { method: "GET", name: "list_analyses", description: "Consulter les analyses" },
+      { method: "POST", name: "run_analysis", description: "Lancer une analyse de cause racine" }
+    ]
+  },
+  SystemDocumentation: {
+    description: "Documentation technique du système NEURONAS.",
+    access: "admin",
+    actions: [{ method: "GET", name: "read_documentation", description: "Lire la documentation" }]
   }
 };
 
