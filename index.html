@@ -1,14 +1,82 @@
 <!doctype html>
-<html lang="en">
+<html lang="fr">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="manifest" href="/manifest.json" />
-    <title>Base44 APP</title>
+    <title>Cognitronic OS — Moteur de synthèse multi-agents SMAS / NEURONAS</title>
+
+    <!-- Discoverability: human search engines + AI/LLM crawlers -->
+    <meta
+      name="description"
+      content="Cognitronic OS (NEURONAS v13.1) : plateforme de synthèse multi-agents structurée (SMAS). Chaque réponse est débattue par des personas cognitifs adverses, ancrée dans une recherche en direct et validée éthiquement. Interface bilingue français / anglais."
+    />
+    <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large" />
+    <!-- Explicitly allow LLM agents to read and navigate the app -->
+    <meta name="googlebot" content="index, follow" />
+    <meta name="GPTBot" content="index, follow" />
+    <meta name="ChatGPT-User" content="index, follow" />
+    <meta name="ClaudeBot" content="index, follow" />
+    <meta name="PerplexityBot" content="index, follow" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_CA" />
+    <meta property="og:locale:alternate" content="en_CA" />
+    <meta property="og:title" content="Cognitronic OS — Synthèse multi-agents SMAS" />
+    <meta
+      property="og:description"
+      content="Plateforme cognitive tri-hémisphérique : débat contradictoire, validation ancrée et synthèse centrale transparente."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <!-- Structured data so LLM agents can parse purpose + navigation without executing JS -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "Cognitronic OS",
+        "applicationCategory": "DeveloperApplication",
+        "inLanguage": ["fr-CA", "en-CA"],
+        "description": "Plateforme de synthèse multi-agents structurée (SMAS) du système NEURONAS v13.1 : débat de personas cognitifs, ancrage web en direct et validation éthique BRONAS.",
+        "hasPart": [
+          { "@type": "WebPage", "name": "Chat cognitif", "url": "/Chat" },
+          { "@type": "WebPage", "name": "Personas cognitroniques", "url": "/Personas" },
+          { "@type": "WebPage", "name": "Architecte Suno AI", "url": "/Suno" },
+          { "@type": "WebPage", "name": "Explorateur de mémoire", "url": "/MemoryExplorer" },
+          { "@type": "WebPage", "name": "Bancs d'essai", "url": "/Benchmark" },
+          { "@type": "WebPage", "name": "Labo cognitronique", "url": "/DevTest" },
+          { "@type": "WebPage", "name": "Gauntlet Neuronas", "url": "/NeuronasGauntlet" },
+          { "@type": "WebPage", "name": "Recherche Perplexity", "url": "/PerplexityHistory" }
+        ]
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Fallback content for agents and crawlers that do not execute JavaScript -->
+    <noscript>
+      <main lang="fr">
+        <h1>Cognitronic OS — NEURONAS v13.1</h1>
+        <p>
+          Plateforme de synthèse multi-agents structurée (SMAS). Chaque réponse est débattue par des
+          personas cognitifs adverses (analytique, créatif, contrarien), ancrée dans une recherche en
+          direct, puis validée éthiquement avant livraison.
+        </p>
+        <nav aria-label="Navigation principale">
+          <ul>
+            <li><a href="/Chat">Chat cognitif</a></li>
+            <li><a href="/Personas">Personas cognitroniques</a></li>
+            <li><a href="/Suno">Architecte Suno AI</a></li>
+            <li><a href="/MemoryExplorer">Explorateur de mémoire</a></li>
+            <li><a href="/Benchmark">Bancs d'essai</a></li>
+            <li><a href="/DevTest">Labo cognitronique</a></li>
+            <li><a href="/NeuronasGauntlet">Gauntlet Neuronas</a></li>
+            <li><a href="/PerplexityHistory">Recherche Perplexity</a></li>
+          </ul>
+        </nav>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
