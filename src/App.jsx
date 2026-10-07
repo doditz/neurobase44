@@ -8,6 +8,7 @@ import LlmFeed from '@/lib/LlmFeed'
 import { pagesConfig } from './pages.config'
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import PageNotFound from './lib/PageNotFound';
+import OAuthConsent from './pages/OAuthConsent';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 
@@ -45,6 +46,8 @@ const AuthenticatedApp = () => {
   // Render the main app
   return (
     <Routes>
+      {/* MCP OAuth consent — must sit outside any auth guard (handles signed-out itself) */}
+      <Route path="/oauth/consent" element={<OAuthConsent />} />
       <Route path="/" element={
         <LayoutWrapper currentPageName={mainPageKey}>
           <MainPage />
